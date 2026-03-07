@@ -198,6 +198,8 @@ class DealOut(BaseModel):
     follow_up_notes: Optional[str]
     total_calls: int
     total_touchpoints: int
+    ghl_contact_id: Optional[str] = None
+    ghl_opportunity_id: Optional[str] = None
     ai_win_probability: Optional[float]
     ai_recommended_action: Optional[str]
     ai_deal_health: Optional[str]

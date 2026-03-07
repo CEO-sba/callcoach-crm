@@ -182,6 +182,10 @@ class PipelineDeal(Base):
     total_calls = Column(Integer, default=0)
     total_touchpoints = Column(Integer, default=0)
 
+    # External CRM link
+    ghl_contact_id = Column(String(200))  # GoHighLevel contact ID
+    ghl_opportunity_id = Column(String(200))  # GoHighLevel opportunity ID
+
     # AI insights
     ai_win_probability = Column(Float)  # 0-100
     ai_recommended_action = Column(Text)
@@ -328,3 +332,32 @@ class WeeklyReport(Base):
 
     # Relationships
     clinic = relationship("Clinic", back_populates="weekly_reports")
+
+
+class GHLIntegration(Base):
+    """GoHighLevel API integration per clinic."""
+    __tablename__ = "ghl_integrations"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    clinic_id = Column(String, ForeignKey("clinics.id"), nullable=False, unique=True)
+
+    # GHL credentials
+    api_key = Column(String(500), nullable=False)
+    location_id = Column(String(200))  # GHL location/sub-account ID
+
+    # Sync state
+    is_active = Column(Boolean, default=True)
+    last_sync_at = Column(DateTime)
+    last_sync_status = Column(String(50), default="never")  # never, success, failed
+    last_sync_error = Column(Text)
+    total_leads_synced = Column(Integer, default=0)
+
+    # Mapping config
+    sync_pipeline_id = Column(String(200))   # GHL pipeline to pull from (if specific)
+    auto_sync_enabled = Column(Boolean, default=True)
+    sync_interval_minutes = Column(Integer, default=30)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    clinic = relationship("Clinic")

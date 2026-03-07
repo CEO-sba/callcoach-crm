@@ -26,6 +26,7 @@ def init_db():
     from app.models import (
         User, Clinic, Call, CallNote, PipelineDeal,
         DealActivity, CoachingInsight, CallScore, Tag,
-        LearningProgress, Certification, WeeklyReport
+        LearningProgress, Certification, WeeklyReport,
+        GHLIntegration
     )
     Base.metadata.create_all(bind=engine)
