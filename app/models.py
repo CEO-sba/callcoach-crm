@@ -236,6 +236,54 @@ class CoachingInsight(Base):
     call = relationship("Call", back_populates="coaching_insights")
 
 
+class LearningProgress(Base):
+    __tablename__ = "learning_progress"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    clinic_id = Column(String, ForeignKey("clinics.id"), nullable=False)
+    module_id = Column(String(50), nullable=False)
+
+    # Progress state
+    status = Column(String(20), default="not_started")  # not_started, in_progress, completed
+    started_at = Column(DateTime)
+    completed_at = Column(DateTime)
+
+    # Quiz results
+    quiz_score = Column(Float)  # percentage 0-100
+    quiz_attempts = Column(Integer, default=0)
+    quiz_passed = Column(Boolean, default=False)
+    quiz_answers = Column(JSON)  # last quiz attempt answers
+
+    # Mock call results
+    mock_score = Column(Float)  # percentage 0-100
+    mock_attempts = Column(Integer, default=0)
+    mock_feedback = Column(JSON)  # AI feedback on last mock attempt
+
+    # Time tracking
+    time_spent_minutes = Column(Integer, default=0)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Certification(Base):
+    __tablename__ = "certifications"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    clinic_id = Column(String, ForeignKey("clinics.id"), nullable=False)
+    certification_id = Column(String(50), nullable=False)  # cert_foundation, cert_advanced, cert_master
+    title = Column(String(200), nullable=False)
+
+    earned_at = Column(DateTime, default=datetime.utcnow)
+    avg_quiz_score = Column(Float)
+    avg_mock_score = Column(Float)
+    total_modules_completed = Column(Integer)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class Tag(Base):
     __tablename__ = "tags"
 
