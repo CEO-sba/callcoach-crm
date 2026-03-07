@@ -59,7 +59,8 @@ def _process_call_recording_sync(call_id: str, file_path: str):
             logger.info(f"Transcription result for call {call_id}: {len(transcript_text)} chars")
 
             # Check if we got a real transcription or just a placeholder
-            if transcript_text and not transcript_text.startswith("[Transcription requires"):
+            is_placeholder = not transcript_text or transcript_text.startswith("[")
+            if not is_placeholder:
                 call.transcription = transcript_text
                 call.transcription_segments = result.get("segments", [])
                 duration = int(result.get("duration", 0))
@@ -69,7 +70,7 @@ def _process_call_recording_sync(call_id: str, file_path: str):
                 db.commit()
                 logger.info(f"Transcription completed for call {call_id}")
             else:
-                # Whisper not available or returned placeholder
+                # No real transcription available
                 call.transcription = transcript_text
                 call.transcription_status = "completed"
                 db.commit()
@@ -84,8 +85,8 @@ def _process_call_recording_sync(call_id: str, file_path: str):
             if not call.transcription or len(call.transcription) < 20:
                 return
 
-        # Step 2: AI Analysis
-        if call.transcription and len(call.transcription) > 20 and not call.transcription.startswith("[Transcription requires"):
+        # Step 2: AI Analysis (runs if we have real transcription text)
+        if call.transcription and len(call.transcription) > 20 and not call.transcription.startswith("["):
             logger.info(f"Starting AI analysis for call {call_id}")
             try:
                 agent = db.query(User).filter(User.id == call.agent_id).first()

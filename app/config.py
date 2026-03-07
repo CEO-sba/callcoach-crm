@@ -30,6 +30,7 @@ ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
 
 # Transcription
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base")  # tiny, base, small, medium, large-v3
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")  # Free tier: get key from console.groq.com
 
 # App
 APP_NAME = "CallCoach CRM"

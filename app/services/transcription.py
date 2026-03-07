@@ -1,15 +1,15 @@
 """
 CallCoach CRM - Transcription Service
 
-Supports two modes:
-1. Local transcription using faster-whisper (offline, no API costs)
-2. Fallback to simple file-based processing
-
-For production, you can swap in AssemblyAI, Deepgram, or Google Speech-to-Text.
+Priority order:
+1. Groq Whisper API (cloud, free tier, fast) - recommended for Railway/production
+2. Local faster-whisper (offline, no API costs) - for local development
+3. Placeholder fallback
 """
 import os
 import json
 import logging
+import subprocess
 from pathlib import Path
 from typing import Optional
 
@@ -21,7 +21,7 @@ try:
     from faster_whisper import WhisperModel
     WHISPER_AVAILABLE = True
 except ImportError:
-    logger.warning("faster-whisper not installed. Install with: pip install faster-whisper")
+    logger.info("faster-whisper not installed. Will use Groq cloud transcription if GROQ_API_KEY is set.")
 
 _model = None
 
@@ -36,9 +36,117 @@ def get_whisper_model(model_size: str = "base"):
     return _model
 
 
+def _convert_to_wav(file_path: str) -> str:
+    """Convert audio to WAV format using ffmpeg for Groq API compatibility."""
+    input_path = Path(file_path)
+    wav_path = input_path.with_suffix(".wav")
+
+    if input_path.suffix.lower() == ".wav":
+        return file_path
+
+    try:
+        result = subprocess.run(
+            ["ffmpeg", "-i", str(input_path), "-ar", "16000", "-ac", "1",
+             "-y", str(wav_path)],
+            capture_output=True, text=True, timeout=120
+        )
+        if result.returncode == 0 and wav_path.exists():
+            logger.info(f"Converted {input_path.name} to WAV: {wav_path.stat().st_size} bytes")
+            return str(wav_path)
+        else:
+            logger.error(f"ffmpeg conversion failed: {result.stderr}")
+            return file_path
+    except Exception as e:
+        logger.error(f"Audio conversion error: {e}")
+        return file_path
+
+
+async def _transcribe_with_groq(file_path: str) -> dict:
+    """Transcribe using Groq's Whisper API (free tier, very fast)."""
+    from app.config import GROQ_API_KEY
+    import httpx
+
+    if not GROQ_API_KEY:
+        logger.warning("GROQ_API_KEY not set. Cannot use cloud transcription.")
+        return None
+
+    # Convert to WAV for best compatibility
+    wav_path = _convert_to_wav(file_path)
+    audio_path = Path(wav_path)
+
+    # Check file size (Groq limit is 25MB)
+    file_size = audio_path.stat().st_size
+    if file_size > 25 * 1024 * 1024:
+        logger.warning(f"File too large for Groq API ({file_size} bytes). Max is 25MB.")
+        return None
+
+    logger.info(f"Sending {audio_path.name} ({file_size} bytes) to Groq Whisper API...")
+
+    try:
+        async with httpx.AsyncClient(timeout=300) as client:
+            with open(str(audio_path), "rb") as f:
+                response = await client.post(
+                    "https://api.groq.com/openai/v1/audio/transcriptions",
+                    headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+                    files={"file": (audio_path.name, f, "audio/wav")},
+                    data={
+                        "model": "whisper-large-v3",
+                        "response_format": "verbose_json",
+                        "language": "en",
+                        "temperature": 0.0,
+                    },
+                )
+
+        if response.status_code != 200:
+            logger.error(f"Groq API error {response.status_code}: {response.text}")
+            return None
+
+        data = response.json()
+        text = data.get("text", "")
+        duration = data.get("duration", 0)
+
+        # Parse segments if available
+        segments = []
+        for seg in data.get("segments", []):
+            segments.append({
+                "start": round(seg.get("start", 0), 2),
+                "end": round(seg.get("end", 0), 2),
+                "text": seg.get("text", "").strip(),
+                "speaker": "unknown"
+            })
+
+        logger.info(f"Groq transcription complete: {len(text)} chars, {duration:.1f}s duration")
+
+        # Clean up temp WAV if we created one
+        if wav_path != file_path and Path(wav_path).exists():
+            try:
+                os.unlink(wav_path)
+            except Exception:
+                pass
+
+        return {
+            "text": text,
+            "segments": segments,
+            "duration": round(duration, 2),
+            "language": data.get("language", "en")
+        }
+
+    except Exception as e:
+        logger.error(f"Groq transcription failed: {e}")
+        # Clean up temp WAV
+        if wav_path != file_path and Path(wav_path).exists():
+            try:
+                os.unlink(wav_path)
+            except Exception:
+                pass
+        return None
+
+
 async def transcribe_audio(file_path: str, model_size: str = "base") -> dict:
     """
     Transcribe an audio file to text with timestamps.
+
+    Priority: Groq Cloud > Local Whisper > Placeholder
 
     Returns:
     {
@@ -51,16 +159,26 @@ async def transcribe_audio(file_path: str, model_size: str = "base") -> dict:
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"Audio file not found: {file_path}")
 
+    # Try Groq cloud first (works on Railway without heavy dependencies)
+    from app.config import GROQ_API_KEY
+    if GROQ_API_KEY:
+        result = await _transcribe_with_groq(file_path)
+        if result and result.get("text"):
+            return result
+        logger.warning("Groq transcription returned empty. Falling back...")
+
+    # Try local Whisper
     if WHISPER_AVAILABLE:
         return await _transcribe_with_whisper(file_path, model_size)
-    else:
-        logger.warning("Whisper not available. Returning placeholder.")
-        return {
-            "text": "[Transcription requires faster-whisper. Install: pip install faster-whisper]",
-            "segments": [],
-            "duration": 0,
-            "language": "en"
-        }
+
+    # Final fallback
+    logger.warning("No transcription method available. Set GROQ_API_KEY or install faster-whisper.")
+    return {
+        "text": "[No transcription available. Set GROQ_API_KEY in Railway environment variables for cloud transcription.]",
+        "segments": [],
+        "duration": 0,
+        "language": "en"
+    }
 
 
 async def _transcribe_with_whisper(file_path: str, model_size: str) -> dict:
@@ -90,7 +208,7 @@ async def _transcribe_with_whisper(file_path: str, model_size: str) -> dict:
                 "start": round(segment.start, 2),
                 "end": round(segment.end, 2),
                 "text": segment.text.strip(),
-                "speaker": "unknown"  # Speaker diarization can be added later
+                "speaker": "unknown"
             }
             segments.append(seg_data)
             full_text_parts.append(segment.text.strip())
@@ -130,8 +248,10 @@ async def transcribe_chunk(audio_data: bytes, model_size: str = "base") -> dict:
 
 def get_transcription_status() -> dict:
     """Check if transcription service is available."""
+    from app.config import GROQ_API_KEY
     return {
         "whisper_available": WHISPER_AVAILABLE,
+        "groq_available": bool(GROQ_API_KEY),
         "model_loaded": _model is not None,
         "supported_formats": [".mp3", ".wav", ".m4a", ".ogg", ".webm", ".flac", ".aac", ".mp4"]
     }
