@@ -233,11 +233,15 @@ async def manually_generate_report(
         "avg_score": report_record.avg_score,
         "conversion_rate": report_record.conversion_rate,
         "top_agent_name": report_record.top_agent_name,
+        "best_agent_name": report_data.get("best_agent_name", "N/A"),
+        "best_agent_score": report_data.get("best_agent_score", 0),
         "calls_by_day": report_record.calls_by_day,
         "sentiment_distribution": report_record.sentiment_distribution,
         "ai_summary": report_record.ai_summary,
         "ai_recommendations": report_record.ai_recommendations,
         "revenue_impact": report_record.revenue_impact,
+        "score_breakdown": report_data.get("score_breakdown", {}),
+        "agent_performance": report_data.get("agent_performance", {}),
         "created_at": report_record.created_at.isoformat(),
         "status": "created" if created else "updated"
     }

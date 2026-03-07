@@ -191,11 +191,45 @@ def generate_weekly_report(
             "avg_score": 0,
             "conversion_rate": 0,
             "best_agent_name": "N/A",
-            "ai_summary": "No calls recorded this week.",
+            "ai_summary": {
+                "executive_summary": "No calls were recorded this week. Start uploading or recording calls to unlock AI-powered performance insights, conversion analytics, and personalized coaching recommendations for your team.",
+                "overall_trend": "stable",
+                "team_highlights": [],
+                "conversion_leak_analysis": None,
+                "individual_agent_insights": [],
+                "top_3_recommendations": [
+                    {
+                        "rank": 1,
+                        "recommendation": "Upload your first call recording to get started",
+                        "rationale": "CallCoach AI needs at least one analyzed call to generate performance scores, identify coaching opportunities, and build your team's baseline metrics.",
+                        "expected_impact": "Unlock full AI coaching, scoring, and weekly reporting",
+                        "implementation": "Go to Calls > Record Call, upload an audio file of a patient call, and let the AI analyze it",
+                        "timeline": "5 minutes"
+                    },
+                    {
+                        "rank": 2,
+                        "recommendation": "Add your team members to track individual performance",
+                        "rationale": "Individual agent tracking allows you to identify top performers, spot coaching needs, and create targeted training plans for each team member.",
+                        "expected_impact": "Personalized coaching insights per agent, leaderboard rankings",
+                        "implementation": "Ask team members to register with your clinic code, then assign them the 'agent' role",
+                        "timeline": "10 minutes"
+                    },
+                    {
+                        "rank": 3,
+                        "recommendation": "Set up your pipeline to track deal conversions",
+                        "rationale": "Connecting call performance to deal outcomes lets the AI calculate revenue impact and identify which call behaviors drive the most bookings.",
+                        "expected_impact": "Revenue impact analysis, conversion rate tracking, ROI measurement",
+                        "implementation": "Go to Pipeline > New Deal and start logging your patient inquiries and their outcomes",
+                        "timeline": "15 minutes"
+                    }
+                ],
+                "revenue_impact": {}
+            },
             "ai_recommendations": [],
             "revenue_impact": {},
             "calls_by_day": {},
-            "sentiment_distribution": {}
+            "sentiment_distribution": {},
+            "score_breakdown": {}
         }
 
     # Average score and metrics

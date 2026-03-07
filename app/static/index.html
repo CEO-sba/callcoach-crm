@@ -951,7 +951,7 @@ const PipelinePage = () => {
                     <h1 style={{fontSize:24,fontWeight:700}}>Pipeline</h1>
                     <div style={{display:'flex',gap:16,marginTop:4}}>
                         <span style={{color:'var(--text-muted)',fontSize:14}}>{deals.length} active deals</span>
-                        <span style={{color:'var(--gold)',fontSize:14,fontWeight:600}}>Total: \u20B9${totalValue.toLocaleString('en-IN')}</span>
+                        <span style={{color:'var(--gold)',fontSize:14,fontWeight:600}}>Total: {'\u20B9'}{totalValue.toLocaleString('en-IN')}</span>
                     </div>
                 </div>
                 <button className="btn btn-gold" onClick={()=>setShowAdd(!showAdd)}>{Icons.plus}<span>New Deal</span></button>
@@ -990,7 +990,7 @@ const PipelinePage = () => {
                                 <span style={{fontSize:13,fontWeight:600,color:'var(--text-secondary)'}}>{stageLabels[stage]}</span>
                                 <span style={{fontSize:12,color:'var(--text-muted)',marginLeft:'auto'}}>{stageDeals.length}</span>
                             </div>
-                            {sv > 0 && <div style={{fontSize:11,color:stageColors[stage],fontWeight:600,marginBottom:8,padding:'0 4px'}}>\u20B9{sv.toLocaleString('en-IN')}</div>}
+                            {sv > 0 && <div style={{fontSize:11,color:stageColors[stage],fontWeight:600,marginBottom:8,padding:'0 4px'}}>{'\u20B9'}{sv.toLocaleString('en-IN')}</div>}
                             <div
                                 className={`stage-drop-zone ${isOver ? 'drag-over' : ''}`}
                                 onDragOver={(e) => handleDragOver(e, stage)}
@@ -1012,7 +1012,7 @@ const PipelinePage = () => {
                                                 <div style={{fontWeight:600,fontSize:14,marginBottom:4}}>{deal.title}</div>
                                                 <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:8}}>{deal.contact_name}</div>
                                                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                                    <span style={{fontWeight:700,fontSize:14,color:'var(--gold)'}}>\u20B9{(deal.deal_value||0).toLocaleString('en-IN')}</span>
+                                                    <span style={{fontWeight:700,fontSize:14,color:'var(--gold)'}}>{'\u20B9'}{(deal.deal_value||0).toLocaleString('en-IN')}</span>
                                                     {deal.treatment_interest && <span className="badge badge-gold" style={{fontSize:10}}>{deal.treatment_interest}</span>}
                                                 </div>
                                                 {deal.source && <div style={{fontSize:10,color:'var(--text-muted)',marginTop:6}}>via {deal.source}</div>}
@@ -1200,46 +1200,138 @@ const CoachingPage = () => {
             )}
 
             {activeTab === 'report' && (
-                <div className="glass" style={{padding:24,borderRadius:12}}>
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
-                        <h3 style={{fontSize:16,fontWeight:700}}>Weekly Performance Report</h3>
-                        <button className="btn btn-gold btn-sm" onClick={generateReport} disabled={reportLoading}>
-                            {reportLoading ? <span className="spinner"></span> : Icons.refresh}
-                            <span>{reportLoading ? 'Generating...' : 'Generate Report'}</span>
-                        </button>
-                    </div>
-                    {weeklyReport ? (
-                        <div>
-                            <div className="stat-card-row" style={{display:'flex',gap:12,marginBottom:20,flexWrap:'wrap'}}>
-                                <StatCard label="Total Calls" value={weeklyReport.total_calls||0}/>
-                                <StatCard label="Avg Score" value={(weeklyReport.avg_score||0).toFixed(1)} accent="var(--gold)"/>
-                                <StatCard label="Conversion" value={`${(weeklyReport.conversion_rate||0).toFixed(1)}%`} accent="var(--success)"/>
-                            </div>
-                            {weeklyReport.ai_summary && (
-                                <div style={{background:'rgba(192,196,203,0.04)',border:'1px solid rgba(192,196,203,0.15)',borderRadius:12,padding:20,marginBottom:16}}>
-                                    <div style={{fontSize:13,fontWeight:600,color:'var(--gold)',marginBottom:8}}>AI Executive Summary</div>
-                                    <div style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap'}}>{weeklyReport.ai_summary}</div>
-                                </div>
-                            )}
-                            {weeklyReport.ai_recommendations && weeklyReport.ai_recommendations.length > 0 && (
+                <div>
+                    <div className="glass" style={{padding:24,borderRadius:12,marginBottom:16}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+                            <h3 style={{fontSize:16,fontWeight:700}}>Weekly Performance Report</h3>
+                            <button className="btn btn-gold btn-sm" onClick={generateReport} disabled={reportLoading}>
+                                {reportLoading ? <span className="spinner"></span> : Icons.refresh}
+                                <span>{reportLoading ? 'Generating...' : 'Generate Report'}</span>
+                            </button>
+                        </div>
+                        {weeklyReport ? (() => {
+                            const ais = weeklyReport.ai_summary || {};
+                            const isObj = typeof ais === 'object' && ais !== null;
+                            const execSummary = isObj ? (ais.executive_summary || '') : (typeof ais === 'string' ? ais : '');
+                            const trend = isObj ? (ais.overall_trend || '') : '';
+                            const highlights = isObj ? (ais.team_highlights || []) : [];
+                            const leak = isObj ? (ais.conversion_leak_analysis || null) : null;
+                            const agentInsights = isObj ? (ais.individual_agent_insights || []) : [];
+                            const recs = weeklyReport.ai_recommendations || (isObj ? (ais.top_3_recommendations || []) : []);
+                            const revImpact = weeklyReport.revenue_impact || (isObj ? (ais.revenue_impact || {}) : {});
+                            const sb = weeklyReport.score_breakdown || {};
+                            const hasSB = Object.keys(sb).length > 0;
+                            const perfColors = {excellent:'var(--success)',good:'#60a5fa',needs_coaching:'var(--gold)',concerning:'var(--danger)'};
+                            return (
                                 <div>
-                                    <div style={{fontSize:13,fontWeight:600,marginBottom:10}}>AI Recommendations</div>
-                                    <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                                        {weeklyReport.ai_recommendations.map((rec,i) => (
-                                            <div key={i} style={{display:'flex',gap:10,alignItems:'flex-start',fontSize:13,color:'var(--text-secondary)'}}>
-                                                <span style={{color:'var(--gold)',flexShrink:0}}>{Icons.lightbulb}</span>
-                                                <span>{typeof rec === 'string' ? rec : rec.recommendation || rec.text || JSON.stringify(rec)}</span>
-                                            </div>
-                                        ))}
+                                    <div className="stat-card-row" style={{display:'flex',gap:12,marginBottom:20,flexWrap:'wrap'}}>
+                                        <StatCard label="Total Calls" value={weeklyReport.total_calls||0}/>
+                                        <StatCard label="Avg Score" value={(weeklyReport.avg_score||0).toFixed(1)} accent="var(--gold)"/>
+                                        <StatCard label="Conversion" value={`${(weeklyReport.conversion_rate||0).toFixed(1)}%`} accent="var(--success)"/>
+                                        {weeklyReport.best_agent_name && weeklyReport.best_agent_name !== 'N/A' && <StatCard label="Top Performer" value={weeklyReport.best_agent_name} accent="var(--gold)"/>}
                                     </div>
+
+                                    {execSummary && (
+                                        <div style={{background:'rgba(192,196,203,0.04)',border:'1px solid rgba(192,196,203,0.15)',borderRadius:12,padding:20,marginBottom:16}}>
+                                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                                                <div style={{fontSize:13,fontWeight:600,color:'var(--gold)'}}>AI Executive Summary</div>
+                                                {trend && <span className={`badge ${trend==='improving'?'badge-green':trend==='declining'?'badge-red':'badge-gold'}`} style={{fontSize:11}}>{trend}</span>}
+                                            </div>
+                                            <div style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7}}>{execSummary}</div>
+                                        </div>
+                                    )}
+
+                                    {hasSB && (
+                                        <div style={{background:'rgba(192,196,203,0.04)',border:'1px solid rgba(192,196,203,0.15)',borderRadius:12,padding:20,marginBottom:16}}>
+                                            <div style={{fontSize:13,fontWeight:600,marginBottom:14}}>Score Breakdown</div>
+                                            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                                                {Object.entries(sb).map(([dim,val]) => (
+                                                    <div key={dim} style={{display:'flex',alignItems:'center',gap:12}}>
+                                                        <span style={{fontSize:12,color:'var(--text-muted)',width:110,textTransform:'capitalize'}}>{dim.replace('_',' ')}</span>
+                                                        <div style={{flex:1,height:8,background:'rgba(192,196,203,0.1)',borderRadius:4,overflow:'hidden'}}>
+                                                            <div style={{height:'100%',width:`${val}%`,background:val>=70?'var(--success)':val>=50?'var(--gold)':'var(--danger)',borderRadius:4,transition:'width 0.5s'}}/>
+                                                        </div>
+                                                        <span style={{fontSize:12,fontWeight:600,color:val>=70?'var(--success)':val>=50?'var(--gold)':'var(--danger)',width:32,textAlign:'right'}}>{val}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {highlights.length > 0 && (
+                                        <div style={{background:'rgba(34,197,94,0.04)',border:'1px solid rgba(34,197,94,0.12)',borderRadius:12,padding:20,marginBottom:16}}>
+                                            <div style={{fontSize:13,fontWeight:600,color:'var(--success)',marginBottom:10}}>Team Highlights</div>
+                                            <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                                                {highlights.map((h,i) => <div key={i} style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,paddingLeft:16,borderLeft:'2px solid var(--success)'}}>
+                                                    {typeof h === 'string' ? h : JSON.stringify(h)}
+                                                </div>)}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {leak && (
+                                        <div style={{background:'rgba(239,68,68,0.04)',border:'1px solid rgba(239,68,68,0.12)',borderRadius:12,padding:20,marginBottom:16}}>
+                                            <div style={{fontSize:13,fontWeight:600,color:'var(--danger)',marginBottom:10}}>Conversion Leak Analysis</div>
+                                            {leak.primary_leak_stage && <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:6}}>Primary leak: <span style={{color:'var(--danger)',fontWeight:600,textTransform:'capitalize'}}>{leak.primary_leak_stage}</span></div>}
+                                            {leak.evidence && <div style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:8}}>{leak.evidence}</div>}
+                                            {leak.estimated_opportunity && <div style={{fontSize:12,color:'var(--gold)',fontWeight:600}}>{leak.estimated_opportunity}</div>}
+                                        </div>
+                                    )}
+
+                                    {agentInsights.length > 0 && (
+                                        <div style={{background:'rgba(192,196,203,0.04)',border:'1px solid rgba(192,196,203,0.15)',borderRadius:12,padding:20,marginBottom:16}}>
+                                            <div style={{fontSize:13,fontWeight:600,marginBottom:14}}>Individual Agent Insights</div>
+                                            <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                                                {agentInsights.map((a,i) => (
+                                                    <div key={i} style={{padding:14,background:'rgba(0,0,0,0.15)',borderRadius:10,borderLeft:`3px solid ${perfColors[a.performance_level]||'var(--gold)'}`}}>
+                                                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                                                            <span style={{fontWeight:600,fontSize:13}}>{a.agent_name}</span>
+                                                            <span className="badge" style={{fontSize:10,background:perfColors[a.performance_level]||'var(--gold)',color:'#000'}}>{(a.performance_level||'').replace('_',' ')}</span>
+                                                        </div>
+                                                        {a.key_strength && <div style={{fontSize:12,color:'var(--success)',marginBottom:3}}>Strength: {a.key_strength}</div>}
+                                                        {a.key_weakness && <div style={{fontSize:12,color:'var(--danger)',marginBottom:3}}>Focus area: {a.key_weakness}</div>}
+                                                        {a.specific_action && <div style={{fontSize:12,color:'var(--text-muted)',fontStyle:'italic'}}>Action: {a.specific_action}</div>}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {recs.length > 0 && (
+                                        <div style={{background:'rgba(192,196,203,0.04)',border:'1px solid rgba(192,196,203,0.15)',borderRadius:12,padding:20,marginBottom:16}}>
+                                            <div style={{fontSize:13,fontWeight:600,color:'var(--gold)',marginBottom:14}}>Top Recommendations</div>
+                                            <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                                                {recs.map((rec,i) => (
+                                                    <div key={i} style={{padding:14,background:'rgba(0,0,0,0.15)',borderRadius:10,borderLeft:'3px solid var(--gold)'}}>
+                                                        <div style={{fontWeight:600,fontSize:13,marginBottom:4,color:'var(--gold)'}}>#{typeof rec === 'object' ? (rec.rank||i+1) : i+1}. {typeof rec === 'string' ? rec : rec.recommendation || ''}</div>
+                                                        {typeof rec === 'object' && rec.rationale && <div style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:4}}>{rec.rationale}</div>}
+                                                        {typeof rec === 'object' && rec.expected_impact && <div style={{fontSize:12,color:'var(--success)',marginBottom:3}}>Impact: {rec.expected_impact}</div>}
+                                                        {typeof rec === 'object' && rec.implementation && <div style={{fontSize:12,color:'var(--text-muted)'}}>How: {rec.implementation}</div>}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {Object.keys(revImpact).length > 0 && (
+                                        <div style={{background:'rgba(192,196,203,0.04)',border:'1px solid rgba(192,196,203,0.15)',borderRadius:12,padding:20}}>
+                                            <div style={{fontSize:13,fontWeight:600,color:'var(--gold)',marginBottom:10}}>Revenue Impact</div>
+                                            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                                                {revImpact.estimated_weekly_impact && <div style={{padding:12,background:'rgba(0,0,0,0.15)',borderRadius:8}}><div style={{fontSize:11,color:'var(--text-muted)',marginBottom:4}}>Current Weekly</div><div style={{fontSize:14,fontWeight:700,color:'var(--gold)'}}>{revImpact.estimated_weekly_impact}</div></div>}
+                                                {revImpact.improvement_opportunity && <div style={{padding:12,background:'rgba(0,0,0,0.15)',borderRadius:8}}><div style={{fontSize:11,color:'var(--text-muted)',marginBottom:4}}>Improvement Opportunity</div><div style={{fontSize:14,fontWeight:700,color:'var(--success)'}}>{revImpact.improvement_opportunity}</div></div>}
+                                                {revImpact.conversion_rate_change && <div style={{padding:12,background:'rgba(0,0,0,0.15)',borderRadius:8}}><div style={{fontSize:11,color:'var(--text-muted)',marginBottom:4}}>Conversion Change</div><div style={{fontSize:14,fontWeight:700}}>{revImpact.conversion_rate_change}</div></div>}
+                                                {revImpact.high_value_treatments && <div style={{padding:12,background:'rgba(0,0,0,0.15)',borderRadius:8}}><div style={{fontSize:11,color:'var(--text-muted)',marginBottom:4}}>High Value Treatments</div><div style={{fontSize:13,color:'var(--text-secondary)'}}>{revImpact.high_value_treatments}</div></div>}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
-                    ) : (
-                        <div style={{textAlign:'center',padding:40,color:'var(--text-muted)'}}>
-                            <p style={{fontSize:14}}>No weekly report generated yet. Click "Generate Report" to create one with AI insights.</p>
-                        </div>
-                    )}
+                            );
+                        })() : (
+                            <div style={{textAlign:'center',padding:40,color:'var(--text-muted)'}}>
+                                <p style={{fontSize:14}}>No weekly report generated yet. Click "Generate Report" to create one with AI insights.</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -1644,37 +1736,108 @@ const ReportsPage = () => {
                 </button>
             </div>
 
-            {current ? (
-                <div>
-                    <div className="stat-card-row" style={{display:'flex',gap:16,marginBottom:28,flexWrap:'wrap'}}>
-                        <StatCard label="Total Calls" value={current.total_calls||0}/>
-                        <StatCard label="Avg Score" value={(current.avg_score||0).toFixed(1)} accent="var(--gold)"/>
-                        <StatCard label="Conversion Rate" value={`${(current.conversion_rate||0).toFixed(1)}%`} accent="var(--success)"/>
-                        {current.top_agent_name && <StatCard label="Top Agent" value={current.top_agent_name} accent="var(--gold)"/>}
-                    </div>
-
-                    {current.ai_summary && (
-                        <div className="glass" style={{padding:24,borderRadius:12,marginBottom:20}}>
-                            <h3 style={{fontSize:16,fontWeight:700,marginBottom:12}}>AI Executive Summary</h3>
-                            <div style={{fontSize:14,color:'var(--text-secondary)',lineHeight:1.8,whiteSpace:'pre-wrap'}}>{current.ai_summary}</div>
+            {current ? (() => {
+                const ais = current.ai_summary || {};
+                const isObj = typeof ais === 'object' && ais !== null;
+                const execSummary = isObj ? (ais.executive_summary || '') : (typeof ais === 'string' ? ais : '');
+                const trend = isObj ? (ais.overall_trend || '') : '';
+                const highlights = isObj ? (ais.team_highlights || []) : [];
+                const leak = isObj ? (ais.conversion_leak_analysis || null) : null;
+                const agentInsights = isObj ? (ais.individual_agent_insights || []) : [];
+                const recs = current.ai_recommendations || (isObj ? (ais.top_3_recommendations || []) : []);
+                const revImpact = current.revenue_impact || (isObj ? (ais.revenue_impact || {}) : {});
+                const perfColors = {excellent:'var(--success)',good:'#60a5fa',needs_coaching:'var(--gold)',concerning:'var(--danger)'};
+                return (
+                    <div>
+                        <div className="stat-card-row" style={{display:'flex',gap:16,marginBottom:28,flexWrap:'wrap'}}>
+                            <StatCard label="Total Calls" value={current.total_calls||0}/>
+                            <StatCard label="Avg Score" value={(current.avg_score||0).toFixed(1)} accent="var(--gold)"/>
+                            <StatCard label="Conversion Rate" value={`${(current.conversion_rate||0).toFixed(1)}%`} accent="var(--success)"/>
+                            {current.top_agent_name && current.top_agent_name !== 'N/A' && <StatCard label="Top Agent" value={current.top_agent_name} accent="var(--gold)"/>}
                         </div>
-                    )}
 
-                    {current.ai_recommendations && current.ai_recommendations.length > 0 && (
-                        <div className="glass" style={{padding:24,borderRadius:12,marginBottom:20}}>
-                            <h3 style={{fontSize:16,fontWeight:700,marginBottom:12}}>AI Recommendations</h3>
-                            <div style={{display:'flex',flexDirection:'column',gap:12}}>
-                                {current.ai_recommendations.map((rec,i) => (
-                                    <div key={i} style={{display:'flex',gap:12,alignItems:'flex-start'}}>
-                                        <span style={{color:'var(--gold)',flexShrink:0,marginTop:2}}>{Icons.lightbulb}</span>
-                                        <div style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6}}>{typeof rec === 'string' ? rec : rec.recommendation || rec.text || JSON.stringify(rec)}</div>
-                                    </div>
-                                ))}
+                        {execSummary && (
+                            <div className="glass" style={{padding:24,borderRadius:12,marginBottom:20}}>
+                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+                                    <h3 style={{fontSize:16,fontWeight:700}}>AI Executive Summary</h3>
+                                    {trend && <span className={`badge ${trend==='improving'?'badge-green':trend==='declining'?'badge-red':'badge-gold'}`}>{trend}</span>}
+                                </div>
+                                <div style={{fontSize:14,color:'var(--text-secondary)',lineHeight:1.8}}>{execSummary}</div>
                             </div>
-                        </div>
-                    )}
-                </div>
-            ) : (
+                        )}
+
+                        {highlights.length > 0 && (
+                            <div className="glass" style={{padding:24,borderRadius:12,marginBottom:20,borderLeft:'3px solid var(--success)'}}>
+                                <h3 style={{fontSize:15,fontWeight:700,color:'var(--success)',marginBottom:12}}>Team Highlights</h3>
+                                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                                    {highlights.map((h,i) => <div key={i} style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,paddingLeft:14,borderLeft:'2px solid rgba(34,197,94,0.3)'}}>
+                                        {typeof h === 'string' ? h : JSON.stringify(h)}
+                                    </div>)}
+                                </div>
+                            </div>
+                        )}
+
+                        {leak && (
+                            <div className="glass" style={{padding:24,borderRadius:12,marginBottom:20,borderLeft:'3px solid var(--danger)'}}>
+                                <h3 style={{fontSize:15,fontWeight:700,color:'var(--danger)',marginBottom:12}}>Conversion Leak Analysis</h3>
+                                {leak.primary_leak_stage && <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:8}}>Primary leak stage: <span style={{color:'var(--danger)',fontWeight:700,textTransform:'capitalize'}}>{leak.primary_leak_stage}</span></div>}
+                                {leak.evidence && <div style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:8}}>{leak.evidence}</div>}
+                                {leak.affected_agents && leak.affected_agents.length > 0 && <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:6}}>Affected: {leak.affected_agents.join(', ')}</div>}
+                                {leak.estimated_opportunity && <div style={{fontSize:13,color:'var(--gold)',fontWeight:600}}>{leak.estimated_opportunity}</div>}
+                            </div>
+                        )}
+
+                        {agentInsights.length > 0 && (
+                            <div className="glass" style={{padding:24,borderRadius:12,marginBottom:20}}>
+                                <h3 style={{fontSize:15,fontWeight:700,marginBottom:16}}>Individual Agent Performance</h3>
+                                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:12}}>
+                                    {agentInsights.map((a,i) => (
+                                        <div key={i} style={{padding:16,background:'rgba(0,0,0,0.2)',borderRadius:10,borderLeft:`3px solid ${perfColors[a.performance_level]||'var(--gold)'}`}}>
+                                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                                                <span style={{fontWeight:700,fontSize:14}}>{a.agent_name}</span>
+                                                <span className="badge" style={{fontSize:10,background:perfColors[a.performance_level]||'var(--gold)',color:'#000'}}>{(a.performance_level||'').replace('_',' ')}</span>
+                                            </div>
+                                            {a.key_strength && <div style={{fontSize:12,color:'var(--success)',marginBottom:4}}>Strength: {a.key_strength}</div>}
+                                            {a.key_weakness && <div style={{fontSize:12,color:'var(--danger)',marginBottom:4}}>Focus: {a.key_weakness}</div>}
+                                            {a.specific_action && <div style={{fontSize:12,color:'var(--text-muted)',fontStyle:'italic',marginTop:4}}>Action: {a.specific_action}</div>}
+                                            {a.improvement_trajectory && <div style={{fontSize:11,marginTop:6}}><span className={`badge ${a.improvement_trajectory==='improving'?'badge-green':a.improvement_trajectory==='declining'?'badge-red':'badge-gold'}`} style={{fontSize:10}}>{a.improvement_trajectory}</span></div>}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {recs.length > 0 && (
+                            <div className="glass" style={{padding:24,borderRadius:12,marginBottom:20}}>
+                                <h3 style={{fontSize:15,fontWeight:700,color:'var(--gold)',marginBottom:16}}>Top Recommendations</h3>
+                                <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                                    {recs.map((rec,i) => (
+                                        <div key={i} style={{padding:16,background:'rgba(0,0,0,0.2)',borderRadius:10,borderLeft:'3px solid var(--gold)'}}>
+                                            <div style={{fontWeight:700,fontSize:14,marginBottom:6,color:'var(--gold)'}}>#{typeof rec === 'object' ? (rec.rank||i+1) : i+1}. {typeof rec === 'string' ? rec : rec.recommendation || ''}</div>
+                                            {typeof rec === 'object' && rec.rationale && <div style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>{rec.rationale}</div>}
+                                            {typeof rec === 'object' && rec.expected_impact && <div style={{fontSize:12,color:'var(--success)',marginBottom:4}}>Expected impact: {rec.expected_impact}</div>}
+                                            {typeof rec === 'object' && rec.implementation && <div style={{fontSize:12,color:'var(--text-muted)'}}>How to implement: {rec.implementation}</div>}
+                                            {typeof rec === 'object' && rec.timeline && <div style={{fontSize:11,color:'var(--text-muted)',marginTop:3}}>Timeline: {rec.timeline}</div>}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {Object.keys(revImpact).length > 0 && (
+                            <div className="glass" style={{padding:24,borderRadius:12,marginBottom:20}}>
+                                <h3 style={{fontSize:15,fontWeight:700,color:'var(--gold)',marginBottom:16}}>Revenue Impact Analysis</h3>
+                                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                                    {revImpact.estimated_weekly_impact && <div style={{padding:16,background:'rgba(0,0,0,0.2)',borderRadius:10}}><div style={{fontSize:11,color:'var(--text-muted)',marginBottom:6}}>Current Weekly Impact</div><div style={{fontSize:16,fontWeight:700,color:'var(--gold)'}}>{revImpact.estimated_weekly_impact}</div></div>}
+                                    {revImpact.improvement_opportunity && <div style={{padding:16,background:'rgba(0,0,0,0.2)',borderRadius:10}}><div style={{fontSize:11,color:'var(--text-muted)',marginBottom:6}}>Improvement Opportunity</div><div style={{fontSize:16,fontWeight:700,color:'var(--success)'}}>{revImpact.improvement_opportunity}</div></div>}
+                                    {revImpact.conversion_rate_change && <div style={{padding:16,background:'rgba(0,0,0,0.2)',borderRadius:10}}><div style={{fontSize:11,color:'var(--text-muted)',marginBottom:6}}>Conversion Change</div><div style={{fontSize:16,fontWeight:700}}>{revImpact.conversion_rate_change}</div></div>}
+                                    {revImpact.high_value_treatments && <div style={{padding:16,background:'rgba(0,0,0,0.2)',borderRadius:10}}><div style={{fontSize:11,color:'var(--text-muted)',marginBottom:6}}>High Value Treatments</div><div style={{fontSize:13,color:'var(--text-secondary)'}}>{revImpact.high_value_treatments}</div></div>}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            })() : (
                 <div className="glass" style={{padding:60,borderRadius:12,textAlign:'center'}}>
                     <p style={{color:'var(--text-muted)',fontSize:15}}>No reports generated yet. Click "Generate Report" to create your first AI-powered weekly report.</p>
                 </div>
