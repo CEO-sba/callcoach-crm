@@ -39,6 +39,7 @@ class Clinic(Base):
     users = relationship("User", back_populates="clinic")
     calls = relationship("Call", back_populates="clinic")
     deals = relationship("PipelineDeal", back_populates="clinic")
+    weekly_reports = relationship("WeeklyReport", back_populates="clinic")
 
 
 class User(Base):
@@ -293,3 +294,37 @@ class Tag(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     calls = relationship("Call", secondary=call_tags, back_populates="tags")
+
+
+class WeeklyReport(Base):
+    __tablename__ = "weekly_reports"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    clinic_id = Column(String, ForeignKey("clinics.id"), nullable=False)
+
+    # Week boundaries
+    week_start = Column(DateTime, nullable=False)  # Monday of the week
+    week_end = Column(DateTime, nullable=False)    # Sunday of the week
+
+    # Core metrics
+    total_calls = Column(Integer, default=0)
+    avg_score = Column(Float, default=0)  # 0-100
+    conversion_rate = Column(Float, default=0)  # percentage
+
+    # Top performer
+    top_agent_id = Column(String, ForeignKey("users.id"), nullable=True)
+    top_agent_name = Column(String(200))
+
+    # Detailed data
+    calls_by_day = Column(JSON)  # {date: count}
+    sentiment_distribution = Column(JSON)  # {sentiment: {count, percentage}}
+
+    # AI-generated insights
+    ai_summary = Column(JSON)  # {executive_summary, overall_trend, team_highlights, etc}
+    ai_recommendations = Column(JSON)  # [top 3 recommendations with details]
+    revenue_impact = Column(JSON)  # {estimated_weekly_impact, improvement_opportunity, etc}
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    clinic = relationship("Clinic", back_populates="weekly_reports")

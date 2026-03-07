@@ -13,7 +13,7 @@ from pathlib import Path
 
 from app.config import APP_NAME, APP_VERSION
 from app.database import init_db
-from app.routers import auth_router, calls_router, pipeline_router, coaching_router, live_coaching_router, contacts_router, learning_router
+from app.routers import auth_router, calls_router, pipeline_router, coaching_router, live_coaching_router, contacts_router, learning_router, reports_router
 
 # Logging
 logging.basicConfig(level=logging.INFO)
@@ -43,6 +43,7 @@ app.include_router(coaching_router.router)
 app.include_router(live_coaching_router.router)
 app.include_router(contacts_router.router)
 app.include_router(learning_router.router)
+app.include_router(reports_router.router)
 
 # Static files (frontend)
 static_dir = Path(__file__).parent / "static"

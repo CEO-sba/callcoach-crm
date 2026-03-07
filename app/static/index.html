@@ -3,23 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CallCoach CRM</title>
+    <title>CallCoach | AI Sales Training & CRM | Skin Business Accelerator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-primary: #06080F;
             --bg-secondary: #0D1117;
             --bg-card: rgba(15, 20, 30, 0.7);
             --bg-card-hover: rgba(20, 28, 42, 0.8);
-            --border: rgba(212, 175, 55, 0.12);
-            --border-hover: rgba(212, 175, 55, 0.3);
-            --gold: #D4AF37;
-            --gold-light: #F0D060;
-            --gold-dark: #B8960C;
+            --border: rgba(192, 196, 203, 0.12);
+            --border-hover: rgba(192, 196, 203, 0.3);
+            --gold: #C0C4CB;
+            --gold-light: #E8EAED;
+            --gold-dark: #8A9099;
             --text-primary: #F1F5F9;
             --text-secondary: #94A3B8;
             --text-muted: #64748B;
@@ -34,8 +34,8 @@
         /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(212, 175, 55, 0.2); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(212, 175, 55, 0.4); }
+        ::-webkit-scrollbar-thumb { background: rgba(192, 196, 203, 0.2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(192, 196, 203, 0.4); }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -47,7 +47,7 @@
         /* Buttons */
         .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; border: none; font-family: inherit; }
         .btn-gold { background: linear-gradient(135deg, var(--gold), var(--gold-light)); color: #000; }
-        .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(212, 175, 55, 0.3); }
+        .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(192, 196, 203, 0.3); }
         .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
         .btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
         .btn-danger { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #EF4444; }
@@ -69,7 +69,7 @@
 
         /* Badge */
         .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-        .badge-gold { background: rgba(212, 175, 55, 0.15); color: var(--gold); }
+        .badge-gold { background: rgba(192, 196, 203, 0.15); color: var(--gold); }
         .badge-green { background: rgba(34, 197, 94, 0.15); color: #22C55E; }
         .badge-red { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
         .badge-blue { background: rgba(59, 130, 246, 0.15); color: #3B82F6; }
@@ -92,42 +92,42 @@
         .stage-col { min-width: 280px; }
 
         /* Gradient text */
-        .text-gradient { background: linear-gradient(135deg, var(--gold), var(--gold-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .text-gradient { background: linear-gradient(135deg, #C0C4CB, #F5F6F8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 
         /* Sidebar */
         .sidebar-link { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 8px; color: var(--text-secondary); font-weight: 500; font-size: 14px; transition: all 0.2s; cursor: pointer; text-decoration: none; }
-        .sidebar-link:hover { color: var(--text-primary); background: rgba(212, 175, 55, 0.06); }
-        .sidebar-link.active { color: var(--gold); background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.15); }
+        .sidebar-link:hover { color: var(--text-primary); background: rgba(192, 196, 203, 0.06); }
+        .sidebar-link.active { color: var(--gold); background: rgba(192, 196, 203, 0.1); border: 1px solid rgba(192, 196, 203, 0.15); }
 
         /* Table */
         .table-row { transition: background 0.15s; }
-        .table-row:hover { background: rgba(212, 175, 55, 0.04); }
+        .table-row:hover { background: rgba(192, 196, 203, 0.04); }
 
         /* Loading spinner */
         .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.6s linear infinite; }
 
         /* Glow effect */
-        .glow-gold { box-shadow: 0 0 30px rgba(212, 175, 55, 0.08); }
+        .glow-gold { box-shadow: 0 0 30px rgba(192, 196, 203, 0.08); }
 
         /* Audio Player */
         .audio-player { width: 100%; border-radius: 8px; background: rgba(255,255,255,0.03); }
         .audio-player::-webkit-media-controls-panel { background: rgba(15,20,30,0.9); }
 
         /* AI Coach Chat */
-        .coach-chat-bubble { background: rgba(212,175,55,0.06); border: 1px solid rgba(212,175,55,0.15); border-radius: 12px; padding: 16px; font-size: 13px; line-height: 1.7; color: var(--text-secondary); white-space: pre-wrap; animation: fadeIn 0.4s ease-out; }
+        .coach-chat-bubble { background: rgba(192,196,203,0.06); border: 1px solid rgba(192,196,203,0.15); border-radius: 12px; padding: 16px; font-size: 13px; line-height: 1.7; color: var(--text-secondary); white-space: pre-wrap; animation: fadeIn 0.4s ease-out; }
         .coach-prompt-btn { padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border); background: rgba(255,255,255,0.02); color: var(--text-secondary); font-size: 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-        .coach-prompt-btn:hover { border-color: var(--gold); color: var(--gold); background: rgba(212,175,55,0.06); }
+        .coach-prompt-btn:hover { border-color: var(--gold); color: var(--gold); background: rgba(192,196,203,0.06); }
 
         /* Drag and Drop Pipeline */
         .pipeline-card { transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s; cursor: grab; user-select: none; }
         .pipeline-card:active { cursor: grabbing; }
         .pipeline-card.dragging { opacity: 0.5; transform: scale(0.95); }
         .stage-drop-zone { min-height: 120px; border-radius: 10px; transition: background 0.2s, border-color 0.2s; border: 2px dashed transparent; }
-        .stage-drop-zone.drag-over { background: rgba(212,175,55,0.04); border-color: rgba(212,175,55,0.3); }
+        .stage-drop-zone.drag-over { background: rgba(192,196,203,0.04); border-color: rgba(192,196,203,0.3); }
 
         /* Learning card */
         .learning-card { padding: 14px 18px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); transition: all 0.2s; cursor: default; }
-        .learning-card:hover { border-color: rgba(212,175,55,0.2); background: rgba(212,175,55,0.03); }
+        .learning-card:hover { border-color: rgba(192,196,203,0.2); background: rgba(192,196,203,0.03); }
 
         /* Typing indicator */
         .typing-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); animation: typingBounce 1.4s infinite; display: inline-block; margin: 0 2px; }
@@ -138,7 +138,7 @@
         /* Tab nav */
         .detail-tab { padding: 10px 20px; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; color: var(--text-muted); background: transparent; border: none; border-bottom: 2px solid transparent; }
         .detail-tab:hover { color: var(--text-secondary); }
-        .detail-tab.active { color: var(--gold); border-bottom-color: var(--gold); background: rgba(212,175,55,0.06); }
+        .detail-tab.active { color: var(--gold); border-bottom-color: var(--gold); background: rgba(192,196,203,0.06); }
 
         /* Mobile hamburger */
         .mobile-header { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 60; background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 12px 16px; align-items: center; justify-content: space-between; }
@@ -239,12 +239,10 @@ const Icons = {
 // ============ LOGO ============
 const Logo = () => (
     <div style={{display:'flex',alignItems:'center',gap:'12px',padding:'8px 0'}}>
-        <div style={{width:36,height:36,borderRadius:10,background:'linear-gradient(135deg, #D4AF37, #F0D060)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-            <svg width="20" height="20" fill="#000" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
-        </div>
+        <img src="/static/logo.svg" alt="CallCoach" style={{width:36,height:36,borderRadius:10}} onError={(e)=>{e.target.style.display='none'}}/>
         <div>
-            <div style={{fontSize:18,fontWeight:700,letterSpacing:'-0.02em'}} className="text-gradient">CallCoach</div>
-            <div style={{fontSize:10,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.1em'}}>CRM Platform</div>
+            <div style={{fontSize:18,fontWeight:900,letterSpacing:'-0.02em',fontFamily:"'Playfair Display',serif"}} className="text-gradient">CallCoach</div>
+            <div style={{fontSize:9,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.15em'}}>SKIN BUSINESS ACCELERATOR</div>
         </div>
     </div>
 );
@@ -295,14 +293,14 @@ const LoginPage = ({ onLogin }) => {
     };
 
     return (
-        <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'radial-gradient(ellipse at 50% 0%, rgba(212,175,55,0.06) 0%, transparent 60%), var(--bg-primary)'}}>
+        <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'radial-gradient(ellipse at 50% 0%, rgba(192,196,203,0.08) 0%, transparent 60%), var(--bg-primary)'}}>
             <div className="fade-in" style={{width:'100%',maxWidth:420,padding:'40px 20px'}}>
                 <div style={{textAlign:'center',marginBottom:40}}>
-                    <div style={{width:56,height:56,borderRadius:16,background:'linear-gradient(135deg, #D4AF37, #F0D060)',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:16}}>
+                    <div style={{width:56,height:56,borderRadius:16,background:'linear-gradient(135deg, #C0C4CB, #E8EAED)',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:16}}>
                         <svg width="28" height="28" fill="#000" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
                     </div>
-                    <h1 style={{fontSize:28,fontWeight:700,letterSpacing:'-0.03em'}} className="text-gradient">CallCoach CRM</h1>
-                    <p style={{color:'var(--text-muted)',fontSize:14,marginTop:6}}>AI-powered call intelligence for clinics</p>
+                    <h1 style={{fontSize:28,fontWeight:900,letterSpacing:'-0.03em',fontFamily:"'Playfair Display',serif"}} className="text-gradient">CallCoach</h1>
+                    <p style={{color:'var(--text-muted)',fontSize:14,marginTop:6}}>AI Sales Intelligence by Skin Business Accelerator</p>
                 </div>
                 <form onSubmit={handleSubmit} className="glass" style={{padding:32,borderRadius:16}}>
                     <h2 style={{fontSize:18,fontWeight:600,marginBottom:24,color:'var(--text-primary)'}}>{isRegister ? 'Create Account' : 'Sign In'}</h2>
@@ -335,12 +333,12 @@ const DashboardPage = () => {
             <div className="stat-card-row" style={{display:'flex',gap:16,flexWrap:'wrap',marginBottom:28}}>
                 <StatCard label="Total Calls" value={stats.total_calls} sub={`${stats.calls_today} today`} />
                 <StatCard label="Avg Score" value={stats.avg_call_score?.toFixed(0) || '0'} accent="var(--gold)" />
-                <StatCard label="Open Deals" value={stats.open_deals} sub={`$${(stats.pipeline_value||0).toLocaleString()} value`} />
-                <StatCard label="Won Deals" value={stats.won_deals} sub={`$${(stats.won_value||0).toLocaleString()} revenue`} accent="var(--success)" />
+                <StatCard label="Open Deals" value={stats.open_deals} sub={`\u20B9${(stats.pipeline_value||0).toLocaleString('en-IN')} value`} />
+                <StatCard label="Won Deals" value={stats.won_deals} sub={`\u20B9${(stats.won_value||0).toLocaleString('en-IN')} revenue`} accent="var(--success)" />
             </div>
             <div className="stat-card-row" style={{display:'flex',gap:16,flexWrap:'wrap',marginBottom:28}}>
                 <StatCard label="Conversion Rate" value={`${(stats.conversion_rate||0).toFixed(1)}%`} />
-                <StatCard label="Avg Deal Value" value={`$${(stats.avg_deal_value||0).toLocaleString()}`} />
+                <StatCard label="Avg Deal Value" value={`\u20B9${(stats.avg_deal_value||0).toLocaleString('en-IN')}`} />
                 <StatCard label="This Week" value={stats.calls_this_week} sub="calls processed" />
                 <StatCard label="Lost Deals" value={stats.lost_deals || 0} accent="var(--danger)" />
             </div>
@@ -349,7 +347,7 @@ const DashboardPage = () => {
                     <h3 style={{fontSize:15,fontWeight:600,marginBottom:16}}>Pipeline Distribution</h3>
                     <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
                         {Object.entries(stats.deals_by_stage).map(([stage,count]) => (
-                            <div key={stage} style={{padding:'8px 16px',borderRadius:8,background:'rgba(212,175,55,0.06)',border:'1px solid var(--border)',fontSize:13}}>
+                            <div key={stage} style={{padding:'8px 16px',borderRadius:8,background:'rgba(192,196,203,0.06)',border:'1px solid var(--border)',fontSize:13}}>
                                 <span style={{color:'var(--text-muted)',marginRight:8}}>{stage.replace(/_/g,' ')}</span>
                                 <span style={{fontWeight:700,color:'var(--gold)'}}>{count}</span>
                             </div>
@@ -363,7 +361,7 @@ const DashboardPage = () => {
                     <div style={{display:'flex',flexDirection:'column',gap:12}}>
                         {stats.top_agent_scores.map((a,i) => (
                             <div key={i} style={{display:'flex',alignItems:'center',gap:16,padding:'12px 16px',borderRadius:8,background:'rgba(255,255,255,0.02)'}}>
-                                <div style={{width:32,height:32,borderRadius:8,background: i===0 ? 'linear-gradient(135deg,#D4AF37,#F0D060)' : 'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color: i===0 ? '#000' : 'var(--text-muted)'}}>{i+1}</div>
+                                <div style={{width:32,height:32,borderRadius:8,background: i===0 ? 'linear-gradient(135deg,#C0C4CB,#E8EAED)' : 'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color: i===0 ? '#000' : 'var(--text-muted)'}}>{i+1}</div>
                                 <div style={{flex:1}}><div style={{fontWeight:600,fontSize:14}}>{a.agent_name}</div><div style={{fontSize:12,color:'var(--text-muted)'}}>{a.total_calls} calls</div></div>
                                 <ScoreRing score={a.avg_score} size={44} strokeWidth={3}/>
                             </div>
@@ -642,7 +640,7 @@ const CallDetailPage = ({ callId, onBack }) => {
             {call.recording_path && (
                 <div className="glass" style={{padding:20,borderRadius:12,marginBottom:20}}>
                     <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}>
-                        <div style={{width:36,height:36,borderRadius:8,background:'linear-gradient(135deg,#D4AF37,#F0D060)',display:'flex',alignItems:'center',justifyContent:'center',color:'#000'}}>{Icons.play}</div>
+                        <div style={{width:36,height:36,borderRadius:8,background:'linear-gradient(135deg,#C0C4CB,#E8EAED)',display:'flex',alignItems:'center',justifyContent:'center',color:'#000'}}>{Icons.play}</div>
                         <div>
                             <div style={{fontWeight:600,fontSize:14}}>Call Recording</div>
                             <div style={{fontSize:12,color:'var(--text-muted)'}}>{call.duration_seconds ? `${Math.floor(call.duration_seconds/60)}m ${call.duration_seconds%60}s` : 'Audio available'}</div>
@@ -810,7 +808,7 @@ const CallDetailPage = ({ callId, onBack }) => {
                     {/* Coach Chat */}
                     <div className="glass" style={{padding:24,borderRadius:12}}>
                         <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:20}}>
-                            <div style={{width:32,height:32,borderRadius:8,background:'linear-gradient(135deg,#D4AF37,#F0D060)',display:'flex',alignItems:'center',justifyContent:'center',color:'#000'}}>{Icons.chat}</div>
+                            <div style={{width:32,height:32,borderRadius:8,background:'linear-gradient(135deg,#C0C4CB,#E8EAED)',display:'flex',alignItems:'center',justifyContent:'center',color:'#000'}}>{Icons.chat}</div>
                             <div>
                                 <div style={{fontWeight:600,fontSize:14}}>AI Sales Coach</div>
                                 <div style={{fontSize:11,color:'var(--text-muted)'}}>Ask anything about this call</div>
@@ -827,7 +825,7 @@ const CallDetailPage = ({ callId, onBack }) => {
                             {coachMessages.map((msg,i) => (
                                 <div key={i} style={{alignSelf: msg.role==='user' ? 'flex-end' : 'flex-start', maxWidth:'85%'}}>
                                     {msg.role === 'user' ? (
-                                        <div style={{background:'rgba(212,175,55,0.15)',border:'1px solid rgba(212,175,55,0.2)',borderRadius:12,padding:'10px 16px',fontSize:13,color:'var(--text-primary)'}}>{msg.text}</div>
+                                        <div style={{background:'rgba(192,196,203,0.15)',border:'1px solid rgba(192,196,203,0.2)',borderRadius:12,padding:'10px 16px',fontSize:13,color:'var(--text-primary)'}}>{msg.text}</div>
                                     ) : (
                                         <div className="coach-chat-bubble">{msg.text}</div>
                                     )}
@@ -957,7 +955,7 @@ const PipelinePage = () => {
                     <h1 style={{fontSize:24,fontWeight:700}}>Pipeline</h1>
                     <div style={{display:'flex',gap:16,marginTop:4}}>
                         <span style={{color:'var(--text-muted)',fontSize:14}}>{deals.length} active deals</span>
-                        <span style={{color:'var(--gold)',fontSize:14,fontWeight:600}}>Total: ${totalValue.toLocaleString()}</span>
+                        <span style={{color:'var(--gold)',fontSize:14,fontWeight:600}}>Total: \u20B9${totalValue.toLocaleString('en-IN')}</span>
                     </div>
                 </div>
                 <button className="btn btn-gold" onClick={()=>setShowAdd(!showAdd)}>{Icons.plus}<span>New Deal</span></button>
@@ -996,7 +994,7 @@ const PipelinePage = () => {
                                 <span style={{fontSize:13,fontWeight:600,color:'var(--text-secondary)'}}>{stageLabels[stage]}</span>
                                 <span style={{fontSize:12,color:'var(--text-muted)',marginLeft:'auto'}}>{stageDeals.length}</span>
                             </div>
-                            {sv > 0 && <div style={{fontSize:11,color:stageColors[stage],fontWeight:600,marginBottom:8,padding:'0 4px'}}>${sv.toLocaleString()}</div>}
+                            {sv > 0 && <div style={{fontSize:11,color:stageColors[stage],fontWeight:600,marginBottom:8,padding:'0 4px'}}>\u20B9{sv.toLocaleString('en-IN')}</div>}
                             <div
                                 className={`stage-drop-zone ${isOver ? 'drag-over' : ''}`}
                                 onDragOver={(e) => handleDragOver(e, stage)}
@@ -1018,7 +1016,7 @@ const PipelinePage = () => {
                                                 <div style={{fontWeight:600,fontSize:14,marginBottom:4}}>{deal.title}</div>
                                                 <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:8}}>{deal.contact_name}</div>
                                                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                                    <span style={{fontWeight:700,fontSize:14,color:'var(--gold)'}}>${(deal.deal_value||0).toLocaleString()}</span>
+                                                    <span style={{fontWeight:700,fontSize:14,color:'var(--gold)'}}>\u20B9{(deal.deal_value||0).toLocaleString('en-IN')}</span>
                                                     {deal.treatment_interest && <span className="badge badge-gold" style={{fontSize:10}}>{deal.treatment_interest}</span>}
                                                 </div>
                                                 {deal.source && <div style={{fontSize:10,color:'var(--text-muted)',marginTop:6}}>via {deal.source}</div>}
@@ -1032,7 +1030,7 @@ const PipelinePage = () => {
                                     </div>
                                 )}
                                 {isOver && (
-                                    <div style={{padding:'16px',textAlign:'center',color:'var(--gold)',fontSize:12,borderRadius:8,border:'1px dashed rgba(212,175,55,0.3)',background:'rgba(212,175,55,0.04)'}}>
+                                    <div style={{padding:'16px',textAlign:'center',color:'var(--gold)',fontSize:12,borderRadius:8,border:'1px dashed rgba(192,196,203,0.3)',background:'rgba(192,196,203,0.04)'}}>
                                         Move to {stageLabels[stage]}
                                     </div>
                                 )}
@@ -1049,15 +1047,54 @@ const PipelinePage = () => {
 const CoachingPage = () => {
     const [insights, setInsights] = useState([]);
     const [perf, setPerf] = useState(null);
+    const [leaderboard, setLeaderboard] = useState([]);
+    const [weeklyReport, setWeeklyReport] = useState(null);
+    const [growthPlan, setGrowthPlan] = useState(null);
+    const [activeTab, setActiveTab] = useState('overview');
+    const [growthLoading, setGrowthLoading] = useState(false);
+    const [reportLoading, setReportLoading] = useState(false);
+
     useEffect(()=>{
         apiFetch('/coaching/insights').then(setInsights).catch(()=>{});
         apiFetch('/coaching/performance').then(setPerf).catch(()=>{});
+        apiFetch('/coaching/leaderboard').then(setLeaderboard).catch(()=>{});
+        apiFetch('/reports/weekly').then(setWeeklyReport).catch(()=>{});
     },[]);
+
+    const generateGrowth = async () => {
+        setGrowthLoading(true);
+        try {
+            const res = await apiFetch('/coaching/growth-plan', {method:'POST'});
+            setGrowthPlan(res);
+        } catch(e) {} finally { setGrowthLoading(false); }
+    };
+
+    const generateReport = async () => {
+        setReportLoading(true);
+        try {
+            const res = await apiFetch('/reports/weekly/generate', {method:'POST'});
+            setWeeklyReport(res);
+        } catch(e) {} finally { setReportLoading(false); }
+    };
+
     const typeIcon = (t) => t==='praise'?Icons.star:t==='warning'?'!':t==='milestone'?Icons.check:t==='tip'?'?':'i';
     const typeColor = (t) => t==='praise'?'badge-green':t==='warning'?'badge-red':t==='milestone'?'badge-gold':t==='tip'?'badge-blue':'badge-gray';
+
+    const tabs = [
+        {id:'overview',label:'Performance'},
+        {id:'insights',label:'Coaching Tips'},
+        {id:'leaderboard',label:'Leaderboard'},
+        {id:'report',label:'Weekly Report'},
+        {id:'growth',label:'Growth Plan'},
+    ];
+
     return (
         <div className="fade-in">
-            <div style={{marginBottom:28}}><h1 style={{fontSize:24,fontWeight:700}}>AI Coaching</h1><p style={{color:'var(--text-muted)',fontSize:14,marginTop:4}}>Personalized insights to improve your performance</p></div>
+            <div style={{marginBottom:28}}>
+                <h1 style={{fontSize:24,fontWeight:900,fontFamily:"'Playfair Display',serif"}}>AI Coaching Hub</h1>
+                <p style={{color:'var(--text-muted)',fontSize:14,marginTop:4}}>Performance insights, team rankings, and growth plans</p>
+            </div>
+
             {perf && (
                 <div className="stat-card-row" style={{display:'flex',gap:16,marginBottom:28,flexWrap:'wrap'}}>
                     <StatCard label="My Avg Score" value={perf.avg_score?.toFixed(0)||'0'} accent="var(--gold)"/>
@@ -1066,29 +1103,185 @@ const CoachingPage = () => {
                     <StatCard label="Focus Area" value={perf.weakest_area||'N/A'} accent="var(--warning)"/>
                 </div>
             )}
-            {insights.length === 0 ? (
-                <div className="glass" style={{padding:60,borderRadius:12,textAlign:'center'}}>
-                    <p style={{color:'var(--text-muted)',fontSize:15}}>No coaching insights yet. Analyze some calls to receive personalized tips.</p>
+
+            <div style={{display:'flex',gap:4,marginBottom:24,overflowX:'auto',paddingBottom:2}} className="scrollbar-hide">
+                {tabs.map(tab => (
+                    <button key={tab.id} className={`detail-tab ${activeTab===tab.id?'active':''}`} onClick={()=>setActiveTab(tab.id)}>{tab.label}</button>
+                ))}
+            </div>
+
+            {activeTab === 'overview' && perf && (
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}} className="resp-grid-2">
+                    <div className="glass" style={{padding:24,borderRadius:12}}>
+                        <h3 style={{fontSize:16,fontWeight:700,marginBottom:16}}>Score Trend (30 Days)</h3>
+                        {perf.trend && perf.trend.length > 0 ? (
+                            <div style={{display:'flex',alignItems:'end',gap:4,height:120}}>
+                                {perf.trend.map((s,i) => {
+                                    const h = Math.max(10, (s/100)*120);
+                                    const c = s >= 80 ? 'var(--success)' : s >= 60 ? 'var(--gold)' : s >= 40 ? 'var(--warning)' : 'var(--danger)';
+                                    return <div key={i} style={{flex:1,height:h,background:c,borderRadius:4,opacity:0.8,minWidth:6}} title={`Score: ${s}`}/>;
+                                })}
+                            </div>
+                        ) : <p style={{color:'var(--text-muted)',fontSize:13}}>No score data yet</p>}
+                    </div>
+                    <div className="glass" style={{padding:24,borderRadius:12}}>
+                        <h3 style={{fontSize:16,fontWeight:700,marginBottom:16}}>Skill Breakdown</h3>
+                        {perf.strongest_areas ? (
+                            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                                {(perf.strongest_areas||[]).slice(0,3).map((a,i) => (
+                                    <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                        <span style={{fontSize:13,color:'var(--text-secondary)'}}>{a}</span>
+                                        <span className="badge badge-green">Strong</span>
+                                    </div>
+                                ))}
+                                {(perf.weakest_areas||[]).slice(0,3).map((a,i) => (
+                                    <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                        <span style={{fontSize:13,color:'var(--text-secondary)'}}>{a}</span>
+                                        <span className="badge badge-yellow">Improve</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : <p style={{color:'var(--text-muted)',fontSize:13}}>Analyze calls to see skill breakdown</p>}
+                    </div>
                 </div>
-            ) : (
-                <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                    {insights.map(ins => (
-                        <div key={ins.id} className="glass tip-card" style={{padding:20,borderRadius:12}}>
-                            <div style={{display:'flex',alignItems:'flex-start',gap:14}}>
-                                <span className={`badge ${typeColor(ins.insight_type)}`}>{ins.insight_type}</span>
-                                <div style={{flex:1}}>
-                                    <div style={{fontWeight:600,fontSize:14,marginBottom:4}}>{ins.title}</div>
-                                    <div style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6}}>{ins.content}</div>
-                                    {ins.category && <div style={{fontSize:11,color:'var(--text-muted)',marginTop:6}}>Category: {ins.category}</div>}
+            )}
+
+            {activeTab === 'insights' && (
+                insights.length === 0 ? (
+                    <div className="glass" style={{padding:60,borderRadius:12,textAlign:'center'}}>
+                        <p style={{color:'var(--text-muted)',fontSize:15}}>No coaching insights yet. Analyze some calls to receive personalized tips.</p>
+                    </div>
+                ) : (
+                    <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                        {insights.map(ins => (
+                            <div key={ins.id} className="glass tip-card" style={{padding:20,borderRadius:12}}>
+                                <div style={{display:'flex',alignItems:'flex-start',gap:14}}>
+                                    <span className={`badge ${typeColor(ins.insight_type)}`}>{ins.insight_type}</span>
+                                    <div style={{flex:1}}>
+                                        <div style={{fontWeight:600,fontSize:14,marginBottom:4}}>{ins.title}</div>
+                                        <div style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6}}>{ins.content}</div>
+                                        {ins.category && <div style={{fontSize:11,color:'var(--text-muted)',marginTop:6}}>Category: {ins.category}</div>}
+                                    </div>
                                 </div>
                             </div>
+                        ))}
+                    </div>
+                )
+            )}
+
+            {activeTab === 'leaderboard' && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <h3 style={{fontSize:16,fontWeight:700,marginBottom:16}}>Team Leaderboard</h3>
+                    {leaderboard.length === 0 ? (
+                        <p style={{color:'var(--text-muted)',fontSize:13}}>No rankings yet. Team members need to complete analyzed calls.</p>
+                    ) : (
+                        <div style={{overflowX:'auto'}}>
+                            <table style={{width:'100%',borderCollapse:'collapse'}}>
+                                <thead><tr style={{borderBottom:'1px solid var(--border)'}}>
+                                    <th style={{padding:'12px 16px',textAlign:'left',fontSize:12,fontWeight:600,color:'var(--text-muted)'}}>Rank</th>
+                                    <th style={{padding:'12px 16px',textAlign:'left',fontSize:12,fontWeight:600,color:'var(--text-muted)'}}>Agent</th>
+                                    <th style={{padding:'12px 16px',textAlign:'center',fontSize:12,fontWeight:600,color:'var(--text-muted)'}}>Avg Score</th>
+                                    <th style={{padding:'12px 16px',textAlign:'center',fontSize:12,fontWeight:600,color:'var(--text-muted)'}}>Calls</th>
+                                    <th style={{padding:'12px 16px',textAlign:'center',fontSize:12,fontWeight:600,color:'var(--text-muted)'}}>Best</th>
+                                </tr></thead>
+                                <tbody>
+                                    {leaderboard.map((r,i) => (
+                                        <tr key={r.user_id} className="table-row" style={{borderBottom:'1px solid var(--border)'}}>
+                                            <td style={{padding:'12px 16px'}}>
+                                                <div style={{width:28,height:28,borderRadius:8,background: i===0 ? 'linear-gradient(135deg,#C0C4CB,#E8EAED)' : 'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,color: i===0 ? '#000' : 'var(--text-muted)'}}>{r.rank}</div>
+                                            </td>
+                                            <td style={{padding:'12px 16px',fontWeight:600,fontSize:14}}>{r.name}</td>
+                                            <td style={{padding:'12px 16px',textAlign:'center'}}><ScoreRing score={r.avg_score} size={40} strokeWidth={3}/></td>
+                                            <td style={{padding:'12px 16px',textAlign:'center',color:'var(--text-secondary)'}}>{r.total_calls}</td>
+                                            <td style={{padding:'12px 16px',textAlign:'center',color:'var(--success)',fontWeight:600}}>{r.best_score}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
-                    ))}
+                    )}
+                </div>
+            )}
+
+            {activeTab === 'report' && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+                        <h3 style={{fontSize:16,fontWeight:700}}>Weekly Performance Report</h3>
+                        <button className="btn btn-gold btn-sm" onClick={generateReport} disabled={reportLoading}>
+                            {reportLoading ? <span className="spinner"></span> : Icons.refresh}
+                            <span>{reportLoading ? 'Generating...' : 'Generate Report'}</span>
+                        </button>
+                    </div>
+                    {weeklyReport ? (
+                        <div>
+                            <div className="stat-card-row" style={{display:'flex',gap:12,marginBottom:20,flexWrap:'wrap'}}>
+                                <StatCard label="Total Calls" value={weeklyReport.total_calls||0}/>
+                                <StatCard label="Avg Score" value={(weeklyReport.avg_score||0).toFixed(1)} accent="var(--gold)"/>
+                                <StatCard label="Conversion" value={`${(weeklyReport.conversion_rate||0).toFixed(1)}%`} accent="var(--success)"/>
+                            </div>
+                            {weeklyReport.ai_summary && (
+                                <div style={{background:'rgba(192,196,203,0.04)',border:'1px solid rgba(192,196,203,0.15)',borderRadius:12,padding:20,marginBottom:16}}>
+                                    <div style={{fontSize:13,fontWeight:600,color:'var(--gold)',marginBottom:8}}>AI Executive Summary</div>
+                                    <div style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap'}}>{weeklyReport.ai_summary}</div>
+                                </div>
+                            )}
+                            {weeklyReport.ai_recommendations && weeklyReport.ai_recommendations.length > 0 && (
+                                <div>
+                                    <div style={{fontSize:13,fontWeight:600,marginBottom:10}}>AI Recommendations</div>
+                                    <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                                        {weeklyReport.ai_recommendations.map((rec,i) => (
+                                            <div key={i} style={{display:'flex',gap:10,alignItems:'flex-start',fontSize:13,color:'var(--text-secondary)'}}>
+                                                <span style={{color:'var(--gold)',flexShrink:0}}>{Icons.lightbulb}</span>
+                                                <span>{typeof rec === 'string' ? rec : rec.recommendation || rec.text || JSON.stringify(rec)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div style={{textAlign:'center',padding:40,color:'var(--text-muted)'}}>
+                            <p style={{fontSize:14}}>No weekly report generated yet. Click "Generate Report" to create one with AI insights.</p>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {activeTab === 'growth' && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+                        <h3 style={{fontSize:16,fontWeight:700}}>AI Growth Plan</h3>
+                        <button className="btn btn-gold btn-sm" onClick={generateGrowth} disabled={growthLoading}>
+                            {growthLoading ? <span className="spinner"></span> : Icons.target}
+                            <span>{growthLoading ? 'Analyzing...' : 'Generate Plan'}</span>
+                        </button>
+                    </div>
+                    {growthPlan ? (
+                        <div>
+                            {growthPlan.message && <p style={{color:'var(--text-muted)',fontSize:14}}>{growthPlan.message}</p>}
+                            {growthPlan.focus_areas && growthPlan.focus_areas.map((area,i) => (
+                                <div key={i} className="glass" style={{padding:16,borderRadius:10,marginBottom:10}}>
+                                    <div style={{fontWeight:600,fontSize:14,marginBottom:6,color:'var(--gold)'}}>{area.area}</div>
+                                    {area.specific_drill && <div style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6}}>{area.specific_drill}</div>}
+                                    {area.practice_script && <div style={{fontSize:12,color:'var(--text-muted)',marginTop:8,fontStyle:'italic'}}>Practice: {area.practice_script}</div>}
+                                </div>
+                            ))}
+                            {growthPlan.encouragement && (
+                                <div style={{marginTop:16,padding:16,background:'rgba(34,197,94,0.06)',border:'1px solid rgba(34,197,94,0.15)',borderRadius:10}}>
+                                    <div style={{fontSize:13,color:'var(--success)',lineHeight:1.6}}>{growthPlan.encouragement}</div>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div style={{textAlign:'center',padding:40,color:'var(--text-muted)'}}>
+                            <p style={{fontSize:14}}>Generate a personalized AI growth plan based on your recent call performance.</p>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
     );
-};
+}};
 
 // ============ CONTACTS ============
 const ContactsPage = () => {
@@ -1099,7 +1292,7 @@ const ContactsPage = () => {
     return (
         <div className="fade-in">
             <div className="resp-header" style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:28,flexWrap:'wrap',gap:12}}>
-                <div><h1 style={{fontSize:24,fontWeight:700}}>Contacts</h1><p style={{color:'var(--text-muted)',fontSize:14,marginTop:4}}>{contacts.length} total contacts</p></div>
+                <div><h1 style={{fontSize:24,fontWeight:900,fontFamily:"'Playfair Display',serif"}}>Contacts</h1><p style={{color:'var(--text-muted)',fontSize:14,marginTop:4}}>{contacts.length} total contacts</p></div>
                 <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
                     <div style={{position:'relative',flex:'1 1 180px'}}><span style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:'var(--text-muted)'}}>{Icons.search}</span><input className="input" style={{paddingLeft:36,width:'100%'}} placeholder="Search contacts..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
                     <a href="/api/contacts/csv" target="_blank" className="btn btn-ghost btn-sm">{Icons.download}<span>Export CSV</span></a>
@@ -1126,7 +1319,7 @@ const ContactsPage = () => {
                                         <td style={{padding:'12px 16px'}}>{c.total_deals}</td>
                                         <td style={{padding:'12px 16px'}}>{c.treatments_interested ? <span className="badge badge-gold">{c.treatments_interested}</span> : '-'}</td>
                                         <td style={{padding:'12px 16px'}}>{c.latest_sentiment ? <span className={`badge ${c.latest_sentiment==='positive'?'badge-green':c.latest_sentiment==='negative'?'badge-red':'badge-gray'}`}>{c.latest_sentiment}</span> : '-'}</td>
-                                        <td style={{padding:'12px 16px',fontWeight:600,color:'var(--gold)'}}>{c.deal_value ? `$${c.deal_value.toLocaleString()}` : '-'}</td>
+                                        <td style={{padding:'12px 16px',fontWeight:600,color:'var(--gold)'}}>{c.deal_value ? `\u20B9${c.deal_value.toLocaleString('en-IN')}` : '-'}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -1275,7 +1468,7 @@ const LearningPage = () => {
                                         {q.options.map((opt, oi) => (
                                             <div key={oi} onClick={()=>setQuizAnswers({...quizAnswers,[String(qi)]:oi})}
                                                  style={{padding:'10px 14px',borderRadius:8,marginBottom:6,fontSize:13,cursor:'pointer',
-                                                     background: quizAnswers[String(qi)]===oi ? 'rgba(212,175,55,0.15)' : 'rgba(255,255,255,0.03)',
+                                                     background: quizAnswers[String(qi)]===oi ? 'rgba(192,196,203,0.15)' : 'rgba(255,255,255,0.03)',
                                                      border: `1px solid ${quizAnswers[String(qi)]===oi ? 'var(--gold)' : 'var(--border)'}`,
                                                      color: quizAnswers[String(qi)]===oi ? 'var(--gold)' : 'var(--text-secondary)'}}>
                                                 {opt}
@@ -1301,7 +1494,7 @@ const LearningPage = () => {
                                 <p style={{fontSize:14,color:'var(--text-secondary)',marginBottom:16,lineHeight:1.6}}>{ex.instruction}</p>
                                 <details style={{cursor:'pointer'}}>
                                     <summary style={{fontSize:13,color:'var(--gold)',fontWeight:600}}>View Sample Answer</summary>
-                                    <div style={{fontSize:13,color:'var(--text-secondary)',marginTop:8,padding:12,background:'rgba(212,175,55,0.05)',borderRadius:8,lineHeight:1.6}}>{ex.sample_answer}</div>
+                                    <div style={{fontSize:13,color:'var(--text-secondary)',marginTop:8,padding:12,background:'rgba(192,196,203,0.05)',borderRadius:8,lineHeight:1.6}}>{ex.sample_answer}</div>
                                 </details>
                             </div>
                         ))}
@@ -1420,6 +1613,100 @@ const LearningPage = () => {
     );
 };
 
+
+// ============ REPORTS PAGE ============
+const ReportsPage = () => {
+    const [reports, setReports] = useState([]);
+    const [current, setCurrent] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [generating, setGenerating] = useState(false);
+
+    useEffect(()=>{
+        apiFetch('/reports/weekly').then(setCurrent).catch(()=>{});
+        apiFetch('/reports/weekly/history').then(r => setReports(r.reports||[])).catch(()=>{});
+    },[]);
+
+    const generate = async () => {
+        setGenerating(true);
+        try {
+            const res = await apiFetch('/reports/weekly/generate', {method:'POST'});
+            setCurrent(res);
+            apiFetch('/reports/weekly/history').then(r => setReports(r.reports||[])).catch(()=>{});
+        } catch(e) {} finally { setGenerating(false); }
+    };
+
+    return (
+        <div className="fade-in">
+            <div className="resp-header" style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:28,flexWrap:'wrap',gap:12}}>
+                <div>
+                    <h1 style={{fontSize:24,fontWeight:900,fontFamily:"'Playfair Display',serif"}}>Weekly Reports</h1>
+                    <p style={{color:'var(--text-muted)',fontSize:14,marginTop:4}}>AI-powered weekly performance reports with insights</p>
+                </div>
+                <button className="btn btn-gold" onClick={generate} disabled={generating}>
+                    {generating ? <span className="spinner"></span> : Icons.refresh}
+                    <span>{generating ? 'Generating...' : 'Generate Report'}</span>
+                </button>
+            </div>
+
+            {current ? (
+                <div>
+                    <div className="stat-card-row" style={{display:'flex',gap:16,marginBottom:28,flexWrap:'wrap'}}>
+                        <StatCard label="Total Calls" value={current.total_calls||0}/>
+                        <StatCard label="Avg Score" value={(current.avg_score||0).toFixed(1)} accent="var(--gold)"/>
+                        <StatCard label="Conversion Rate" value={`${(current.conversion_rate||0).toFixed(1)}%`} accent="var(--success)"/>
+                        {current.top_agent_name && <StatCard label="Top Agent" value={current.top_agent_name} accent="var(--gold)"/>}
+                    </div>
+
+                    {current.ai_summary && (
+                        <div className="glass" style={{padding:24,borderRadius:12,marginBottom:20}}>
+                            <h3 style={{fontSize:16,fontWeight:700,marginBottom:12}}>AI Executive Summary</h3>
+                            <div style={{fontSize:14,color:'var(--text-secondary)',lineHeight:1.8,whiteSpace:'pre-wrap'}}>{current.ai_summary}</div>
+                        </div>
+                    )}
+
+                    {current.ai_recommendations && current.ai_recommendations.length > 0 && (
+                        <div className="glass" style={{padding:24,borderRadius:12,marginBottom:20}}>
+                            <h3 style={{fontSize:16,fontWeight:700,marginBottom:12}}>AI Recommendations</h3>
+                            <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                                {current.ai_recommendations.map((rec,i) => (
+                                    <div key={i} style={{display:'flex',gap:12,alignItems:'flex-start'}}>
+                                        <span style={{color:'var(--gold)',flexShrink:0,marginTop:2}}>{Icons.lightbulb}</span>
+                                        <div style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6}}>{typeof rec === 'string' ? rec : rec.recommendation || rec.text || JSON.stringify(rec)}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <div className="glass" style={{padding:60,borderRadius:12,textAlign:'center'}}>
+                    <p style={{color:'var(--text-muted)',fontSize:15}}>No reports generated yet. Click "Generate Report" to create your first AI-powered weekly report.</p>
+                </div>
+            )}
+
+            {reports.length > 0 && (
+                <div className="glass" style={{padding:24,borderRadius:12,marginTop:20}}>
+                    <h3 style={{fontSize:16,fontWeight:700,marginBottom:16}}>Report History</h3>
+                    <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                        {reports.map(r => (
+                            <div key={r.id} className="table-row" style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 16px',borderRadius:8,border:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>setCurrent(r)}>
+                                <div>
+                                    <div style={{fontWeight:600,fontSize:14}}>Week of {new Date(r.week_start).toLocaleDateString('en-IN')}</div>
+                                    <div style={{fontSize:12,color:'var(--text-muted)'}}>{r.total_calls} calls analyzed</div>
+                                </div>
+                                <div style={{display:'flex',gap:12,alignItems:'center'}}>
+                                    <span style={{fontSize:14,fontWeight:600,color:'var(--gold)'}}>{(r.avg_score||0).toFixed(1)}</span>
+                                    <span className="badge badge-green">{(r.conversion_rate||0).toFixed(1)}%</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 // ============ MAIN APP ============
 const App = () => {
     const [authed, setAuthed] = useState(!!getToken());
@@ -1442,6 +1729,7 @@ const App = () => {
         {id:'pipeline',label:'Pipeline',icon:Icons.pipeline},
         {id:'contacts',label:'Contacts',icon:Icons.contacts},
         {id:'coaching',label:'Coaching',icon:Icons.coaching},
+        {id:'reports',label:'Reports',icon:Icons.target},
         {id:'academy',label:'Academy',icon:Icons.academy},
     ];
 
@@ -1454,6 +1742,7 @@ const App = () => {
             case 'pipeline': return <PipelinePage/>;
             case 'contacts': return <ContactsPage/>;
             case 'coaching': return <CoachingPage/>;
+            case 'reports': return <ReportsPage/>;
             case 'academy': return <LearningPage/>;
             default: return <DashboardPage/>;
         }
@@ -1468,7 +1757,7 @@ const App = () => {
                 <button className="hamburger" onClick={()=>setSidebarOpen(!sidebarOpen)}>
                     <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
                 </button>
-                <span style={{fontSize:15,fontWeight:700}} className="text-gradient">CallCoach</span>
+                <span style={{fontSize:15,fontWeight:900,fontFamily:"'Playfair Display',serif"}} className="text-gradient">CallCoach</span>
                 <div style={{width:24}}/>
             </div>
             {/* Mobile Overlay */}
@@ -1487,6 +1776,7 @@ const App = () => {
                     {user && <div style={{fontSize:13,fontWeight:600,marginBottom:2}}>{user.full_name}</div>}
                     {user && <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:12}}>{user.role}</div>}
                     <a className="sidebar-link" onClick={logout} style={{color:'var(--danger)'}}>{Icons.logout}<span>Sign Out</span></a>
+                    <div style={{fontSize:9,color:'var(--text-muted)',textAlign:'center',marginTop:12,letterSpacing:'0.08em',textTransform:'uppercase'}}>Powered by SBA</div>
                 </div>
             </aside>
             {/* Main */}
