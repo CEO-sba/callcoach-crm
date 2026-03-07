@@ -295,8 +295,8 @@ const LoginPage = ({ onLogin }) => {
     return (
         <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'radial-gradient(ellipse at 50% 0%, rgba(192,196,203,0.08) 0%, transparent 60%), var(--bg-primary)'}}>
             <div className="fade-in" style={{width:'100%',maxWidth:420,padding:'40px 20px'}}>
-                <div style={{textAlign:'center',marginBottom:40,display:'flex',flexDirection:'column',alignItems:'center'}}>
-                    <img src="/static/logo-full.svg" alt="CallCoach - Skin Business Accelerator" style={{width:340,height:200,marginBottom:8}} onError={(e)=>{e.target.style.display='none'}}/>
+                <div style={{textAlign:'center',marginBottom:32,display:'flex',flexDirection:'column',alignItems:'center'}}>
+                    <img src="/static/logo-full.svg" alt="CallCoach - Skin Business Accelerator" style={{width:320,maxWidth:'90%',marginBottom:8}} onError={(e)=>{e.target.style.display='none'}}/>
                 </div>
                 <form onSubmit={handleSubmit} className="glass" style={{padding:32,borderRadius:16}}>
                     <h2 style={{fontSize:18,fontWeight:600,marginBottom:24,color:'var(--text-primary)'}}>{isRegister ? 'Create Account' : 'Sign In'}</h2>
