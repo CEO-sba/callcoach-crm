@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
+    "android:release": "cd android && ./gradlew assembleRelease",
+    "android:bundle": "cd android && ./gradlew bundleRelease",
+    "android:clean": "cd android && ./gradlew clean",
     "ios": "react-native run-ios",
     "start": "react-native start",
     "test": "jest",
@@ -25,6 +28,11 @@
     "react-redux": "^9.0.4"
   },
   "devDependencies": {
+    "@react-native/babel-preset": "^0.73.18",
+    "@react-native/metro-config": "^0.73.3",
+    "@react-native-community/cli": "^12.3.2",
+    "@react-native-community/cli-platform-android": "^12.3.2",
+    "@react-native-community/cli-platform-ios": "^12.3.2",
     "@types/react": "^18.2.45",
     "@types/react-native": "^0.73.0",
     "typescript": "^5.3.3"

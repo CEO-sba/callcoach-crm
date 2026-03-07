@@ -46,14 +46,9 @@
             </intent-filter>
         </activity>
 
-        <!-- Call state listener receiver -->
-        <receiver
-            android:name=".CallStateReceiver"
-            android:enabled="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.PHONE_STATE" />
-            </intent-filter>
-        </receiver>
+        <!--
+            Call state monitoring is handled by CallStateModule via
+            runtime-registered BroadcastReceiver (startListening/stopListening).
+        -->
     </application>
 </manifest>
