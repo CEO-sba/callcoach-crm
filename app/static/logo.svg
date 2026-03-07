@@ -1,81 +1,63 @@
-<svg viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- Chrome gradient for silhouette and text -->
     <linearGradient id="chromeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#C0C4CB;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#E8EAED;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#F5F6F8;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:#E8EAED;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#C0C4CB;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8A9099;stop-opacity:1" />
     </linearGradient>
-
-    <!-- Radial gradient for depth on silhouette -->
-    <radialGradient id="silhouetteGradient" cx="35%" cy="30%">
+    <radialGradient id="faceGlow" cx="40%" cy="35%">
       <stop offset="0%" style="stop-color:#F5F6F8;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#C0C4CB;stop-opacity:1" />
     </radialGradient>
+    <linearGradient id="headsetGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#D4D8DE;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8A9099;stop-opacity:1" />
+    </linearGradient>
   </defs>
 
-  <!-- Main group for logo -->
-  <g id="logoGroup">
-    <!-- Woman profile silhouette with headset -->
-    <g id="silhouette">
-      <!-- Hair (flowing, organic shape) -->
-      <path d="M 50 35 Q 45 30 42 40 Q 40 50 42 65 Q 44 75 50 82 L 50 35"
-            fill="url(#silhouetteGradient)" stroke="url(#chromeGradient)" stroke-width="0.5"/>
+  <g transform="translate(10, 5)">
+    <!-- Hair back volume -->
+    <path d="M 28 18 Q 20 15 16 25 Q 13 35 15 50 Q 17 60 25 68 Q 28 70 30 65 Q 25 55 25 40 Q 25 28 28 18 Z"
+          fill="url(#faceGlow)" opacity="0.9"/>
 
-      <!-- Head -->
-      <circle cx="55" cy="55" r="18" fill="url(#silhouetteGradient)" stroke="url(#chromeGradient)" stroke-width="0.5"/>
+    <!-- Hair top volume -->
+    <ellipse cx="38" cy="20" rx="22" ry="16" fill="url(#faceGlow)"/>
 
-      <!-- Hair flowing back and down -->
-      <path d="M 65 45 Q 75 40 78 50 Q 80 60 78 72 Q 75 82 65 85 Q 63 85 62 80 Q 65 75 65 60 Z"
-            fill="url(#silhouetteGradient)" stroke="url(#chromeGradient)" stroke-width="0.5"/>
+    <!-- Head -->
+    <circle cx="40" cy="40" r="24" fill="url(#faceGlow)"/>
 
-      <!-- Hair volume on top -->
-      <ellipse cx="55" cy="38" rx="16" ry="12" fill="url(#silhouetteGradient)" stroke="url(#chromeGradient)" stroke-width="0.5"/>
+    <!-- Hair flowing right side -->
+    <path d="M 52 28 Q 68 22 72 35 Q 75 48 72 60 Q 68 70 58 72 Q 56 70 57 65 Q 62 58 62 42 Q 62 32 52 28 Z"
+          fill="url(#faceGlow)" opacity="0.9"/>
 
-      <!-- Neck -->
-      <rect x="51" y="70" width="8" height="10" fill="url(#chromeGradient)"/>
+    <!-- Neck -->
+    <rect x="33" y="60" width="14" height="16" rx="3" fill="url(#chromeGradient)"/>
 
-      <!-- Shoulders -->
-      <path d="M 45 80 L 40 95 Q 42 98 55 100 Q 68 98 70 95 L 65 80 Z"
-            fill="url(#silhouetteGradient)" stroke="url(#chromeGradient)" stroke-width="0.5"/>
+    <!-- Shoulders -->
+    <path d="M 22 72 Q 18 78 14 90 Q 16 96 40 100 Q 64 96 66 90 Q 62 78 58 72 Z"
+          fill="url(#faceGlow)" stroke="url(#chromeGradient)" stroke-width="0.5"/>
 
-      <!-- Ear -->
-      <ellipse cx="72" cy="55" rx="4" ry="6" fill="url(#silhouetteGradient)" stroke="url(#chromeGradient)" stroke-width="0.5"/>
+    <!-- Ear -->
+    <ellipse cx="66" cy="40" rx="5" ry="7" fill="url(#faceGlow)" stroke="url(#chromeGradient)" stroke-width="0.5"/>
 
-      <!-- Headset - Left ear cup -->
-      <circle cx="70" cy="52" r="6" fill="none" stroke="url(#chromeGradient)" stroke-width="2"/>
-      <circle cx="70" cy="52" r="4" fill="none" stroke="url(#chromeGradient)" stroke-width="1.5" opacity="0.7"/>
+    <!-- Headset headband -->
+    <path d="M 64 30 Q 72 20 82 24 Q 88 28 86 40"
+          fill="none" stroke="url(#headsetGrad)" stroke-width="4" stroke-linecap="round"/>
 
-      <!-- Headset - Boom arm -->
-      <path d="M 75 55 Q 85 58 88 68" fill="none" stroke="url(#chromeGradient)" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- Headset left ear cup -->
+    <circle cx="64" cy="38" r="9" fill="none" stroke="url(#headsetGrad)" stroke-width="3.5"/>
+    <circle cx="64" cy="38" r="5.5" fill="none" stroke="url(#headsetGrad)" stroke-width="2" opacity="0.6"/>
 
-      <!-- Headset - Boom tip (microphone) -->
-      <circle cx="88" cy="68" r="2.5" fill="url(#chromeGradient)"/>
+    <!-- Headset right ear cup -->
+    <circle cx="86" cy="36" r="8" fill="none" stroke="url(#headsetGrad)" stroke-width="3.5"/>
+    <circle cx="86" cy="36" r="5" fill="none" stroke="url(#headsetGrad)" stroke-width="2" opacity="0.6"/>
 
-      <!-- Headset - Headband -->
-      <path d="M 70 45 Q 75 38 85 40 Q 90 42 88 52" fill="none" stroke="url(#chromeGradient)" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- Headset boom arm -->
+    <path d="M 70 44 Q 82 50 86 62"
+          fill="none" stroke="url(#headsetGrad)" stroke-width="3.5" stroke-linecap="round"/>
 
-      <!-- Headset - Right ear cup -->
-      <circle cx="88" cy="48" r="5.5" fill="none" stroke="url(#chromeGradient)" stroke-width="2"/>
-      <circle cx="88" cy="48" r="3.5" fill="none" stroke="url(#chromeGradient)" stroke-width="1.5" opacity="0.7"/>
-    </g>
-
-    <!-- CallCoach main text -->
-    <text x="100" y="125" font-family="Arial, sans-serif" font-size="36" font-weight="bold"
-          text-anchor="middle" fill="url(#chromeGradient)" letter-spacing="-1">
-      CallCoach
-    </text>
-
-    <!-- SKIN BUSINESS ACCELERATOR text -->
-    <text x="100" y="152" font-family="Arial, sans-serif" font-size="10" font-weight="600"
-          text-anchor="middle" fill="url(#chromeGradient)" letter-spacing="1.2" text-transform="uppercase">
-      SKIN BUSINESS ACCELERATOR
-    </text>
-
-    <!-- AI SALES TRAINING & CRM text -->
-    <text x="100" y="167" font-family="Arial, sans-serif" font-size="8" font-weight="500"
-          text-anchor="middle" fill="#8A9099" letter-spacing="0.8" text-transform="uppercase" opacity="0.9">
-      AI SALES TRAINING &amp; CRM
-    </text>
+    <!-- Microphone -->
+    <circle cx="86" cy="62" r="4" fill="url(#headsetGrad)"/>
+    <circle cx="86" cy="62" r="2" fill="url(#chromeGradient)" opacity="0.5"/>
   </g>
 </svg>
