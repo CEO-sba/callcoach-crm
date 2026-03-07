@@ -2,6 +2,8 @@
 CallCoach CRM - Configuration
 """
 import os
+import secrets
+import logging
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -19,8 +21,16 @@ DATA_DIR.mkdir(exist_ok=True)
 _default_db = str(DATA_DIR / "callcoach.db")
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{_default_db}")
 
-# Auth
-SECRET_KEY = os.getenv("SECRET_KEY", "change-this-in-production-to-a-random-secret")
+# Auth - SECRET_KEY MUST be set as a Railway env var to persist across deploys.
+# If not set, a random key is generated (but sessions will break on redeploy).
+_secret = os.getenv("SECRET_KEY", "")
+if not _secret or _secret == "change-this-in-production-to-a-random-secret":
+    _secret = secrets.token_hex(32)
+    logging.getLogger(__name__).warning(
+        "SECRET_KEY not set in environment. Using a random key. "
+        "Set SECRET_KEY in Railway env vars to keep logins persistent across deploys."
+    )
+SECRET_KEY = _secret
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
