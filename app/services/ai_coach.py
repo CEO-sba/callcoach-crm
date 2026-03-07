@@ -225,10 +225,14 @@ async def analyze_call(
 
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse AI response as JSON: {e}")
-        return _fallback_analysis()
+        fallback = _fallback_analysis()
+        fallback["summary"] = f"AI response was not valid JSON. Raw parsing error: {str(e)[:100]}"
+        return fallback
     except Exception as e:
         logger.error(f"AI analysis failed: {e}")
-        return _fallback_analysis()
+        fallback = _fallback_analysis()
+        fallback["summary"] = f"AI analysis error: {str(e)[:150]}"
+        return fallback
 
 
 async def get_live_coaching_tip(

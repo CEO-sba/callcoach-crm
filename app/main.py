@@ -67,4 +67,12 @@ async def root():
 
 @app.get("/health")
 def health():
-    return {"status": "healthy", "app": APP_NAME, "version": APP_VERSION}
+    from app.config import ANTHROPIC_API_KEY, GROQ_API_KEY
+    return {
+        "status": "healthy",
+        "app": APP_NAME,
+        "version": APP_VERSION,
+        "anthropic_key_set": bool(ANTHROPIC_API_KEY),
+        "anthropic_key_prefix": ANTHROPIC_API_KEY[:12] + "..." if ANTHROPIC_API_KEY else "NOT SET",
+        "groq_key_set": bool(GROQ_API_KEY),
+    }
