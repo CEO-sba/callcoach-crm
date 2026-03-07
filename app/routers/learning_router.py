@@ -210,9 +210,9 @@ def get_quiz(
 
     # Strip correct answers and explanations for the response
     safe_quiz = []
-    for q in quiz:
+    for idx, q in enumerate(quiz):
         safe_quiz.append({
-            "id": q["id"],
+            "id": str(idx),
             "question": q["question"],
             "options": q["options"]
         })

@@ -1148,6 +1148,7 @@ const LearningPage = () => {
     const [quizAnswers, setQuizAnswers] = useState({});
     const [quizResult, setQuizResult] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [categoryFilter, setCategoryFilter] = useState('all');
 
     useEffect(() => {
         Promise.all([
@@ -1269,14 +1270,14 @@ const LearningPage = () => {
                         ) : (
                             <div>
                                 {quiz.map((q, qi) => (
-                                    <div key={q.id} className="glass" style={{borderRadius:12,padding:20,marginBottom:12}}>
+                                    <div key={qi} className="glass" style={{borderRadius:12,padding:20,marginBottom:12}}>
                                         <div style={{fontSize:14,fontWeight:600,marginBottom:12}}>{qi+1}. {q.question}</div>
                                         {q.options.map((opt, oi) => (
-                                            <div key={oi} onClick={()=>setQuizAnswers({...quizAnswers,[q.id]:oi})}
+                                            <div key={oi} onClick={()=>setQuizAnswers({...quizAnswers,[String(qi)]:oi})}
                                                  style={{padding:'10px 14px',borderRadius:8,marginBottom:6,fontSize:13,cursor:'pointer',
-                                                     background: quizAnswers[q.id]===oi ? 'rgba(212,175,55,0.15)' : 'rgba(255,255,255,0.03)',
-                                                     border: `1px solid ${quizAnswers[q.id]===oi ? 'var(--gold)' : 'var(--border)'}`,
-                                                     color: quizAnswers[q.id]===oi ? 'var(--gold)' : 'var(--text-secondary)'}}>
+                                                     background: quizAnswers[String(qi)]===oi ? 'rgba(212,175,55,0.15)' : 'rgba(255,255,255,0.03)',
+                                                     border: `1px solid ${quizAnswers[String(qi)]===oi ? 'var(--gold)' : 'var(--border)'}`,
+                                                     color: quizAnswers[String(qi)]===oi ? 'var(--gold)' : 'var(--text-secondary)'}}>
                                                 {opt}
                                             </div>
                                         ))}
@@ -1371,9 +1372,16 @@ const LearningPage = () => {
                 </div>
             </div>
 
+            {/* Category Filter */}
+            <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:20}}>
+                {[{id:'all',label:'All Modules'},{id:'5_phase_framework',label:'5 Phase Framework'},{id:'advanced_skills',label:'Advanced Skills'},{id:'channel_skills',label:'Channel Skills'},{id:'operations',label:'Operations'},{id:'treatment_knowledge',label:'Treatment Knowledge'},{id:'career',label:'Career'}].map(cat => (
+                    <button key={cat.id} className={`btn btn-xs ${categoryFilter===cat.id?'btn-gold':'btn-ghost'}`} onClick={()=>setCategoryFilter(cat.id)}>{cat.label}</button>
+                ))}
+            </div>
+
             {/* Module Cards */}
-            <div className="resp-grid-2" style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:16}}>
-                {modules.map(mod => (
+            <div className="resp-grid-2" style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16}}>
+                {modules.filter(mod => categoryFilter === 'all' || mod.category === categoryFilter).map(mod => (
                     <div key={mod.id} className="glass" style={{borderRadius:12,padding:20,cursor:'pointer',transition:'all 0.2s'}} onClick={()=>openModule(mod.id)}>
                         <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}>
                             <div style={{width:40,height:40,borderRadius:10,background:mod.color+'22',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:800,color:mod.color}}>{mod.order}</div>
