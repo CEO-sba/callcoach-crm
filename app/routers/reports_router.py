@@ -64,43 +64,6 @@ async def get_current_week_report(
     # No report exists yet for this week - return null (user must click Generate)
     return None
 
-    # Save to database
-    new_report = WeeklyReport(
-        clinic_id=current_user.clinic_id,
-        week_start=week_start.date(),
-        week_end=(week_start + timedelta(days=7)).date(),
-        total_calls=report_data["total_calls"],
-        avg_score=report_data["avg_score"],
-        conversion_rate=report_data["conversion_rate"],
-        top_agent_id=None,
-        top_agent_name=report_data.get("best_agent_name", "N/A"),
-        calls_by_day=report_data.get("calls_by_day", {}),
-        sentiment_distribution=report_data.get("sentiment_distribution", {}),
-        ai_summary=report_data.get("ai_summary", ""),
-        ai_recommendations=report_data.get("ai_recommendations", []),
-        revenue_impact=report_data.get("revenue_impact", {})
-    )
-    db.add(new_report)
-    db.commit()
-    db.refresh(new_report)
-
-    return {
-        "id": new_report.id,
-        "clinic_id": new_report.clinic_id,
-        "week_start": new_report.week_start.isoformat(),
-        "week_end": new_report.week_end.isoformat(),
-        "total_calls": new_report.total_calls,
-        "avg_score": new_report.avg_score,
-        "conversion_rate": new_report.conversion_rate,
-        "top_agent_name": new_report.top_agent_name,
-        "calls_by_day": new_report.calls_by_day,
-        "sentiment_distribution": new_report.sentiment_distribution,
-        "ai_summary": new_report.ai_summary,
-        "ai_recommendations": new_report.ai_recommendations,
-        "revenue_impact": new_report.revenue_impact,
-        "created_at": new_report.created_at.isoformat()
-    }
-
 
 @router.get("/weekly/history")
 def get_weekly_reports_history(
@@ -167,15 +130,19 @@ async def manually_generate_report(
     if current_user.role not in ["admin", "manager"]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
-    # Parse week start date
+    # Parse week start date (normalize to midnight to avoid duplicate reports)
     if week_start:
         try:
-            parsed_week_start = datetime.fromisoformat(week_start)
+            parsed_week_start = datetime.fromisoformat(week_start).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid week_start format. Use ISO format (YYYY-MM-DD)")
     else:
         today = datetime.utcnow()
-        parsed_week_start = today - timedelta(days=today.weekday())
+        parsed_week_start = (today - timedelta(days=today.weekday())).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
 
     # Generate report
     report_data = generate_weekly_report(db, current_user.clinic_id, parsed_week_start)
@@ -282,4 +249,44 @@ def get_report_detail(
         "ai_recommendations": report.ai_recommendations,
         "revenue_impact": report.revenue_impact,
         "created_at": report.created_at.isoformat()
+    }
+
+
+@router.post("/weekly/cleanup-duplicates")
+def cleanup_duplicate_reports(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Remove duplicate weekly reports for the clinic.
+
+    Keeps the most recently created report for each week_start date
+    and removes older duplicates. Only admins can run this.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can cleanup reports")
+
+    # Get all reports for this clinic ordered by week_start and created_at
+    all_reports = db.query(WeeklyReport).filter(
+        WeeklyReport.clinic_id == current_user.clinic_id
+    ).order_by(WeeklyReport.week_start, desc(WeeklyReport.created_at)).all()
+
+    seen_weeks = {}
+    removed = 0
+
+    for report in all_reports:
+        week_key = report.week_start.isoformat()
+        if week_key in seen_weeks:
+            # This is a duplicate - delete the older one
+            db.delete(report)
+            removed += 1
+        else:
+            seen_weeks[week_key] = report.id
+
+    if removed > 0:
+        db.commit()
+
+    return {
+        "message": f"Cleaned up {removed} duplicate report(s)",
+        "remaining_reports": len(seen_weeks)
     }
