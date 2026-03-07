@@ -61,8 +61,8 @@ async def get_current_week_report(
             "created_at": existing_report.created_at.isoformat()
         }
 
-    # Generate new report
-    report_data = generate_weekly_report(db, current_user.clinic_id, week_start)
+    # No report exists yet for this week - return null (user must click Generate)
+    return None
 
     # Save to database
     new_report = WeeklyReport(
@@ -72,13 +72,13 @@ async def get_current_week_report(
         total_calls=report_data["total_calls"],
         avg_score=report_data["avg_score"],
         conversion_rate=report_data["conversion_rate"],
-        top_agent_id=None,  # Set based on best agent if needed
-        top_agent_name=report_data["best_agent_name"],
-        calls_by_day=report_data["calls_by_day"],
-        sentiment_distribution=report_data["sentiment_distribution"],
-        ai_summary=report_data["ai_summary"],
-        ai_recommendations=report_data["ai_recommendations"],
-        revenue_impact=report_data["revenue_impact"]
+        top_agent_id=None,
+        top_agent_name=report_data.get("best_agent_name", "N/A"),
+        calls_by_day=report_data.get("calls_by_day", {}),
+        sentiment_distribution=report_data.get("sentiment_distribution", {}),
+        ai_summary=report_data.get("ai_summary", ""),
+        ai_recommendations=report_data.get("ai_recommendations", []),
+        revenue_impact=report_data.get("revenue_impact", {})
     )
     db.add(new_report)
     db.commit()

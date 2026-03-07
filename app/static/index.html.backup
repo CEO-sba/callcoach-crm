@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CallCoach CRM</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #06080F;
+            --bg-secondary: #0D1117;
+            --bg-card: rgba(15, 20, 30, 0.7);
+            --bg-card-hover: rgba(20, 28, 42, 0.8);
+            --border: rgba(212, 175, 55, 0.12);
+            --border-hover: rgba(212, 175, 55, 0.3);
+            --gold: #D4AF37;
+            --gold-light: #F0D060;
+            --gold-dark: #B8960C;
+            --text-primary: #F1F5F9;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            --success: #22C55E;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --info: #3B82F6;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(212, 175, 55, 0.2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(212, 175, 55, 0.4); }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Glass morphism */
+        .glass { background: var(--bg-card); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--border); }
+        .glass:hover { border-color: var(--border-hover); }
+        .glass-solid { background: var(--bg-secondary); border: 1px solid var(--border); }
+
+        /* Buttons */
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; border: none; font-family: inherit; }
+        .btn-gold { background: linear-gradient(135deg, var(--gold), var(--gold-light)); color: #000; }
+        .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(212, 175, 55, 0.3); }
+        .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+        .btn-danger { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #EF4444; }
+        .btn-danger:hover { background: rgba(239, 68, 68, 0.25); }
+        .btn-sm { padding: 6px 14px; font-size: 13px; }
+        .btn-xs { padding: 4px 10px; font-size: 12px; border-radius: 6px; }
+
+        /* Inputs */
+        .input { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-family: inherit; font-size: 14px; outline: none; transition: border-color 0.2s; }
+        .input:focus { border-color: var(--gold); }
+        .input::placeholder { color: var(--text-muted); }
+        select.input { cursor: pointer; }
+        textarea.input { resize: vertical; min-height: 80px; }
+
+        /* Score Ring */
+        .score-ring { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+        .score-ring svg { transform: rotate(-90deg); }
+        .score-ring .score-text { position: absolute; font-weight: 700; font-family: 'Inter', sans-serif; }
+
+        /* Badge */
+        .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge-gold { background: rgba(212, 175, 55, 0.15); color: var(--gold); }
+        .badge-green { background: rgba(34, 197, 94, 0.15); color: #22C55E; }
+        .badge-red { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
+        .badge-blue { background: rgba(59, 130, 246, 0.15); color: #3B82F6; }
+        .badge-yellow { background: rgba(245, 158, 11, 0.15); color: #F59E0B; }
+        .badge-gray { background: rgba(148, 163, 184, 0.1); color: #94A3B8; }
+
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes recPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.7); } 70% { box-shadow: 0 0 0 15px rgba(239,68,68,0); } }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .recording-pulse { animation: recPulse 1s infinite; }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .tip-card { animation: slideIn 0.3s ease-out; }
+
+        /* Stage columns for pipeline */
+        .stage-col { min-width: 280px; }
+
+        /* Gradient text */
+        .text-gradient { background: linear-gradient(135deg, var(--gold), var(--gold-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+        /* Sidebar */
+        .sidebar-link { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 8px; color: var(--text-secondary); font-weight: 500; font-size: 14px; transition: all 0.2s; cursor: pointer; text-decoration: none; }
+        .sidebar-link:hover { color: var(--text-primary); background: rgba(212, 175, 55, 0.06); }
+        .sidebar-link.active { color: var(--gold); background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.15); }
+
+        /* Table */
+        .table-row { transition: background 0.15s; }
+        .table-row:hover { background: rgba(212, 175, 55, 0.04); }
+
+        /* Loading spinner */
+        .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.6s linear infinite; }
+
+        /* Glow effect */
+        .glow-gold { box-shadow: 0 0 30px rgba(212, 175, 55, 0.08); }
+
+        /* Audio Player */
+        .audio-player { width: 100%; border-radius: 8px; background: rgba(255,255,255,0.03); }
+        .audio-player::-webkit-media-controls-panel { background: rgba(15,20,30,0.9); }
+
+        /* AI Coach Chat */
+        .coach-chat-bubble { background: rgba(212,175,55,0.06); border: 1px solid rgba(212,175,55,0.15); border-radius: 12px; padding: 16px; font-size: 13px; line-height: 1.7; color: var(--text-secondary); white-space: pre-wrap; animation: fadeIn 0.4s ease-out; }
+        .coach-prompt-btn { padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border); background: rgba(255,255,255,0.02); color: var(--text-secondary); font-size: 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+        .coach-prompt-btn:hover { border-color: var(--gold); color: var(--gold); background: rgba(212,175,55,0.06); }
+
+        /* Drag and Drop Pipeline */
+        .pipeline-card { transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s; cursor: grab; user-select: none; }
+        .pipeline-card:active { cursor: grabbing; }
+        .pipeline-card.dragging { opacity: 0.5; transform: scale(0.95); }
+        .stage-drop-zone { min-height: 120px; border-radius: 10px; transition: background 0.2s, border-color 0.2s; border: 2px dashed transparent; }
+        .stage-drop-zone.drag-over { background: rgba(212,175,55,0.04); border-color: rgba(212,175,55,0.3); }
+
+        /* Learning card */
+        .learning-card { padding: 14px 18px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); transition: all 0.2s; cursor: default; }
+        .learning-card:hover { border-color: rgba(212,175,55,0.2); background: rgba(212,175,55,0.03); }
+
+        /* Typing indicator */
+        .typing-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); animation: typingBounce 1.4s infinite; display: inline-block; margin: 0 2px; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typingBounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+
+        /* Tab nav */
+        .detail-tab { padding: 10px 20px; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; color: var(--text-muted); background: transparent; border: none; border-bottom: 2px solid transparent; }
+        .detail-tab:hover { color: var(--text-secondary); }
+        .detail-tab.active { color: var(--gold); border-bottom-color: var(--gold); background: rgba(212,175,55,0.06); }
+
+        /* Mobile hamburger */
+        .mobile-header { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 60; background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 12px 16px; align-items: center; justify-content: space-between; }
+        .hamburger { background: none; border: none; color: var(--text-primary); cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; }
+        .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 55; }
+        .mobile-overlay.show { display: block; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .mobile-header { display: flex; }
+            .desktop-sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
+            .desktop-sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0 !important; padding: 72px 16px 24px 16px !important; max-width: 100% !important; }
+            .stat-card-row { gap: 10px !important; }
+            .stat-card-row > div { min-width: calc(50% - 8px) !important; flex: 0 0 calc(50% - 8px) !important; }
+            .resp-grid-2 { grid-template-columns: 1fr !important; }
+            .resp-grid-4 { grid-template-columns: repeat(2, 1fr) !important; }
+            .page-title { font-size: 20px !important; }
+            .detail-tab { padding: 8px 12px; font-size: 12px; }
+            .pipeline-scroll { gap: 10px !important; }
+            .stage-col { min-width: 260px !important; }
+            .coach-chat-bubble { font-size: 13px; padding: 12px; }
+            .btn { padding: 8px 14px; font-size: 13px; }
+            .btn-sm { padding: 6px 10px; font-size: 12px; }
+            h1 { font-size: 20px !important; }
+            .resp-header { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
+        }
+
+        @media (max-width: 480px) {
+            .main-content { padding: 64px 12px 20px 12px !important; }
+            .stat-card-row > div { min-width: 100% !important; flex: 0 0 100% !important; }
+            .resp-grid-4 { grid-template-columns: 1fr !important; }
+            .btn { padding: 8px 12px; font-size: 12px; gap: 6px; }
+            .badge { font-size: 10px; padding: 2px 8px; }
+            .glass { padding: 14px !important; }
+        }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ============ API HELPERS ============
+const API = '/api';
+const getToken = () => localStorage.getItem('callcoach_token');
+const setToken = (t) => localStorage.setItem('callcoach_token', t);
+const clearToken = () => localStorage.removeItem('callcoach_token');
+
+const apiFetch = async (path, opts = {}) => {
+    const headers = { ...opts.headers };
+    const token = getToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (opts.body && !(opts.body instanceof FormData) && typeof opts.body !== 'string') {
+        if (!headers['Content-Type']) headers['Content-Type'] = 'application/json';
+        opts.body = JSON.stringify(opts.body);
+    }
+    const res = await fetch(`${API}${path}`, { ...opts, headers });
+    if (res.status === 401) { clearToken(); window.location.reload(); }
+    if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        const detail = e.detail;
+        const msg = typeof detail === 'string' ? detail : (Array.isArray(detail) ? detail.map(d => d.msg || String(d)).join(', ') : 'Request failed');
+        throw new Error(msg);
+    }
+    return res.json();
+};
+
+// ============ SVG ICONS ============
+const Icons = {
+    dashboard: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>,
+    calls: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>,
+    pipeline: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>,
+    contacts: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>,
+    coaching: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>,
+    mic: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>,
+    stop: <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>,
+    back: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>,
+    download: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>,
+    search: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>,
+    plus: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>,
+    logout: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>,
+    upload: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>,
+    star: <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
+    clock: <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>,
+    check: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>,
+    play: <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>,
+    brain: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M12 2a7 7 0 00-5.6 11.2L12 22l5.6-8.8A7 7 0 0012 2z"/></svg>,
+    chat: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,
+    lightbulb: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M9 18h6M10 22h4M12 2a7 7 0 00-3 13.33V18h6v-2.67A7 7 0 0012 2z"/></svg>,
+    refresh: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>,
+    send: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>,
+    target: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
+    drag: <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>,
+    academy: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2zM22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>,
+};
+
+// ============ LOGO ============
+const Logo = () => (
+    <div style={{display:'flex',alignItems:'center',gap:'12px',padding:'8px 0'}}>
+        <div style={{width:36,height:36,borderRadius:10,background:'linear-gradient(135deg, #D4AF37, #F0D060)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <svg width="20" height="20" fill="#000" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+        </div>
+        <div>
+            <div style={{fontSize:18,fontWeight:700,letterSpacing:'-0.02em'}} className="text-gradient">CallCoach</div>
+            <div style={{fontSize:10,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.1em'}}>CRM Platform</div>
+        </div>
+    </div>
+);
+
+// ============ SCORE RING ============
+const ScoreRing = ({ score, size = 56, strokeWidth = 4 }) => {
+    const r = (size - strokeWidth) / 2;
+    const circ = 2 * Math.PI * r;
+    const offset = circ - (score / 100) * circ;
+    const color = score >= 80 ? 'var(--success)' : score >= 60 ? 'var(--gold)' : score >= 40 ? 'var(--warning)' : 'var(--danger)';
+    return (
+        <div className="score-ring" style={{width:size,height:size}}>
+            <svg width={size} height={size}>
+                <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={strokeWidth}/>
+                <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"/>
+            </svg>
+            <span className="score-text" style={{fontSize:size*0.26,color}}>{Math.round(score)}</span>
+        </div>
+    );
+};
+
+// ============ STAT CARD ============
+const StatCard = ({ label, value, sub, accent }) => (
+    <div className="glass fade-in" style={{padding:'20px 24px',borderRadius:12,flex:1,minWidth:180}}>
+        <div style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>{label}</div>
+        <div style={{fontSize:28,fontWeight:700,color: accent || 'var(--text-primary)',letterSpacing:'-0.02em'}}>{value}</div>
+        {sub && <div style={{fontSize:12,color:'var(--text-secondary)',marginTop:4}}>{sub}</div>}
+    </div>
+);
+
+// ============ LOGIN PAGE ============
+const LoginPage = ({ onLogin }) => {
+    const [isRegister, setIsRegister] = useState(false);
+    const [form, setForm] = useState({ email:'', password:'', full_name:'', clinic_name:'' });
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault(); setError(''); setLoading(true);
+        try {
+            if (isRegister) {
+                await apiFetch('/auth/register-simple', { method:'POST', body:{ email:form.email, password:form.password, full_name:form.full_name, clinic_name:form.clinic_name }});
+            }
+            const data = await apiFetch('/auth/login', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:`username=${encodeURIComponent(form.email)}&password=${encodeURIComponent(form.password)}` });
+            setToken(data.access_token);
+            onLogin();
+        } catch(err) { setError(err.message); } finally { setLoading(false); }
+    };
+
+    return (
+        <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'radial-gradient(ellipse at 50% 0%, rgba(212,175,55,0.06) 0%, transparent 60%), var(--bg-primary)'}}>
+            <div className="fade-in" style={{width:'100%',maxWidth:420,padding:'40px 20px'}}>
+                <div style={{textAlign:'center',marginBottom:40}}>
+                    <div style={{width:56,height:56,borderRadius:16,background:'linear-gradient(135deg, #D4AF37, #F0D060)',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:16}}>
+                        <svg width="28" height="28" fill="#000" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+                    </div>
+                    <h1 style={{fontSize:28,fontWeight:700,letterSpacing:'-0.03em'}} className="text-gradient">CallCoach CRM</h1>
+                    <p style={{color:'var(--text-muted)',fontSize:14,marginTop:6}}>AI-powered call intelligence for clinics</p>
+                </div>
+                <form onSubmit={handleSubmit} className="glass" style={{padding:32,borderRadius:16}}>
+                    <h2 style={{fontSize:18,fontWeight:600,marginBottom:24,color:'var(--text-primary)'}}>{isRegister ? 'Create Account' : 'Sign In'}</h2>
+                    {isRegister && <>
+                        <div style={{marginBottom:16}}><label style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',display:'block',marginBottom:6}}>Full Name</label><input className="input" placeholder="Dr. John Smith" value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})} required/></div>
+                        <div style={{marginBottom:16}}><label style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',display:'block',marginBottom:6}}>Clinic Name</label><input className="input" placeholder="Premier Aesthetics" value={form.clinic_name} onChange={e=>setForm({...form,clinic_name:e.target.value})} required/></div>
+                    </>}
+                    <div style={{marginBottom:16}}><label style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',display:'block',marginBottom:6}}>Email</label><input className="input" type="email" placeholder="you@clinic.com" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} required/></div>
+                    <div style={{marginBottom:24}}><label style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',display:'block',marginBottom:6}}>Password</label><input className="input" type="password" placeholder="Min. 6 characters" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} required/></div>
+                    {error && <div style={{padding:'10px 14px',borderRadius:8,background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',color:'#EF4444',fontSize:13,marginBottom:16}}>{error}</div>}
+                    <button type="submit" className="btn btn-gold" style={{width:'100%',justifyContent:'center',padding:'12px',fontSize:15}} disabled={loading}>{loading ? <span className="spinner"></span> : (isRegister ? 'Create Account' : 'Sign In')}</button>
+                    <div style={{textAlign:'center',marginTop:20}}><span style={{color:'var(--text-muted)',fontSize:13}}>{isRegister ? 'Already have an account?' : "Don't have an account?"}</span>{' '}<a onClick={()=>{setIsRegister(!isRegister);setError('');}} style={{color:'var(--gold)',fontSize:13,fontWeight:600,cursor:'pointer'}}>{isRegister ? 'Sign In' : 'Register'}</a></div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+// ============ DASHBOARD ============
+const DashboardPage = () => {
+    const [stats, setStats] = useState(null);
+    useEffect(() => { apiFetch('/dashboard').then(setStats).catch(()=>{}); }, []);
+    if (!stats) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'60vh'}}><div className="spinner" style={{width:32,height:32}}></div></div>;
+    return (
+        <div className="fade-in">
+            <div style={{marginBottom:32}}>
+                <h1 style={{fontSize:24,fontWeight:700,letterSpacing:'-0.02em'}}>Dashboard</h1>
+                <p style={{color:'var(--text-muted)',fontSize:14,marginTop:4}}>Your clinic performance at a glance</p>
+            </div>
+            <div className="stat-card-row" style={{display:'flex',gap:16,flexWrap:'wrap',marginBottom:28}}>
+                <StatCard label="Total Calls" value={stats.total_calls} sub={`${stats.calls_today} today`} />
+                <StatCard label="Avg Score" value={stats.avg_call_score?.toFixed(0) || '0'} accent="var(--gold)" />
+                <StatCard label="Open Deals" value={stats.open_deals} sub={`$${(stats.pipeline_value||0).toLocaleString()} value`} />
+                <StatCard label="Won Deals" value={stats.won_deals} sub={`$${(stats.won_value||0).toLocaleString()} revenue`} accent="var(--success)" />
+            </div>
+            <div className="stat-card-row" style={{display:'flex',gap:16,flexWrap:'wrap',marginBottom:28}}>
+                <StatCard label="Conversion Rate" value={`${(stats.conversion_rate||0).toFixed(1)}%`} />
+                <StatCard label="Avg Deal Value" value={`$${(stats.avg_deal_value||0).toLocaleString()}`} />
+                <StatCard label="This Week" value={stats.calls_this_week} sub="calls processed" />
+                <StatCard label="Lost Deals" value={stats.lost_deals || 0} accent="var(--danger)" />
+            </div>
+            {stats.deals_by_stage && Object.keys(stats.deals_by_stage).length > 0 && (
+                <div className="glass" style={{padding:24,borderRadius:12,marginBottom:28}}>
+                    <h3 style={{fontSize:15,fontWeight:600,marginBottom:16}}>Pipeline Distribution</h3>
+                    <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+                        {Object.entries(stats.deals_by_stage).map(([stage,count]) => (
+                            <div key={stage} style={{padding:'8px 16px',borderRadius:8,background:'rgba(212,175,55,0.06)',border:'1px solid var(--border)',fontSize:13}}>
+                                <span style={{color:'var(--text-muted)',marginRight:8}}>{stage.replace(/_/g,' ')}</span>
+                                <span style={{fontWeight:700,color:'var(--gold)'}}>{count}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+            {stats.top_agent_scores && stats.top_agent_scores.length > 0 && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <h3 style={{fontSize:15,fontWeight:600,marginBottom:16}}>Top Performers</h3>
+                    <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                        {stats.top_agent_scores.map((a,i) => (
+                            <div key={i} style={{display:'flex',alignItems:'center',gap:16,padding:'12px 16px',borderRadius:8,background:'rgba(255,255,255,0.02)'}}>
+                                <div style={{width:32,height:32,borderRadius:8,background: i===0 ? 'linear-gradient(135deg,#D4AF37,#F0D060)' : 'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color: i===0 ? '#000' : 'var(--text-muted)'}}>{i+1}</div>
+                                <div style={{flex:1}}><div style={{fontWeight:600,fontSize:14}}>{a.agent_name}</div><div style={{fontSize:12,color:'var(--text-muted)'}}>{a.total_calls} calls</div></div>
+                                <ScoreRing score={a.avg_score} size={44} strokeWidth={3}/>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ============ CALLS PAGE ============
+const CallsPage = ({ onSelect, onRecord }) => {
+    const [calls, setCalls] = useState([]);
+    const [search, setSearch] = useState('');
+    useEffect(() => { apiFetch('/calls').then(setCalls).catch(()=>{}); }, []);
+    const filtered = calls.filter(c => !search || (c.caller_name||'').toLowerCase().includes(search.toLowerCase()) || (c.ai_intent||'').toLowerCase().includes(search.toLowerCase()));
+    return (
+        <div className="fade-in">
+            <div className="resp-header" style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:28,flexWrap:'wrap',gap:12}}>
+                <div><h1 style={{fontSize:24,fontWeight:700}}>Call Log</h1><p style={{color:'var(--text-muted)',fontSize:14,marginTop:4}}>{calls.length} total recordings</p></div>
+                <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+                    <div style={{position:'relative',flex:'1 1 180px'}}><span style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:'var(--text-muted)'}}>{Icons.search}</span><input className="input" style={{paddingLeft:36,width:'100%'}} placeholder="Search calls..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
+                    <button className="btn btn-gold" onClick={onRecord}>{Icons.mic}<span>Record Call</span></button>
+                </div>
+            </div>
+            {filtered.length === 0 ? (
+                <div className="glass" style={{padding:60,borderRadius:12,textAlign:'center'}}>
+                    <div style={{fontSize:40,marginBottom:12,opacity:0.3}}>{Icons.calls}</div>
+                    <p style={{color:'var(--text-muted)',fontSize:15}}>No calls yet. Record or upload your first call.</p>
+                </div>
+            ) : (
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    {filtered.map(call => (
+                        <div key={call.id} className="glass table-row" onClick={()=>onSelect(call.id)} style={{padding:'16px 20px',borderRadius:10,cursor:'pointer',display:'flex',alignItems:'center',gap:16}}>
+                            <div style={{width:42,height:42,borderRadius:10,background: call.overall_score >= 70 ? 'rgba(34,197,94,0.1)' : call.overall_score >= 40 ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                                {call.overall_score ? <ScoreRing score={call.overall_score} size={36} strokeWidth={3}/> : <span style={{color:'var(--text-muted)'}}>{Icons.calls}</span>}
+                            </div>
+                            <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontWeight:600,fontSize:14}}>{call.caller_name || 'Unknown Caller'}</div>
+                                <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2,display:'flex',gap:12,flexWrap:'wrap'}}>
+                                    <span>{call.call_type || 'inbound'}</span>
+                                    {call.duration_seconds > 0 && <span>{Math.floor(call.duration_seconds/60)}m {call.duration_seconds%60}s</span>}
+                                    <span>{new Date(call.call_date).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                            <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                                {call.ai_sentiment && <span className={`badge ${call.ai_sentiment==='positive'?'badge-green':call.ai_sentiment==='negative'?'badge-red':'badge-gray'}`}>{call.ai_sentiment}</span>}
+                                {call.ai_intent && <span className="badge badge-blue">{call.ai_intent}</span>}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ============ RECORD CALL PAGE ============
+const RecordCallPage = ({ onBack, onDone }) => {
+    const [mode, setMode] = useState('choose');
+    const [recording, setRecording] = useState(false);
+    const [elapsed, setElapsed] = useState(0);
+    const [form, setForm] = useState({caller_name:'',caller_phone:'',call_type:'inbound'});
+    const [uploading, setUploading] = useState(false);
+    const [error, setError] = useState('');
+    const [status, setStatus] = useState('');
+    const mediaRec = useRef(null);
+    const chunks = useRef([]);
+    const timer = useRef(null);
+    const fileRef = useRef(null);
+
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+            mediaRec.current = new MediaRecorder(stream);
+            chunks.current = [];
+            mediaRec.current.ondataavailable = e => chunks.current.push(e.data);
+            mediaRec.current.start(1000);
+            setRecording(true); setElapsed(0);
+            timer.current = setInterval(()=>setElapsed(p=>p+1),1000);
+        } catch(e) { setError('Microphone access denied'); }
+    };
+
+    const stopAndUpload = async () => {
+        return new Promise(resolve => {
+            mediaRec.current.onstop = async () => {
+                clearInterval(timer.current); setRecording(false);
+                const blob = new Blob(chunks.current, {type:'audio/webm'});
+                await uploadAudio(blob);
+                resolve();
+            };
+            mediaRec.current.stop();
+            mediaRec.current.stream.getTracks().forEach(t=>t.stop());
+        });
+    };
+
+    const uploadAudio = async (blob) => {
+        setUploading(true); setStatus('Uploading...'); setError('');
+        try {
+            const fd = new FormData();
+            fd.append('file', blob, `recording_${Date.now()}.webm`);
+            fd.append('caller_name', form.caller_name);
+            fd.append('caller_phone', form.caller_phone);
+            fd.append('call_type', form.call_type);
+            const result = await fetch(`${API}/calls/record`, { method:'POST', headers:{'Authorization':`Bearer ${getToken()}`}, body:fd });
+            if (!result.ok) throw new Error('Upload failed');
+            setStatus('Processing with AI...');
+            const data = await result.json();
+            let tries = 0;
+            const poll = setInterval(async ()=>{
+                tries++;
+                try {
+                    const s = await apiFetch(`/calls/${data.id}`);
+                    if (s.transcription_status==='completed' || tries > 60) { clearInterval(poll); setStatus('Done!'); setTimeout(()=>onDone(data.id),1000); }
+                    else { setStatus(`Processing... ${s.transcription_status}`); }
+                } catch(e) { if(tries>60) clearInterval(poll); }
+            }, 3000);
+        } catch(e) { setError(e.message); setUploading(false); }
+    };
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files?.[0]; if (!file) return;
+        await uploadAudio(file);
+    };
+
+    const formatTime = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+
+    return (
+        <div className="fade-in">
+            <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:28}}>
+                <button className="btn btn-ghost btn-sm" onClick={onBack}>{Icons.back}<span>Back</span></button>
+                <h1 style={{fontSize:24,fontWeight:700}}>Record Call</h1>
+            </div>
+            <div className="glass" style={{padding:32,borderRadius:16,maxWidth:560}}>
+                <div style={{display:'flex',flexDirection:'column',gap:16,marginBottom:24}}>
+                    <div><label style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',display:'block',marginBottom:6}}>Caller Name</label><input className="input" placeholder="Patient name" value={form.caller_name} onChange={e=>setForm({...form,caller_name:e.target.value})}/></div>
+                    <div><label style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',display:'block',marginBottom:6}}>Phone Number</label><input className="input" placeholder="+91 98765 43210" value={form.caller_phone} onChange={e=>setForm({...form,caller_phone:e.target.value})}/></div>
+                    <div><label style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',display:'block',marginBottom:6}}>Call Type</label>
+                        <select className="input" value={form.call_type} onChange={e=>setForm({...form,call_type:e.target.value})}>
+                            <option value="inbound">Inbound</option><option value="outbound">Outbound</option><option value="follow_up">Follow-up</option>
+                        </select>
+                    </div>
+                </div>
+                {!recording && !uploading && (
+                    <div style={{display:'flex',gap:12}}>
+                        <button className="btn btn-gold" onClick={startRecording}>{Icons.mic}<span>Start Recording</span></button>
+                        <button className="btn btn-ghost" onClick={()=>fileRef.current?.click()}>{Icons.upload}<span>Upload Audio</span></button>
+                        <input ref={fileRef} type="file" accept="audio/*,.mp4" style={{display:'none'}} onChange={handleFileUpload}/>
+                    </div>
+                )}
+                {recording && (
+                    <div style={{textAlign:'center',padding:'20px 0'}}>
+                        <div className="recording-pulse" style={{width:80,height:80,borderRadius:'50%',background:'rgba(239,68,68,0.2)',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:16}}>
+                            <div style={{width:20,height:20,borderRadius:'50%',background:'#EF4444'}}></div>
+                        </div>
+                        <div style={{fontSize:32,fontWeight:700,fontVariantNumeric:'tabular-nums',marginBottom:16}}>{formatTime(elapsed)}</div>
+                        <button className="btn btn-danger" onClick={stopAndUpload}>{Icons.stop}<span>Stop & Analyze</span></button>
+                    </div>
+                )}
+                {uploading && (
+                    <div style={{textAlign:'center',padding:'20px 0'}}>
+                        <div className="spinner" style={{width:32,height:32,margin:'0 auto 16px'}}></div>
+                        <div style={{color:'var(--gold)',fontWeight:600}}>{status}</div>
+                    </div>
+                )}
+                {error && <div style={{padding:'10px 14px',borderRadius:8,background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',color:'#EF4444',fontSize:13,marginTop:16}}>{error}</div>}
+            </div>
+        </div>
+    );
+};
+
+// ============ CALL DETAIL (ENHANCED) ============
+const CallDetailPage = ({ callId, onBack }) => {
+    const [call, setCall] = useState(null);
+    const [note, setNote] = useState('');
+    const [activeTab, setActiveTab] = useState('overview');
+    const [coachQuestion, setCoachQuestion] = useState('');
+    const [coachMessages, setCoachMessages] = useState([]);
+    const [coachLoading, setCoachLoading] = useState(false);
+    const [reanalyzing, setReanalyzing] = useState(false);
+    const chatEndRef = useRef(null);
+
+    useEffect(() => { apiFetch(`/calls/${callId}`).then(setCall).catch(()=>{}); }, [callId]);
+    useEffect(() => { chatEndRef.current?.scrollIntoView({behavior:'smooth'}); }, [coachMessages]);
+    if (!call) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'60vh'}}><div className="spinner" style={{width:32,height:32}}></div></div>;
+
+    const addNote = async () => {
+        if (!note.trim()) return;
+        await apiFetch(`/calls/${callId}/notes`,{method:'POST',body:{content:note}});
+        setNote('');
+        apiFetch(`/calls/${callId}`).then(setCall);
+    };
+
+    const askCoach = async (question) => {
+        if (!question?.trim()) return;
+        const q = question.trim();
+        setCoachMessages(prev => [...prev, {role:'user', text:q}]);
+        setCoachQuestion('');
+        setCoachLoading(true);
+        try {
+            const res = await apiFetch(`/calls/${callId}/ask-coach`, {method:'POST', body:{question:q}});
+            setCoachMessages(prev => [...prev, {role:'coach', text:res.answer}]);
+        } catch(e) {
+            setCoachMessages(prev => [...prev, {role:'coach', text:'Unable to get a response. Check API configuration.'}]);
+        } finally { setCoachLoading(false); }
+    };
+
+    const reanalyze = async () => {
+        setReanalyzing(true);
+        try {
+            const updated = await apiFetch(`/calls/${callId}/reanalyze`, {method:'POST'});
+            setCall(updated);
+        } catch(e) {} finally { setReanalyzing(false); }
+    };
+
+    const sentimentBadge = (s) => s==='positive'?'badge-green':s==='negative'?'badge-red':s==='mixed'?'badge-yellow':'badge-gray';
+
+    const scoreDimensions = ['greeting','discovery','presentation','objection_handling','closing','rapport','active_listening','urgency_creation','follow_up_setup'];
+    const scoreDescriptions = {
+        greeting: 'How warm and professional was the opening',
+        discovery: 'Quality of questions to understand patient needs',
+        presentation: 'How well treatment options were presented',
+        objection_handling: 'Effectiveness at addressing concerns',
+        closing: 'Strength of the call-to-action and next steps',
+        rapport: 'Connection building and empathy shown',
+        active_listening: 'Engagement and acknowledgment of patient',
+        urgency_creation: 'Appropriate urgency without being pushy',
+        follow_up_setup: 'Clear next steps and follow-up plan'
+    };
+
+    const learningPrompts = [
+        {icon: Icons.target, label: "What was the biggest missed opportunity in this call?"},
+        {icon: Icons.lightbulb, label: "How could I have handled objections better?"},
+        {icon: Icons.star, label: "What exactly did I do well that I should repeat?"},
+        {icon: Icons.check, label: "Give me a script for a stronger close based on this call"},
+        {icon: Icons.refresh, label: "If I could redo this call, what should I change?"},
+        {icon: Icons.chat, label: "What buying signals did I miss?"},
+    ];
+
+    const tabs = [
+        {id:'overview', label:'Overview'},
+        {id:'scorecard', label:'Scorecard'},
+        {id:'transcript', label:'Transcript'},
+        {id:'coach', label:'AI Coach'},
+        {id:'notes', label:'Notes'},
+    ];
+
+    const token = getToken();
+
+    return (
+        <div className="fade-in">
+            <div className="resp-header" style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24,flexWrap:'wrap',gap:12}}>
+                <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+                    <button className="btn btn-ghost btn-sm" onClick={onBack}>{Icons.back}<span>Back</span></button>
+                    <div>
+                        <h1 style={{fontSize:22,fontWeight:700}}>{call.caller_name || 'Call Details'}</h1>
+                        <div style={{display:'flex',gap:10,alignItems:'center',marginTop:4,flexWrap:'wrap'}}>
+                            <span style={{fontSize:12,color:'var(--text-muted)'}}>{call.call_type || 'inbound'}</span>
+                            {call.duration_seconds > 0 && <span style={{fontSize:12,color:'var(--text-muted)'}}>{Math.floor(call.duration_seconds/60)}m {call.duration_seconds%60}s</span>}
+                            <span style={{fontSize:12,color:'var(--text-muted)'}}>{new Date(call.call_date).toLocaleDateString()}</span>
+                            {call.ai_sentiment && <span className={`badge ${sentimentBadge(call.ai_sentiment)}`}>{call.ai_sentiment}</span>}
+                            {call.ai_intent && <span className="badge badge-blue">{call.ai_intent}</span>}
+                        </div>
+                    </div>
+                </div>
+                <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                    {call.overall_score != null && <ScoreRing score={call.overall_score} size={52} strokeWidth={4}/>}
+                    <button className="btn btn-ghost btn-sm" onClick={reanalyze} disabled={reanalyzing} title="Re-analyze with AI">
+                        {reanalyzing ? <span className="spinner"></span> : Icons.refresh}<span>Re-analyze</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* Audio Player */}
+            {call.recording_path && (
+                <div className="glass" style={{padding:20,borderRadius:12,marginBottom:20}}>
+                    <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}>
+                        <div style={{width:36,height:36,borderRadius:8,background:'linear-gradient(135deg,#D4AF37,#F0D060)',display:'flex',alignItems:'center',justifyContent:'center',color:'#000'}}>{Icons.play}</div>
+                        <div>
+                            <div style={{fontWeight:600,fontSize:14}}>Call Recording</div>
+                            <div style={{fontSize:12,color:'var(--text-muted)'}}>{call.duration_seconds ? `${Math.floor(call.duration_seconds/60)}m ${call.duration_seconds%60}s` : 'Audio available'}</div>
+                        </div>
+                        <a href={`${API}/calls/${call.id}/audio?token=${token}`} download className="btn btn-ghost btn-sm" style={{marginLeft:'auto'}}>{Icons.download}<span>Download</span></a>
+                    </div>
+                    <audio controls className="audio-player" style={{width:'100%'}} preload="metadata">
+                        <source src={`${API}/calls/${call.id}/audio?token=${token}`}/>
+                        Your browser does not support audio playback.
+                    </audio>
+                </div>
+            )}
+
+            {/* Tab Navigation */}
+            <div style={{display:'flex',gap:2,marginBottom:20,borderBottom:'1px solid var(--border)',paddingBottom:0,overflowX:'auto'}} className="scrollbar-hide">
+                {tabs.map(tab => (
+                    <button key={tab.id} className={`detail-tab ${activeTab===tab.id?'active':''}`} style={{whiteSpace:'nowrap'}} onClick={()=>setActiveTab(tab.id)}>{tab.label}</button>
+                ))}
+            </div>
+
+            {/* OVERVIEW TAB */}
+            {activeTab === 'overview' && (
+                <div className="fade-in">
+                    <div className="resp-grid-2" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:20}}>
+                        <div className="glass" style={{padding:24,borderRadius:12}}>
+                            <h3 style={{fontSize:14,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:16}}>Call Info</h3>
+                            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                                <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--text-muted)',fontSize:13}}>Caller</span><span style={{fontWeight:600,fontSize:14}}>{call.caller_name||'Unknown'}</span></div>
+                                <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--text-muted)',fontSize:13}}>Phone</span><span style={{fontSize:14}}>{call.caller_phone||'N/A'}</span></div>
+                                <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--text-muted)',fontSize:13}}>Type</span><span className="badge badge-gold">{call.call_type}</span></div>
+                                <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--text-muted)',fontSize:13}}>Duration</span><span style={{fontSize:14}}>{call.duration_seconds?`${Math.floor(call.duration_seconds/60)}m ${call.duration_seconds%60}s`:'N/A'}</span></div>
+                                <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--text-muted)',fontSize:13}}>Date</span><span style={{fontSize:14}}>{new Date(call.call_date).toLocaleString()}</span></div>
+                            </div>
+                        </div>
+                        <div className="glass" style={{padding:24,borderRadius:12}}>
+                            <h3 style={{fontSize:14,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:16}}>AI Summary</h3>
+                            {call.ai_summary && <p style={{fontSize:13,lineHeight:1.7,color:'var(--text-secondary)',marginBottom:16}}>{call.ai_summary}</p>}
+                            {call.ai_key_topics && call.ai_key_topics.length > 0 && (
+                                <div><div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',marginBottom:8}}>Key Topics</div>
+                                <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{call.ai_key_topics.map((t,i)=><span key={i} className="badge badge-gold">{t}</span>)}</div></div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Action Items & Objections */}
+                    <div className="resp-grid-2" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:20}}>
+                        {call.ai_action_items && call.ai_action_items.length > 0 && (
+                            <div className="glass" style={{padding:24,borderRadius:12}}>
+                                <h3 style={{fontSize:14,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12}}>Action Items</h3>
+                                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                                    {call.ai_action_items.map((item,i) => (
+                                        <div key={i} style={{display:'flex',gap:10,alignItems:'flex-start',fontSize:13,color:'var(--text-secondary)'}}>
+                                            <span style={{color:'var(--gold)',marginTop:2}}>{Icons.check}</span>
+                                            <span>{typeof item === 'string' ? item : item.action || JSON.stringify(item)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {call.ai_objections_detected && call.ai_objections_detected.length > 0 && (
+                            <div className="glass" style={{padding:24,borderRadius:12}}>
+                                <h3 style={{fontSize:14,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12}}>Objections Detected</h3>
+                                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                                    {call.ai_objections_detected.map((obj,i) => (
+                                        <div key={i} className="learning-card">
+                                            <div style={{fontSize:13,color:'var(--text-secondary)'}}>{typeof obj === 'string' ? obj : obj.objection || JSON.stringify(obj)}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Quick Coach Prompts on Overview */}
+                    <div className="glass" style={{padding:24,borderRadius:12}}>
+                        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
+                            <span style={{color:'var(--gold)'}}>{Icons.lightbulb}</span>
+                            <h3 style={{fontSize:14,fontWeight:600}}>Quick Coaching Insights</h3>
+                        </div>
+                        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                            {learningPrompts.slice(0,3).map((p,i) => (
+                                <button key={i} className="coach-prompt-btn" onClick={()=>{setActiveTab('coach');setTimeout(()=>askCoach(p.label),100);}}>{p.label}</button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* SCORECARD TAB */}
+            {activeTab === 'scorecard' && (
+                <div className="fade-in">
+                    {call.scores && call.scores.length > 0 ? (
+                        <div className="glass" style={{padding:24,borderRadius:12,marginBottom:20}}>
+                            <h3 style={{fontSize:14,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:20}}>Performance Scorecard</h3>
+                            <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                                {scoreDimensions.map(dim => {
+                                    const s = call.scores[0]; const val = s[dim+'_score'];
+                                    if (!val && val !== 0) return null;
+                                    const pct = Math.max(0, Math.min(100, val));
+                                    const color = pct >= 80 ? 'var(--success)' : pct >= 60 ? 'var(--gold)' : pct >= 40 ? 'var(--warning)' : 'var(--danger)';
+                                    return (
+                                        <div key={dim} style={{padding:'14px 18px',borderRadius:10,background:'rgba(255,255,255,0.02)',border:'1px solid var(--border)'}}>
+                                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                                                <div>
+                                                    <span style={{fontSize:14,fontWeight:600,textTransform:'capitalize'}}>{dim.replace(/_/g,' ')}</span>
+                                                    <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>{scoreDescriptions[dim]}</div>
+                                                </div>
+                                                <span style={{fontSize:20,fontWeight:700,color}}>{Math.round(val)}</span>
+                                            </div>
+                                            <div style={{height:6,borderRadius:3,background:'rgba(255,255,255,0.06)',overflow:'hidden'}}>
+                                                <div style={{height:'100%',width:`${pct}%`,borderRadius:3,background:color,transition:'width 0.6s ease'}}></div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="glass" style={{padding:60,borderRadius:12,textAlign:'center'}}>
+                            <p style={{color:'var(--text-muted)',fontSize:15}}>No scorecard available. Click Re-analyze to generate scores.</p>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* TRANSCRIPT TAB */}
+            {activeTab === 'transcript' && (
+                <div className="fade-in">
+                    {call.transcription ? (
+                        <div className="glass" style={{padding:24,borderRadius:12}}>
+                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                                <h3 style={{fontSize:14,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Full Transcription</h3>
+                                <span style={{fontSize:12,color:'var(--text-muted)'}}>{call.transcription.split(/\s+/).length} words</span>
+                            </div>
+                            <div style={{maxHeight:600,overflow:'auto',fontSize:13,lineHeight:1.8,color:'var(--text-secondary)',whiteSpace:'pre-wrap',padding:'16px',borderRadius:8,background:'rgba(0,0,0,0.2)'}}>{call.transcription}</div>
+                        </div>
+                    ) : (
+                        <div className="glass" style={{padding:60,borderRadius:12,textAlign:'center'}}>
+                            <p style={{color:'var(--text-muted)',fontSize:15}}>No transcription available for this call.</p>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* AI COACH TAB */}
+            {activeTab === 'coach' && (
+                <div className="fade-in">
+                    {/* Learning Prompts */}
+                    <div className="glass" style={{padding:24,borderRadius:12,marginBottom:20}}>
+                        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16}}>
+                            <span style={{color:'var(--gold)'}}>{Icons.lightbulb}</span>
+                            <h3 style={{fontSize:14,fontWeight:600}}>Learning Prompts</h3>
+                            <span style={{fontSize:12,color:'var(--text-muted)'}}>Click any prompt to ask the AI Coach</span>
+                        </div>
+                        <div className="resp-grid-2" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                            {learningPrompts.map((p,i) => (
+                                <button key={i} className="learning-card" onClick={()=>askCoach(p.label)} style={{display:'flex',alignItems:'center',gap:10,textAlign:'left',cursor:'pointer',background:'none',border:'1px solid var(--border)',color:'var(--text-secondary)',fontSize:13}}>
+                                    <span style={{color:'var(--gold)',flexShrink:0}}>{p.icon}</span>
+                                    <span>{p.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Coach Chat */}
+                    <div className="glass" style={{padding:24,borderRadius:12}}>
+                        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:20}}>
+                            <div style={{width:32,height:32,borderRadius:8,background:'linear-gradient(135deg,#D4AF37,#F0D060)',display:'flex',alignItems:'center',justifyContent:'center',color:'#000'}}>{Icons.chat}</div>
+                            <div>
+                                <div style={{fontWeight:600,fontSize:14}}>AI Sales Coach</div>
+                                <div style={{fontSize:11,color:'var(--text-muted)'}}>Ask anything about this call</div>
+                            </div>
+                        </div>
+
+                        {/* Chat Messages */}
+                        <div style={{maxHeight:400,overflow:'auto',marginBottom:16,display:'flex',flexDirection:'column',gap:12}}>
+                            {coachMessages.length === 0 && (
+                                <div style={{textAlign:'center',padding:'30px 0',color:'var(--text-muted)',fontSize:13}}>
+                                    Ask a question or click a learning prompt above to start coaching.
+                                </div>
+                            )}
+                            {coachMessages.map((msg,i) => (
+                                <div key={i} style={{alignSelf: msg.role==='user' ? 'flex-end' : 'flex-start', maxWidth:'85%'}}>
+                                    {msg.role === 'user' ? (
+                                        <div style={{background:'rgba(212,175,55,0.15)',border:'1px solid rgba(212,175,55,0.2)',borderRadius:12,padding:'10px 16px',fontSize:13,color:'var(--text-primary)'}}>{msg.text}</div>
+                                    ) : (
+                                        <div className="coach-chat-bubble">{msg.text}</div>
+                                    )}
+                                </div>
+                            ))}
+                            {coachLoading && (
+                                <div style={{alignSelf:'flex-start'}}>
+                                    <div className="coach-chat-bubble" style={{display:'flex',gap:4,padding:'12px 20px'}}>
+                                        <span className="typing-dot"></span><span className="typing-dot"></span><span className="typing-dot"></span>
+                                    </div>
+                                </div>
+                            )}
+                            <div ref={chatEndRef}/>
+                        </div>
+
+                        {/* Chat Input */}
+                        <div style={{display:'flex',gap:8}}>
+                            <input className="input" style={{flex:1}} placeholder="Ask the AI Coach about this call..." value={coachQuestion}
+                                onChange={e=>setCoachQuestion(e.target.value)}
+                                onKeyPress={e=>{if(e.key==='Enter'&&!coachLoading)askCoach(coachQuestion);}}
+                                disabled={coachLoading}
+                            />
+                            <button className="btn btn-gold btn-sm" onClick={()=>askCoach(coachQuestion)} disabled={coachLoading || !coachQuestion.trim()}>
+                                {Icons.send}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* NOTES TAB */}
+            {activeTab === 'notes' && (
+                <div className="fade-in">
+                    <div className="glass" style={{padding:24,borderRadius:12}}>
+                        <h3 style={{fontSize:14,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12}}>Notes</h3>
+                        {call.notes && call.notes.length > 0 ? call.notes.map(n=>(
+                            <div key={n.id} style={{padding:'12px 16px',borderRadius:8,background:'rgba(255,255,255,0.02)',marginBottom:8,fontSize:13,border:'1px solid var(--border)'}}>
+                                <div style={{color:'var(--text-secondary)',lineHeight:1.6}}>{n.content}</div>
+                                <div style={{fontSize:11,color:'var(--text-muted)',marginTop:6}}>{new Date(n.created_at).toLocaleString()}</div>
+                            </div>
+                        )) : <p style={{color:'var(--text-muted)',fontSize:13,marginBottom:16}}>No notes yet.</p>}
+                        <div style={{display:'flex',gap:8,marginTop:12}}>
+                            <input className="input" placeholder="Add a note..." value={note} onChange={e=>setNote(e.target.value)} onKeyPress={e=>e.key==='Enter'&&addNote()} style={{flex:1}}/>
+                            <button className="btn btn-gold btn-sm" onClick={addNote}>{Icons.plus}</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ============ PIPELINE (DRAG & DROP) ============
+const PipelinePage = () => {
+    const [deals, setDeals] = useState([]);
+    const [showAdd, setShowAdd] = useState(false);
+    const [form, setForm] = useState({contact_name:'',title:'',treatment_interest:'',deal_value:0,source:'phone',contact_phone:'',contact_email:''});
+    const [draggedDeal, setDraggedDeal] = useState(null);
+    const [dragOverStage, setDragOverStage] = useState(null);
+
+    const stages = ['new_inquiry','contacted','consultation_booked','consultation_done','proposal_sent','won','lost'];
+    const stageLabels = {'new_inquiry':'New Inquiry','contacted':'Contacted','consultation_booked':'Consult Booked','consultation_done':'Consult Done','proposal_sent':'Proposal Sent','won':'Won','lost':'Lost'};
+    const stageColors = {'new_inquiry':'var(--info)','contacted':'#8B5CF6','consultation_booked':'var(--gold)','consultation_done':'#F59E0B','proposal_sent':'#EC4899','won':'var(--success)','lost':'var(--danger)'};
+
+    useEffect(()=>{ apiFetch('/pipeline').then(setDeals).catch(()=>{}); },[]);
+
+    const addDeal = async () => {
+        try { await apiFetch('/pipeline',{method:'POST',body:form}); setShowAdd(false); setForm({contact_name:'',title:'',treatment_interest:'',deal_value:0,source:'phone',contact_phone:'',contact_email:''}); apiFetch('/pipeline').then(setDeals); } catch(e){}
+    };
+
+    const moveStage = async (id, stage) => {
+        // Optimistic update
+        setDeals(prev => prev.map(d => d.id === id ? {...d, stage} : d));
+        try {
+            await apiFetch(`/pipeline/${id}`,{method:'PATCH',body:{stage}});
+        } catch(e) {
+            apiFetch('/pipeline').then(setDeals); // revert on failure
+        }
+    };
+
+    const handleDragStart = (e, deal) => {
+        setDraggedDeal(deal);
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', deal.id);
+        // Make the drag image slightly transparent
+        setTimeout(() => { e.target.classList.add('dragging'); }, 0);
+    };
+
+    const handleDragEnd = (e) => {
+        e.target.classList.remove('dragging');
+        setDraggedDeal(null);
+        setDragOverStage(null);
+    };
+
+    const handleDragOver = (e, stage) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (dragOverStage !== stage) setDragOverStage(stage);
+    };
+
+    const handleDragLeave = (e, stage) => {
+        // Only clear if actually leaving the drop zone
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX; const y = e.clientY;
+        if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+            if (dragOverStage === stage) setDragOverStage(null);
+        }
+    };
+
+    const handleDrop = (e, targetStage) => {
+        e.preventDefault();
+        setDragOverStage(null);
+        if (draggedDeal && draggedDeal.stage !== targetStage) {
+            moveStage(draggedDeal.id, targetStage);
+        }
+        setDraggedDeal(null);
+    };
+
+    // Compute pipeline value per stage
+    const stageValue = (stage) => deals.filter(d=>d.stage===stage).reduce((sum,d)=>sum+(d.deal_value||0),0);
+    const totalValue = deals.reduce((sum,d)=>sum+(d.deal_value||0),0);
+
+    return (
+        <div className="fade-in">
+            <div className="resp-header" style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+                <div>
+                    <h1 style={{fontSize:24,fontWeight:700}}>Pipeline</h1>
+                    <div style={{display:'flex',gap:16,marginTop:4}}>
+                        <span style={{color:'var(--text-muted)',fontSize:14}}>{deals.length} active deals</span>
+                        <span style={{color:'var(--gold)',fontSize:14,fontWeight:600}}>Total: ${totalValue.toLocaleString()}</span>
+                    </div>
+                </div>
+                <button className="btn btn-gold" onClick={()=>setShowAdd(!showAdd)}>{Icons.plus}<span>New Deal</span></button>
+            </div>
+
+            {/* Drag hint */}
+            <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:16,display:'flex',alignItems:'center',gap:6}}>
+                <span style={{opacity:0.5}}>{Icons.drag}</span>
+                Drag and drop deal cards between columns to change stages
+            </div>
+
+            {showAdd && (
+                <div className="glass" style={{padding:24,borderRadius:12,marginBottom:20}}>
+                    <div className="resp-grid-2" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
+                        <div><label style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',display:'block',marginBottom:6}}>Contact Name *</label><input className="input" value={form.contact_name} onChange={e=>setForm({...form,contact_name:e.target.value})} required/></div>
+                        <div><label style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',display:'block',marginBottom:6}}>Deal Title *</label><input className="input" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} required/></div>
+                        <div><label style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',display:'block',marginBottom:6}}>Treatment</label><input className="input" placeholder="e.g. Hair Transplant" value={form.treatment_interest} onChange={e=>setForm({...form,treatment_interest:e.target.value})}/></div>
+                        <div><label style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',display:'block',marginBottom:6}}>Deal Value</label><input className="input" type="number" value={form.deal_value} onChange={e=>setForm({...form,deal_value:parseFloat(e.target.value)||0})}/></div>
+                        <div><label style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',display:'block',marginBottom:6}}>Phone</label><input className="input" value={form.contact_phone} onChange={e=>setForm({...form,contact_phone:e.target.value})}/></div>
+                        <div><label style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',display:'block',marginBottom:6}}>Source</label>
+                            <select className="input" value={form.source} onChange={e=>setForm({...form,source:e.target.value})}><option value="phone">Phone</option><option value="walk_in">Walk-in</option><option value="website">Website</option><option value="referral">Referral</option><option value="social_media">Social Media</option><option value="ad">Ad</option></select>
+                        </div>
+                    </div>
+                    <div style={{display:'flex',gap:8}}><button className="btn btn-gold btn-sm" onClick={addDeal}>Create Deal</button><button className="btn btn-ghost btn-sm" onClick={()=>setShowAdd(false)}>Cancel</button></div>
+                </div>
+            )}
+            <div style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:16}} className="scrollbar-hide pipeline-scroll">
+                {stages.map(stage => {
+                    const stageDeals = deals.filter(d=>d.stage===stage);
+                    const sv = stageValue(stage);
+                    const isOver = dragOverStage === stage && draggedDeal?.stage !== stage;
+                    return (
+                        <div key={stage} className="stage-col" style={{flexShrink:0}}>
+                            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12,padding:'0 4px'}}>
+                                <div style={{width:8,height:8,borderRadius:'50%',background:stageColors[stage]}}></div>
+                                <span style={{fontSize:13,fontWeight:600,color:'var(--text-secondary)'}}>{stageLabels[stage]}</span>
+                                <span style={{fontSize:12,color:'var(--text-muted)',marginLeft:'auto'}}>{stageDeals.length}</span>
+                            </div>
+                            {sv > 0 && <div style={{fontSize:11,color:stageColors[stage],fontWeight:600,marginBottom:8,padding:'0 4px'}}>${sv.toLocaleString()}</div>}
+                            <div
+                                className={`stage-drop-zone ${isOver ? 'drag-over' : ''}`}
+                                onDragOver={(e) => handleDragOver(e, stage)}
+                                onDragLeave={(e) => handleDragLeave(e, stage)}
+                                onDrop={(e) => handleDrop(e, stage)}
+                                style={{display:'flex',flexDirection:'column',gap:8,padding:4}}
+                            >
+                                {stageDeals.map(deal => (
+                                    <div key={deal.id}
+                                        className="glass pipeline-card"
+                                        draggable="true"
+                                        onDragStart={(e) => handleDragStart(e, deal)}
+                                        onDragEnd={handleDragEnd}
+                                        style={{padding:16,borderRadius:10,borderLeft:`3px solid ${stageColors[stage]}`}}
+                                    >
+                                        <div style={{display:'flex',alignItems:'flex-start',gap:8}}>
+                                            <span style={{color:'var(--text-muted)',marginTop:2,cursor:'grab',opacity:0.4}}>{Icons.drag}</span>
+                                            <div style={{flex:1,minWidth:0}}>
+                                                <div style={{fontWeight:600,fontSize:14,marginBottom:4}}>{deal.title}</div>
+                                                <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:8}}>{deal.contact_name}</div>
+                                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                                    <span style={{fontWeight:700,fontSize:14,color:'var(--gold)'}}>${(deal.deal_value||0).toLocaleString()}</span>
+                                                    {deal.treatment_interest && <span className="badge badge-gold" style={{fontSize:10}}>{deal.treatment_interest}</span>}
+                                                </div>
+                                                {deal.source && <div style={{fontSize:10,color:'var(--text-muted)',marginTop:6}}>via {deal.source}</div>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {stageDeals.length === 0 && !isOver && (
+                                    <div style={{padding:'20px',textAlign:'center',color:'var(--text-muted)',fontSize:12,opacity:0.5}}>
+                                        Drop deals here
+                                    </div>
+                                )}
+                                {isOver && (
+                                    <div style={{padding:'16px',textAlign:'center',color:'var(--gold)',fontSize:12,borderRadius:8,border:'1px dashed rgba(212,175,55,0.3)',background:'rgba(212,175,55,0.04)'}}>
+                                        Move to {stageLabels[stage]}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
+// ============ COACHING ============
+const CoachingPage = () => {
+    const [insights, setInsights] = useState([]);
+    const [perf, setPerf] = useState(null);
+    useEffect(()=>{
+        apiFetch('/coaching/insights').then(setInsights).catch(()=>{});
+        apiFetch('/coaching/performance').then(setPerf).catch(()=>{});
+    },[]);
+    const typeIcon = (t) => t==='praise'?Icons.star:t==='warning'?'!':t==='milestone'?Icons.check:t==='tip'?'?':'i';
+    const typeColor = (t) => t==='praise'?'badge-green':t==='warning'?'badge-red':t==='milestone'?'badge-gold':t==='tip'?'badge-blue':'badge-gray';
+    return (
+        <div className="fade-in">
+            <div style={{marginBottom:28}}><h1 style={{fontSize:24,fontWeight:700}}>AI Coaching</h1><p style={{color:'var(--text-muted)',fontSize:14,marginTop:4}}>Personalized insights to improve your performance</p></div>
+            {perf && (
+                <div className="stat-card-row" style={{display:'flex',gap:16,marginBottom:28,flexWrap:'wrap'}}>
+                    <StatCard label="My Avg Score" value={perf.avg_score?.toFixed(0)||'0'} accent="var(--gold)"/>
+                    <StatCard label="Calls Handled" value={perf.total_calls||0}/>
+                    <StatCard label="Best Category" value={perf.strongest_area||'N/A'} accent="var(--success)"/>
+                    <StatCard label="Focus Area" value={perf.weakest_area||'N/A'} accent="var(--warning)"/>
+                </div>
+            )}
+            {insights.length === 0 ? (
+                <div className="glass" style={{padding:60,borderRadius:12,textAlign:'center'}}>
+                    <p style={{color:'var(--text-muted)',fontSize:15}}>No coaching insights yet. Analyze some calls to receive personalized tips.</p>
+                </div>
+            ) : (
+                <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                    {insights.map(ins => (
+                        <div key={ins.id} className="glass tip-card" style={{padding:20,borderRadius:12}}>
+                            <div style={{display:'flex',alignItems:'flex-start',gap:14}}>
+                                <span className={`badge ${typeColor(ins.insight_type)}`}>{ins.insight_type}</span>
+                                <div style={{flex:1}}>
+                                    <div style={{fontWeight:600,fontSize:14,marginBottom:4}}>{ins.title}</div>
+                                    <div style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6}}>{ins.content}</div>
+                                    {ins.category && <div style={{fontSize:11,color:'var(--text-muted)',marginTop:6}}>Category: {ins.category}</div>}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ============ CONTACTS ============
+const ContactsPage = () => {
+    const [contacts, setContacts] = useState([]);
+    const [search, setSearch] = useState('');
+    useEffect(()=>{ apiFetch('/contacts').then(setContacts).catch(()=>{}); },[]);
+    const filtered = contacts.filter(c => !search || (c.name||'').toLowerCase().includes(search.toLowerCase()) || (c.phone||'').includes(search) || (c.email||'').toLowerCase().includes(search.toLowerCase()));
+    return (
+        <div className="fade-in">
+            <div className="resp-header" style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:28,flexWrap:'wrap',gap:12}}>
+                <div><h1 style={{fontSize:24,fontWeight:700}}>Contacts</h1><p style={{color:'var(--text-muted)',fontSize:14,marginTop:4}}>{contacts.length} total contacts</p></div>
+                <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+                    <div style={{position:'relative',flex:'1 1 180px'}}><span style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:'var(--text-muted)'}}>{Icons.search}</span><input className="input" style={{paddingLeft:36,width:'100%'}} placeholder="Search contacts..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
+                    <a href="/api/contacts/csv" target="_blank" className="btn btn-ghost btn-sm">{Icons.download}<span>Export CSV</span></a>
+                </div>
+            </div>
+            {filtered.length === 0 ? (
+                <div className="glass" style={{padding:60,borderRadius:12,textAlign:'center'}}><p style={{color:'var(--text-muted)',fontSize:15}}>No contacts found</p></div>
+            ) : (
+                <div className="glass" style={{borderRadius:12,overflow:'hidden'}}>
+                    <div style={{overflowX:'auto'}}>
+                        <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+                            <thead><tr style={{borderBottom:'1px solid var(--border)'}}>
+                                {['Name','Phone','Email','Calls','Deals','Treatments','Sentiment','Value'].map(h=>(
+                                    <th key={h} style={{padding:'12px 16px',textAlign:'left',fontWeight:600,color:'var(--text-muted)',fontSize:11,textTransform:'uppercase',letterSpacing:'0.06em'}}>{h}</th>
+                                ))}
+                            </tr></thead>
+                            <tbody>
+                                {filtered.map(c=>(
+                                    <tr key={c.id} className="table-row" style={{borderBottom:'1px solid rgba(255,255,255,0.03)'}}>
+                                        <td style={{padding:'12px 16px',fontWeight:600}}>{c.name||'Unknown'}</td>
+                                        <td style={{padding:'12px 16px',color:'var(--text-secondary)'}}>{c.phone||'-'}</td>
+                                        <td style={{padding:'12px 16px',color:'var(--text-secondary)'}}>{c.email||'-'}</td>
+                                        <td style={{padding:'12px 16px'}}>{c.total_calls}</td>
+                                        <td style={{padding:'12px 16px'}}>{c.total_deals}</td>
+                                        <td style={{padding:'12px 16px'}}>{c.treatments_interested ? <span className="badge badge-gold">{c.treatments_interested}</span> : '-'}</td>
+                                        <td style={{padding:'12px 16px'}}>{c.latest_sentiment ? <span className={`badge ${c.latest_sentiment==='positive'?'badge-green':c.latest_sentiment==='negative'?'badge-red':'badge-gray'}`}>{c.latest_sentiment}</span> : '-'}</td>
+                                        <td style={{padding:'12px 16px',fontWeight:600,color:'var(--gold)'}}>{c.deal_value ? `$${c.deal_value.toLocaleString()}` : '-'}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ============ LEARNING ACADEMY ============
+const LearningPage = () => {
+    const [modules, setModules] = useState([]);
+    const [selectedModule, setSelectedModule] = useState(null);
+    const [progress, setProgress] = useState(null);
+    const [activeSection, setActiveSection] = useState('learn');
+    const [quizMode, setQuizMode] = useState(false);
+    const [quizAnswers, setQuizAnswers] = useState({});
+    const [quizResult, setQuizResult] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [categoryFilter, setCategoryFilter] = useState('all');
+
+    useEffect(() => {
+        Promise.all([
+            apiFetch('/learning/modules'),
+            apiFetch('/learning/progress')
+        ]).then(([modData, progData]) => {
+            setModules(modData.modules || []);
+            setProgress(progData);
+            setLoading(false);
+        }).catch(() => setLoading(false));
+    }, []);
+
+    const openModule = (modId) => {
+        apiFetch(`/learning/modules/${modId}`).then(data => {
+            setSelectedModule(data);
+            setActiveSection('learn');
+            setQuizMode(false);
+            setQuizResult(null);
+            setQuizAnswers({});
+        });
+    };
+
+    const submitQuiz = () => {
+        apiFetch(`/learning/modules/${selectedModule.id}/quiz/submit`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({answers: quizAnswers})
+        }).then(result => {
+            setQuizResult(result);
+            // Refresh modules
+            apiFetch('/learning/modules').then(d => setModules(d.modules || []));
+            apiFetch('/learning/progress').then(setProgress);
+        });
+    };
+
+    if (loading) return <div style={{textAlign:'center',padding:60,color:'var(--text-muted)'}}>Loading Academy...</div>;
+
+    // Module Detail View
+    if (selectedModule) {
+        const mod = selectedModule;
+        const quiz = mod.quiz || [];
+        const scenarios = mod.mock_scenarios || [];
+
+        return (
+            <div style={{animation:'fadeIn 0.3s ease'}}>
+                <button className="btn btn-ghost btn-sm" onClick={() => setSelectedModule(null)} style={{marginBottom:20}}>← Back to Academy</button>
+
+                <div className="glass" style={{borderRadius:16,padding:28,marginBottom:24}}>
+                    <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:16}}>
+                        <div style={{width:48,height:48,borderRadius:12,background:mod.color+'22',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,fontWeight:700,color:mod.color}}>{mod.order}</div>
+                        <div>
+                            <h2 style={{fontSize:22,fontWeight:700}}>{mod.title}</h2>
+                            <p style={{fontSize:14,color:'var(--text-secondary)',marginTop:2}}>{mod.subtitle}</p>
+                        </div>
+                    </div>
+                    <div style={{display:'flex',gap:8,marginBottom:16}}>
+                        <span className="badge badge-gold">{mod.duration_minutes} min</span>
+                        <span className={`badge ${mod.progress?.quiz_passed ? 'badge-green' : 'badge-gray'}`}>Quiz: {mod.progress?.quiz_score != null ? mod.progress.quiz_score + '%' : 'Not taken'}</span>
+                        <span className={`badge ${mod.progress?.mock_score >= 70 ? 'badge-green' : 'badge-gray'}`}>Mock: {mod.progress?.mock_score != null ? mod.progress.mock_score + '%' : 'Not done'}</span>
+                    </div>
+
+                    {/* Section tabs */}
+                    <div style={{display:'flex',gap:4,borderBottom:'1px solid var(--border)',paddingBottom:8}}>
+                        {[{id:'learn',label:'Learn'},{id:'quiz',label:'Quiz'},{id:'practice',label:'Practice'},{id:'mock',label:'Mock Calls'}].map(tab => (
+                            <button key={tab.id} className={`btn btn-xs ${activeSection===tab.id?'btn-gold':'btn-ghost'}`} onClick={()=>{setActiveSection(tab.id);setQuizMode(tab.id==='quiz');setQuizResult(null);}}>{tab.label}</button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* LEARN SECTION */}
+                {activeSection === 'learn' && (
+                    <div>
+                        <div className="glass" style={{borderRadius:12,padding:24,marginBottom:16}}>
+                            <h3 style={{fontSize:16,fontWeight:700,color:'var(--gold)',marginBottom:12}}>Learning Objectives</h3>
+                            {mod.learning_objectives.map((obj, i) => (
+                                <div key={i} style={{display:'flex',gap:10,marginBottom:8,fontSize:14,color:'var(--text-secondary)'}}>
+                                    <span style={{color:'var(--success)',fontWeight:700}}>✓</span> {obj}
+                                </div>
+                            ))}
+                        </div>
+
+                        {(mod.key_concepts || []).map((concept, i) => (
+                            <div key={i} className="glass" style={{borderRadius:12,padding:24,marginBottom:12}}>
+                                <h4 style={{fontSize:15,fontWeight:700,marginBottom:8}}>{concept.title}</h4>
+                                <p style={{fontSize:14,color:'var(--text-secondary)',lineHeight:1.7}}>{concept.content}</p>
+                            </div>
+                        ))}
+
+                        <div className="glass" style={{borderRadius:12,padding:24,marginBottom:12,borderColor:'rgba(239,68,68,0.2)'}}>
+                            <h4 style={{fontSize:15,fontWeight:700,marginBottom:8,color:'var(--danger)'}}>Common Mistakes to Avoid</h4>
+                            {(mod.common_mistakes || []).map((m, i) => (
+                                <div key={i} style={{display:'flex',gap:10,marginBottom:6,fontSize:14,color:'var(--text-secondary)'}}>
+                                    <span style={{color:'var(--danger)'}}>✗</span> {m}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* QUIZ SECTION */}
+                {activeSection === 'quiz' && (
+                    <div>
+                        {quizResult ? (
+                            <div className="glass" style={{borderRadius:12,padding:24}}>
+                                <div style={{textAlign:'center',marginBottom:24}}>
+                                    <div style={{fontSize:48,fontWeight:800,color:quizResult.passed?'var(--success)':'var(--danger)'}}>{quizResult.percentage}%</div>
+                                    <div style={{fontSize:16,fontWeight:600,color:quizResult.passed?'var(--success)':'var(--danger)',marginBottom:4}}>{quizResult.passed ? 'PASSED' : 'NOT YET'}</div>
+                                    <div style={{fontSize:13,color:'var(--text-muted)'}}>{quizResult.correct}/{quizResult.total} correct (75% needed to pass)</div>
+                                </div>
+                                {quizResult.results.map((r, i) => (
+                                    <div key={i} className="glass" style={{borderRadius:8,padding:16,marginBottom:8,borderColor:r.is_correct?'rgba(34,197,94,0.3)':'rgba(239,68,68,0.3)'}}>
+                                        <div style={{fontSize:14,fontWeight:600,marginBottom:6}}>{r.question}</div>
+                                        <div style={{fontSize:13,color:r.is_correct?'var(--success)':'var(--danger)',marginBottom:4}}>{r.is_correct ? '✓ Correct' : '✗ Incorrect'}</div>
+                                        <div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.5}}>{r.explanation}</div>
+                                    </div>
+                                ))}
+                                <button className="btn btn-gold" style={{marginTop:16}} onClick={()=>{setQuizResult(null);setQuizAnswers({});}}>Retry Quiz</button>
+                            </div>
+                        ) : (
+                            <div>
+                                {quiz.map((q, qi) => (
+                                    <div key={qi} className="glass" style={{borderRadius:12,padding:20,marginBottom:12}}>
+                                        <div style={{fontSize:14,fontWeight:600,marginBottom:12}}>{qi+1}. {q.question}</div>
+                                        {q.options.map((opt, oi) => (
+                                            <div key={oi} onClick={()=>setQuizAnswers({...quizAnswers,[String(qi)]:oi})}
+                                                 style={{padding:'10px 14px',borderRadius:8,marginBottom:6,fontSize:13,cursor:'pointer',
+                                                     background: quizAnswers[String(qi)]===oi ? 'rgba(212,175,55,0.15)' : 'rgba(255,255,255,0.03)',
+                                                     border: `1px solid ${quizAnswers[String(qi)]===oi ? 'var(--gold)' : 'var(--border)'}`,
+                                                     color: quizAnswers[String(qi)]===oi ? 'var(--gold)' : 'var(--text-secondary)'}}>
+                                                {opt}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ))}
+                                <button className="btn btn-gold" onClick={submitQuiz} disabled={Object.keys(quizAnswers).length < quiz.length}>
+                                    Submit Quiz ({Object.keys(quizAnswers).length}/{quiz.length} answered)
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* PRACTICE SECTION */}
+                {activeSection === 'practice' && (
+                    <div>
+                        {(mod.practice_exercises || []).map((ex, i) => (
+                            <div key={i} className="glass" style={{borderRadius:12,padding:24,marginBottom:12}}>
+                                <span className="badge badge-blue" style={{marginBottom:10,display:'inline-block'}}>{ex.type.replace('_',' ')}</span>
+                                <h4 style={{fontSize:15,fontWeight:700,marginBottom:8}}>{ex.title}</h4>
+                                <p style={{fontSize:14,color:'var(--text-secondary)',marginBottom:16,lineHeight:1.6}}>{ex.instruction}</p>
+                                <details style={{cursor:'pointer'}}>
+                                    <summary style={{fontSize:13,color:'var(--gold)',fontWeight:600}}>View Sample Answer</summary>
+                                    <div style={{fontSize:13,color:'var(--text-secondary)',marginTop:8,padding:12,background:'rgba(212,175,55,0.05)',borderRadius:8,lineHeight:1.6}}>{ex.sample_answer}</div>
+                                </details>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* MOCK CALLS SECTION */}
+                {activeSection === 'mock' && (
+                    <div>
+                        {scenarios.length === 0 ? (
+                            <div className="glass" style={{borderRadius:12,padding:24,textAlign:'center',color:'var(--text-muted)'}}>No mock scenarios for this module yet.</div>
+                        ) : scenarios.map((s, i) => (
+                            <div key={i} className="glass" style={{borderRadius:12,padding:24,marginBottom:12}}>
+                                <h4 style={{fontSize:15,fontWeight:700,marginBottom:8}}>{s.title}</h4>
+                                <div style={{fontSize:13,color:'var(--text-secondary)',marginBottom:6}}><strong>Patient:</strong> {s.patient_profile}</div>
+                                <div style={{fontSize:13,color:'var(--text-secondary)',marginBottom:6}}><strong>Personality:</strong> {s.patient_personality}</div>
+                                <div style={{fontSize:13,color:'var(--text-secondary)',marginBottom:12}}><strong>Context:</strong> {s.opening_context}</div>
+                                <div style={{fontSize:13,color:'var(--gold)',fontWeight:600,marginBottom:8}}>Evaluation Criteria:</div>
+                                {s.evaluation_criteria.map((c, ci) => (
+                                    <div key={ci} style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>• {c}</div>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // Module List View (Academy Home)
+    const completedCount = progress ? progress.completed_count : 0;
+    const totalModules = progress ? progress.total_modules : modules.length;
+    const pct = totalModules ? Math.round((completedCount/totalModules)*100) : 0;
+
+    return (
+        <div style={{animation:'fadeIn 0.3s ease'}}>
+            <h1 style={{fontSize:26,fontWeight:800,marginBottom:6}}>SBA Learning Academy</h1>
+            <p style={{fontSize:14,color:'var(--text-secondary)',marginBottom:28}}>Master the SBA Sales Methodology. Module by module.</p>
+
+            {/* Progress Overview */}
+            <div className="resp-grid-4" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16,marginBottom:32}}>
+                <div className="glass" style={{borderRadius:12,padding:20,textAlign:'center'}}>
+                    <div style={{fontSize:32,fontWeight:800,color:'var(--gold)'}}>{completedCount}/{totalModules}</div>
+                    <div style={{fontSize:12,color:'var(--text-muted)',marginTop:4}}>Modules Done</div>
+                </div>
+                <div className="glass" style={{borderRadius:12,padding:20,textAlign:'center'}}>
+                    <div style={{fontSize:32,fontWeight:800,color:'var(--success)'}}>{progress?.avg_quiz_score || 0}%</div>
+                    <div style={{fontSize:12,color:'var(--text-muted)',marginTop:4}}>Avg Quiz Score</div>
+                </div>
+                <div className="glass" style={{borderRadius:12,padding:20,textAlign:'center'}}>
+                    <div style={{fontSize:32,fontWeight:800,color:'var(--info)'}}>{progress?.avg_mock_score || 0}%</div>
+                    <div style={{fontSize:12,color:'var(--text-muted)',marginTop:4}}>Avg Mock Score</div>
+                </div>
+                <div className="glass" style={{borderRadius:12,padding:20,textAlign:'center'}}>
+                    <div style={{fontSize:32,fontWeight:800,color:'var(--warning)'}}>{progress?.earned_certifications?.length || 0}</div>
+                    <div style={{fontSize:12,color:'var(--text-muted)',marginTop:4}}>Certifications</div>
+                </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="glass" style={{borderRadius:12,padding:16,marginBottom:32}}>
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:13,marginBottom:8}}>
+                    <span style={{fontWeight:600}}>Overall Progress</span>
+                    <span style={{color:'var(--gold)',fontWeight:700}}>{pct}%</span>
+                </div>
+                <div style={{height:8,background:'rgba(255,255,255,0.06)',borderRadius:4,overflow:'hidden'}}>
+                    <div style={{height:'100%',width:pct+'%',background:'linear-gradient(90deg, var(--gold), var(--gold-light))',borderRadius:4,transition:'width 0.5s ease'}}></div>
+                </div>
+            </div>
+
+            {/* Category Filter */}
+            <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:20}}>
+                {[{id:'all',label:'All Modules'},{id:'5_phase_framework',label:'5 Phase Framework'},{id:'advanced_skills',label:'Advanced Skills'},{id:'channel_skills',label:'Channel Skills'},{id:'operations',label:'Operations'},{id:'treatment_knowledge',label:'Treatment Knowledge'},{id:'career',label:'Career'}].map(cat => (
+                    <button key={cat.id} className={`btn btn-xs ${categoryFilter===cat.id?'btn-gold':'btn-ghost'}`} onClick={()=>setCategoryFilter(cat.id)}>{cat.label}</button>
+                ))}
+            </div>
+
+            {/* Module Cards */}
+            <div className="resp-grid-2" style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16}}>
+                {modules.filter(mod => categoryFilter === 'all' || mod.category === categoryFilter).map(mod => (
+                    <div key={mod.id} className="glass" style={{borderRadius:12,padding:20,cursor:'pointer',transition:'all 0.2s'}} onClick={()=>openModule(mod.id)}>
+                        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}>
+                            <div style={{width:40,height:40,borderRadius:10,background:mod.color+'22',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:800,color:mod.color}}>{mod.order}</div>
+                            <div style={{flex:1}}>
+                                <div style={{fontSize:15,fontWeight:700}}>{mod.title}</div>
+                                <div style={{fontSize:12,color:'var(--text-muted)'}}>{mod.subtitle}</div>
+                            </div>
+                            <span className={`badge ${mod.status==='completed'?'badge-green':mod.status==='in_progress'?'badge-yellow':'badge-gray'}`}>{mod.status==='completed'?'Done':mod.status==='in_progress'?'In Progress':'Start'}</span>
+                        </div>
+                        <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:12}}>{mod.description.substring(0,120)}...</p>
+                        <div style={{display:'flex',gap:8}}>
+                            <span className="badge badge-gray">{mod.duration_minutes} min</span>
+                            {mod.quiz_passed && <span className="badge badge-green">Quiz ✓</span>}
+                            {mod.quiz_score != null && !mod.quiz_passed && <span className="badge badge-yellow">Quiz {mod.quiz_score}%</span>}
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Training Documents Download Section */}
+            <div className="glass" style={{borderRadius:16,padding:24,marginTop:24}}>
+                <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:16}}>
+                    {Icons.download}
+                    <h3 style={{margin:0,fontSize:18,fontWeight:700}}>Training Documents</h3>
+                </div>
+                <p style={{fontSize:13,color:'var(--text-secondary)',marginBottom:16}}>Download companion training manuals for offline study and reference.</p>
+                <a href={`${API}/learning/training-documents/SBA_Sales_Training_Manual.docx`}
+                   download
+                   className="btn btn-primary btn-sm"
+                   style={{display:'inline-flex',alignItems:'center',gap:8,textDecoration:'none'}}>
+                    {Icons.download}
+                    <span>SBA Sales Training Manual (.docx)</span>
+                </a>
+            </div>
+        </div>
+    );
+};
+
+// ============ MAIN APP ============
+const App = () => {
+    const [authed, setAuthed] = useState(!!getToken());
+    const [page, setPage] = useState('dashboard');
+    const [selectedCall, setSelectedCall] = useState(null);
+    const [user, setUser] = useState(null);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    useEffect(() => {
+        if (authed) apiFetch('/auth/me').then(setUser).catch(()=>{clearToken();setAuthed(false);});
+    }, [authed]);
+
+    const logout = () => { clearToken(); setAuthed(false); setUser(null); };
+
+    if (!authed) return <LoginPage onLogin={()=>setAuthed(true)}/>;
+
+    const navItems = [
+        {id:'dashboard',label:'Dashboard',icon:Icons.dashboard},
+        {id:'calls',label:'Calls',icon:Icons.calls},
+        {id:'pipeline',label:'Pipeline',icon:Icons.pipeline},
+        {id:'contacts',label:'Contacts',icon:Icons.contacts},
+        {id:'coaching',label:'Coaching',icon:Icons.coaching},
+        {id:'academy',label:'Academy',icon:Icons.academy},
+    ];
+
+    const renderPage = () => {
+        if (selectedCall) return <CallDetailPage callId={selectedCall} onBack={()=>setSelectedCall(null)}/>;
+        switch(page) {
+            case 'dashboard': return <DashboardPage/>;
+            case 'calls': return <CallsPage onSelect={id=>{setSelectedCall(id);}} onRecord={()=>setPage('record')}/>;
+            case 'record': return <RecordCallPage onBack={()=>setPage('calls')} onDone={(id)=>{setSelectedCall(id);setPage('calls');}}/>;
+            case 'pipeline': return <PipelinePage/>;
+            case 'contacts': return <ContactsPage/>;
+            case 'coaching': return <CoachingPage/>;
+            case 'academy': return <LearningPage/>;
+            default: return <DashboardPage/>;
+        }
+    };
+
+    const navTo = (id) => { setPage(id); setSelectedCall(null); setSidebarOpen(false); };
+
+    return (
+        <div style={{display:'flex',minHeight:'100vh',background:'var(--bg-primary)'}}>
+            {/* Mobile Header */}
+            <div className="mobile-header">
+                <button className="hamburger" onClick={()=>setSidebarOpen(!sidebarOpen)}>
+                    <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+                </button>
+                <span style={{fontSize:15,fontWeight:700}} className="text-gradient">CallCoach</span>
+                <div style={{width:24}}/>
+            </div>
+            {/* Mobile Overlay */}
+            <div className={`mobile-overlay ${sidebarOpen?'show':''}`} onClick={()=>setSidebarOpen(false)}/>
+            {/* Sidebar */}
+            <aside className={`glass-solid desktop-sidebar ${sidebarOpen?'open':''}`} style={{width:240,padding:'20px 12px',display:'flex',flexDirection:'column',position:'fixed',top:0,left:0,bottom:0,zIndex:60}}>
+                <div style={{padding:'0 8px',marginBottom:32}}><Logo/></div>
+                <nav style={{display:'flex',flexDirection:'column',gap:4,flex:1}}>
+                    {navItems.map(item => (
+                        <a key={item.id} className={`sidebar-link ${page===item.id && !selectedCall ? 'active':''}`} onClick={()=>navTo(item.id)}>
+                            {item.icon}<span>{item.label}</span>
+                        </a>
+                    ))}
+                </nav>
+                <div style={{padding:'16px 8px',borderTop:'1px solid var(--border)'}}>
+                    {user && <div style={{fontSize:13,fontWeight:600,marginBottom:2}}>{user.full_name}</div>}
+                    {user && <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:12}}>{user.role}</div>}
+                    <a className="sidebar-link" onClick={logout} style={{color:'var(--danger)'}}>{Icons.logout}<span>Sign Out</span></a>
+                </div>
+            </aside>
+            {/* Main */}
+            <main className="main-content" style={{flex:1,marginLeft:240,padding:'32px 40px',maxWidth:1200}}>
+                {renderPage()}
+            </main>
+        </div>
+    );
+};
+
+ReactDOM.render(<App/>, document.getElementById('root'));
+</script>
+</body>
+</html>

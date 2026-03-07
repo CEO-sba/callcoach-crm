@@ -190,6 +190,7 @@ def generate_weekly_report(
             "total_calls": 0,
             "avg_score": 0,
             "conversion_rate": 0,
+            "best_agent_name": "N/A",
             "ai_summary": "No calls recorded this week.",
             "ai_recommendations": [],
             "revenue_impact": {},
