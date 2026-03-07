@@ -5,10 +5,11 @@ AI-powered call tracking CRM for medical and aesthetic clinics.
 Built with FastAPI + Anthropic Claude.
 """
 import logging
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 from pathlib import Path
 
 from app.config import APP_NAME, APP_VERSION
@@ -25,6 +26,17 @@ app = FastAPI(
     version=APP_VERSION,
     description="AI-powered call tracking CRM with real-time sales coaching for clinics"
 )
+
+# HTTPS redirect middleware (Railway sets X-Forwarded-Proto header)
+class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        forwarded_proto = request.headers.get("x-forwarded-proto", "https")
+        if forwarded_proto == "http":
+            url = request.url.replace(scheme="https")
+            return RedirectResponse(url=str(url), status_code=301)
+        return await call_next(request)
+
+app.add_middleware(HTTPSRedirectMiddleware)
 
 # CORS
 app.add_middleware(
@@ -69,12 +81,8 @@ async def root():
 
 @app.get("/health")
 def health():
-    from app.config import ANTHROPIC_API_KEY, GROQ_API_KEY
     return {
         "status": "healthy",
         "app": APP_NAME,
         "version": APP_VERSION,
-        "anthropic_key_set": bool(ANTHROPIC_API_KEY),
-        "anthropic_key_prefix": ANTHROPIC_API_KEY[:12] + "..." if ANTHROPIC_API_KEY else "NOT SET",
-        "groq_key_set": bool(GROQ_API_KEY),
     }
