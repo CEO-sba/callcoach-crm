@@ -5,7 +5,7 @@ apply plugin: "com.facebook.react"
  * React Native Gradle Plugin configuration
  */
 react {
-    autolinkLibrariesWithApp()
+    /* Autolinking handled by native_modules.gradle at bottom of file */
 }
 
 def enableProguardInReleaseBuilds = false
