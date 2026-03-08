@@ -15,6 +15,7 @@ from pathlib import Path
 from app.config import APP_NAME, APP_VERSION
 from app.database import init_db
 from app.routers import auth_router, calls_router, pipeline_router, coaching_router, live_coaching_router, contacts_router, learning_router, reports_router, ghl_router
+from app.routers.ghl_router import webhook_router as ghl_webhook_router
 
 # Logging
 logging.basicConfig(level=logging.INFO)
@@ -57,6 +58,7 @@ app.include_router(contacts_router.router)
 app.include_router(learning_router.router)
 app.include_router(reports_router.router)
 app.include_router(ghl_router.router)
+app.include_router(ghl_webhook_router)
 
 # Static files (frontend)
 static_dir = Path(__file__).parent / "static"

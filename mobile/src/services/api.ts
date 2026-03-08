@@ -199,6 +199,20 @@ class CallCoachAPI {
     const res = await this.client.post(`/calls/${callId}/ask-coach`, { question });
     return res.data;
   }
+
+  // ── Generic HTTP (used by SettingsScreen for GHL endpoints etc.) ──
+
+  async get(path: string, config?: any) {
+    return this.client.get(path, config);
+  }
+
+  async post(path: string, data?: any, config?: any) {
+    return this.client.post(path, data, config);
+  }
+
+  async patch(path: string, data?: any, config?: any) {
+    return this.client.patch(path, data, config);
+  }
 }
 
 export const api = new CallCoachAPI();

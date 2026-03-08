@@ -33,14 +33,17 @@ async def get_current_week_report(
     if current_user.role not in ["admin", "manager"]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
-    # Calculate current week start (Monday)
+    # Calculate current week start (Monday at midnight)
     today = datetime.utcnow()
-    week_start = today - timedelta(days=today.weekday())
+    week_start = (today - timedelta(days=today.weekday())).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
 
     # Try to fetch existing report
     existing_report = db.query(WeeklyReport).filter(
         WeeklyReport.clinic_id == current_user.clinic_id,
-        WeeklyReport.week_start == week_start.date()
+        WeeklyReport.week_start >= week_start,
+        WeeklyReport.week_start < week_start + timedelta(days=1)
     ).first()
 
     if existing_report:
@@ -150,7 +153,8 @@ async def manually_generate_report(
     # Check for existing report and update or create
     existing = db.query(WeeklyReport).filter(
         WeeklyReport.clinic_id == current_user.clinic_id,
-        WeeklyReport.week_start == parsed_week_start.date()
+        WeeklyReport.week_start >= parsed_week_start,
+        WeeklyReport.week_start < parsed_week_start + timedelta(days=1)
     ).first()
 
     if existing:
@@ -172,8 +176,8 @@ async def manually_generate_report(
         # Create new report
         new_report = WeeklyReport(
             clinic_id=current_user.clinic_id,
-            week_start=parsed_week_start.date(),
-            week_end=(parsed_week_start + timedelta(days=7)).date(),
+            week_start=parsed_week_start,
+            week_end=parsed_week_start + timedelta(days=7),
             total_calls=report_data["total_calls"],
             avg_score=report_data["avg_score"],
             conversion_rate=report_data["conversion_rate"],

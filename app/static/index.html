@@ -155,6 +155,7 @@
             .stat-card-row { gap: 10px !important; }
             .stat-card-row > div { min-width: calc(50% - 8px) !important; flex: 0 0 calc(50% - 8px) !important; }
             .resp-grid-2 { grid-template-columns: 1fr !important; }
+            .resp-grid-3 { grid-template-columns: repeat(2, 1fr) !important; }
             .resp-grid-4 { grid-template-columns: repeat(2, 1fr) !important; }
             .page-title { font-size: 20px !important; }
             .detail-tab { padding: 8px 12px; font-size: 12px; }
@@ -170,6 +171,7 @@
         @media (max-width: 480px) {
             .main-content { padding: 64px 12px 20px 12px !important; }
             .stat-card-row > div { min-width: 100% !important; flex: 0 0 100% !important; }
+            .resp-grid-3 { grid-template-columns: 1fr !important; }
             .resp-grid-4 { grid-template-columns: 1fr !important; }
             .btn { padding: 8px 12px; font-size: 12px; gap: 6px; }
             .badge { font-size: 10px; padding: 2px 8px; }
@@ -204,7 +206,8 @@ const apiFetch = async (path, opts = {}) => {
         const msg = typeof detail === 'string' ? detail : (Array.isArray(detail) ? detail.map(d => d.msg || String(d)).join(', ') : 'Request failed');
         throw new Error(msg);
     }
-    return res.json();
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
 };
 
 // ============ SVG ICONS ============
@@ -842,7 +845,7 @@ const CallDetailPage = ({ callId, onBack }) => {
                         <div style={{display:'flex',gap:8}}>
                             <input className="input" style={{flex:1}} placeholder="Ask the AI Coach about this call..." value={coachQuestion}
                                 onChange={e=>setCoachQuestion(e.target.value)}
-                                onKeyPress={e=>{if(e.key==='Enter'&&!coachLoading)askCoach(coachQuestion);}}
+                                onKeyDown={e=>{if(e.key==='Enter'&&!coachLoading)askCoach(coachQuestion);}}
                                 disabled={coachLoading}
                             />
                             <button className="btn btn-gold btn-sm" onClick={()=>askCoach(coachQuestion)} disabled={coachLoading || !coachQuestion.trim()}>
@@ -865,7 +868,7 @@ const CallDetailPage = ({ callId, onBack }) => {
                             </div>
                         )) : <p style={{color:'var(--text-muted)',fontSize:13,marginBottom:16}}>No notes yet.</p>}
                         <div style={{display:'flex',gap:8,marginTop:12}}>
-                            <input className="input" placeholder="Add a note..." value={note} onChange={e=>setNote(e.target.value)} onKeyPress={e=>e.key==='Enter'&&addNote()} style={{flex:1}}/>
+                            <input className="input" placeholder="Add a note..." value={note} onChange={e=>setNote(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addNote()} style={{flex:1}}/>
                             <button className="btn btn-gold btn-sm" onClick={addNote}>{Icons.plus}</button>
                         </div>
                     </div>
@@ -1248,7 +1251,7 @@ const CoachingPage = () => {
                                             <div style={{display:'flex',flexDirection:'column',gap:10}}>
                                                 {Object.entries(sb).map(([dim,val]) => (
                                                     <div key={dim} style={{display:'flex',alignItems:'center',gap:12}}>
-                                                        <span style={{fontSize:12,color:'var(--text-muted)',width:110,textTransform:'capitalize'}}>{dim.replace('_',' ')}</span>
+                                                        <span style={{fontSize:12,color:'var(--text-muted)',width:110,textTransform:'capitalize'}}>{dim.replace(/_/g,' ')}</span>
                                                         <div style={{flex:1,height:8,background:'rgba(192,196,203,0.1)',borderRadius:4,overflow:'hidden'}}>
                                                             <div style={{height:'100%',width:`${val}%`,background:val>=70?'var(--success)':val>=50?'var(--gold)':'var(--danger)',borderRadius:4,transition:'width 0.5s'}}/>
                                                         </div>
@@ -1287,7 +1290,7 @@ const CoachingPage = () => {
                                                     <div key={i} style={{padding:14,background:'rgba(0,0,0,0.15)',borderRadius:10,borderLeft:`3px solid ${perfColors[a.performance_level]||'var(--gold)'}`}}>
                                                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
                                                             <span style={{fontWeight:600,fontSize:13}}>{a.agent_name}</span>
-                                                            <span className="badge" style={{fontSize:10,background:perfColors[a.performance_level]||'var(--gold)',color:'#000'}}>{(a.performance_level||'').replace('_',' ')}</span>
+                                                            <span className="badge" style={{fontSize:10,background:perfColors[a.performance_level]||'var(--gold)',color:'#000'}}>{(a.performance_level||'').replace(/_/g,' ')}</span>
                                                         </div>
                                                         {a.key_strength && <div style={{fontSize:12,color:'var(--success)',marginBottom:3}}>Strength: {a.key_strength}</div>}
                                                         {a.key_weakness && <div style={{fontSize:12,color:'var(--danger)',marginBottom:3}}>Focus area: {a.key_weakness}</div>}
@@ -1376,7 +1379,7 @@ const CoachingPage = () => {
 const ContactsPage = () => {
     const [contacts, setContacts] = useState([]);
     const [search, setSearch] = useState('');
-    useEffect(()=>{ apiFetch('/contacts').then(setContacts).catch(()=>{}); },[]);
+    useEffect(()=>{ apiFetch('/contacts').then(data => setContacts(data.contacts || data || [])).catch(()=>{}); },[]);
     const filtered = contacts.filter(c => !search || (c.name||'').toLowerCase().includes(search.toLowerCase()) || (c.phone||'').includes(search) || (c.email||'').toLowerCase().includes(search.toLowerCase()));
     return (
         <div className="fade-in">
@@ -1578,7 +1581,7 @@ const LearningPage = () => {
                     <div>
                         {(mod.practice_exercises || []).map((ex, i) => (
                             <div key={i} className="glass" style={{borderRadius:12,padding:24,marginBottom:12}}>
-                                <span className="badge badge-blue" style={{marginBottom:10,display:'inline-block'}}>{ex.type.replace('_',' ')}</span>
+                                <span className="badge badge-blue" style={{marginBottom:10,display:'inline-block'}}>{ex.type.replace(/_/g,' ')}</span>
                                 <h4 style={{fontSize:15,fontWeight:700,marginBottom:8}}>{ex.title}</h4>
                                 <p style={{fontSize:14,color:'var(--text-secondary)',marginBottom:16,lineHeight:1.6}}>{ex.instruction}</p>
                                 <details style={{cursor:'pointer'}}>
@@ -1662,7 +1665,7 @@ const LearningPage = () => {
             </div>
 
             {/* Module Cards */}
-            <div className="resp-grid-2" style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16}}>
+            <div className="resp-grid-3" style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16}}>
                 {modules.filter(mod => categoryFilter === 'all' || mod.category === categoryFilter).map(mod => (
                     <div key={mod.id} className="glass" style={{borderRadius:12,padding:20,cursor:'pointer',transition:'all 0.2s'}} onClick={()=>openModule(mod.id)}>
                         <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}>
@@ -1692,7 +1695,7 @@ const LearningPage = () => {
                 <p style={{fontSize:13,color:'var(--text-secondary)',marginBottom:16}}>Download companion training manuals for offline study and reference.</p>
                 <a href={`${API}/learning/training-documents/SBA_Sales_Training_Manual.docx`}
                    download
-                   className="btn btn-primary btn-sm"
+                   className="btn btn-gold btn-sm"
                    style={{display:'inline-flex',alignItems:'center',gap:8,textDecoration:'none'}}>
                     {Icons.download}
                     <span>SBA Sales Training Manual (.docx)</span>
@@ -1796,7 +1799,7 @@ const ReportsPage = () => {
                                         <div key={i} style={{padding:16,background:'rgba(0,0,0,0.2)',borderRadius:10,borderLeft:`3px solid ${perfColors[a.performance_level]||'var(--gold)'}`}}>
                                             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
                                                 <span style={{fontWeight:700,fontSize:14}}>{a.agent_name}</span>
-                                                <span className="badge" style={{fontSize:10,background:perfColors[a.performance_level]||'var(--gold)',color:'#000'}}>{(a.performance_level||'').replace('_',' ')}</span>
+                                                <span className="badge" style={{fontSize:10,background:perfColors[a.performance_level]||'var(--gold)',color:'#000'}}>{(a.performance_level||'').replace(/_/g,' ')}</span>
                                             </div>
                                             {a.key_strength && <div style={{fontSize:12,color:'var(--success)',marginBottom:4}}>Strength: {a.key_strength}</div>}
                                             {a.key_weakness && <div style={{fontSize:12,color:'var(--danger)',marginBottom:4}}>Focus: {a.key_weakness}</div>}
@@ -1898,12 +1901,12 @@ const IntegrationsPage = () => {
         try {
             const result = await apiFetch('/integrations/ghl/connect', {
                 method: 'POST',
-                body: JSON.stringify({
+                body: {
                     api_key: apiKey.trim(),
                     location_id: locationId.trim() || null,
                     sync_pipeline_id: pipelineId || null,
                     auto_sync_enabled: true
-                })
+                }
             });
             setPipelines(result.pipelines || []);
             setApiKey('');
@@ -1946,7 +1949,7 @@ const IntegrationsPage = () => {
         try {
             await apiFetch('/integrations/ghl/settings', {
                 method: 'PATCH',
-                body: JSON.stringify({ sync_pipeline_id: pipelineId || null })
+                body: { sync_pipeline_id: pipelineId || null }
             });
             await fetchStatus();
         } catch (e) { setError(e.message); }
@@ -2073,7 +2076,7 @@ const IntegrationsPage = () => {
             </div>
 
             {/* How It Works */}
-            <div className="glass" style={{borderRadius:16,padding:28}}>
+            <div className="glass" style={{borderRadius:16,padding:28,marginBottom:24}}>
                 <div style={{fontSize:16,fontWeight:700,marginBottom:16}}>How GHL Sync Works</div>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:16}}>
                     {[
@@ -2090,6 +2093,27 @@ const IntegrationsPage = () => {
                             </div>
                         </div>
                     ))}
+                </div>
+            </div>
+
+            {/* Real-time Webhook Setup */}
+            <div className="glass" style={{borderRadius:16,padding:28}}>
+                <div style={{fontSize:16,fontWeight:700,marginBottom:12}}>Real-Time Sync (Webhook)</div>
+                <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:16,lineHeight:'1.6'}}>
+                    For instant contact sync when leads are added or updated in GHL, set up a webhook in your GoHighLevel account.
+                </p>
+                <div style={{background:'rgba(15,20,30,0.5)',border:'1px solid var(--border)',borderRadius:8,padding:'12px 16px',marginBottom:16}}>
+                    <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Webhook URL</div>
+                    <div style={{fontSize:14,fontFamily:'monospace',color:'var(--info)',wordBreak:'break-all'}}>
+                        {window.location.origin}/api/webhooks/ghl/contact
+                    </div>
+                </div>
+                <div style={{fontSize:13,color:'var(--text-muted)',lineHeight:'1.6'}}>
+                    <div style={{fontWeight:600,color:'var(--text-secondary)',marginBottom:8}}>Setup Steps:</div>
+                    <div>1. Go to GHL &gt; Settings &gt; Webhooks</div>
+                    <div>2. Click "Add Webhook" and paste the URL above</div>
+                    <div>3. Select events: ContactCreate, ContactUpdate, OpportunityCreate, OpportunityStatusUpdate</div>
+                    <div>4. Save. New leads will now sync to CallCoach automatically.</div>
                 </div>
             </div>
         </div>

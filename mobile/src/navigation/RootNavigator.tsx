@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useAppSelector } from '../store/store';
+import { useAppSelector, useAppDispatch } from '../store/store';
+import { finishInitializing } from '../store/authSlice';
 
 import LoginScreen from '../screens/LoginScreen';
 import ContactsScreen from '../screens/ContactsScreen';
@@ -12,6 +14,14 @@ import ActiveCallScreen from '../screens/ActiveCallScreen';
 import CallHistoryScreen from '../screens/CallHistoryScreen';
 import CallDetailScreen from '../screens/CallDetailScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+
+// SBA Brand Colors
+const SBA_NAVY = '#1E3A8A';
+const SBA_DARK = '#0A1628';
+const SBA_GOLD = '#D4A843';
+const SBA_WHITE = '#F8FAFC';
+const SBA_MUTED = '#64748B';
+const SBA_BORDER = '#1E293B';
 
 // ── Type Definitions ────────────────────────────────────────────────
 
@@ -45,6 +55,76 @@ const RootStack = createNativeStackNavigator<RootStackParamList>();
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const MainTab = createBottomTabNavigator<MainTabParamList>();
 
+// ── Splash Screen ──────────────────────────────────────────────────
+
+function SplashScreen() {
+  const dispatch = useAppDispatch();
+
+  // Safety timeout: if auth check hangs, force show login after 3 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      dispatch(finishInitializing());
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [dispatch]);
+
+  return (
+    <View style={splashStyles.container}>
+      <View style={splashStyles.logoBox}>
+        <Text style={splashStyles.logoText}>CC</Text>
+      </View>
+      <Text style={splashStyles.logo}>CallCoach</Text>
+      <Text style={splashStyles.subtitle}>by Skin Business Accelerator</Text>
+      <ActivityIndicator
+        size="large"
+        color={SBA_GOLD}
+        style={splashStyles.spinner}
+      />
+    </View>
+  );
+}
+
+const splashStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: SBA_DARK,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoBox: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    backgroundColor: SBA_NAVY,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: SBA_GOLD,
+    marginBottom: 20,
+  },
+  logoText: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: SBA_GOLD,
+    letterSpacing: 1,
+  },
+  logo: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: SBA_WHITE,
+    letterSpacing: 1,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: SBA_GOLD,
+    marginTop: 8,
+    letterSpacing: 0.5,
+  },
+  spinner: {
+    marginTop: 32,
+  },
+});
+
 // ── Auth Navigator ──────────────────────────────────────────────────
 
 function AuthNavigator() {
@@ -61,16 +141,16 @@ function MainTabNavigator() {
   return (
     <MainTab.Navigator
       screenOptions={({ route }) => ({
-        headerStyle: { backgroundColor: '#0F172A' },
-        headerTintColor: '#F8FAFC',
+        headerStyle: { backgroundColor: SBA_DARK },
+        headerTintColor: SBA_WHITE,
         tabBarStyle: {
-          backgroundColor: '#0F172A',
-          borderTopColor: '#1E293B',
+          backgroundColor: SBA_DARK,
+          borderTopColor: SBA_BORDER,
           paddingBottom: 4,
           height: 60,
         },
-        tabBarActiveTintColor: '#3B82F6',
-        tabBarInactiveTintColor: '#64748B',
+        tabBarActiveTintColor: SBA_GOLD,
+        tabBarInactiveTintColor: SBA_MUTED,
         tabBarIcon: ({ color, size }) => {
           let iconName = 'phone';
           if (route.name === 'Contacts') iconName = 'contacts';
@@ -108,10 +188,10 @@ function MainTabNavigator() {
 // ── Root Navigator ──────────────────────────────────────────────────
 
 export default function RootNavigator() {
-  const { isLoggedIn, isLoading } = useAppSelector((state) => state.auth);
+  const { isLoggedIn, isInitializing } = useAppSelector((state) => state.auth);
 
-  if (isLoading) {
-    return null; // Splash screen would go here
+  if (isInitializing) {
+    return <SplashScreen />;
   }
 
   return (
@@ -135,8 +215,8 @@ export default function RootNavigator() {
               component={CallDetailScreen}
               options={{
                 headerShown: true,
-                headerStyle: { backgroundColor: '#0F172A' },
-                headerTintColor: '#F8FAFC',
+                headerStyle: { backgroundColor: SBA_DARK },
+                headerTintColor: SBA_WHITE,
                 title: 'Call Analysis',
               }}
             />

@@ -129,11 +129,30 @@ def _build_contacts(db: Session, clinic_id: str):
 
 @router.get("")
 def list_contacts(
+    updated_since: str = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get all unique contacts aggregated from calls and deals."""
-    return _build_contacts(db, current_user.clinic_id)
+    """
+    Get all unique contacts aggregated from calls and deals.
+
+    Optional: pass updated_since (ISO datetime) to get only contacts
+    created/updated after that timestamp. Used for mobile app incremental sync.
+    """
+    contacts = _build_contacts(db, current_user.clinic_id)
+
+    if updated_since:
+        try:
+            since = datetime.fromisoformat(updated_since.replace("Z", "+00:00"))
+            contacts = [
+                c for c in contacts
+                if (c.get("last_call_date") and datetime.fromisoformat(c["last_call_date"]) > since)
+                or (c.get("first_seen") and datetime.fromisoformat(c["first_seen"]) > since)
+            ]
+        except (ValueError, TypeError):
+            pass
+
+    return {"contacts": contacts, "total": len(contacts), "timestamp": datetime.utcnow().isoformat()}
 
 
 @router.get("/csv")

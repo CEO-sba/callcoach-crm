@@ -13,7 +13,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppDispatch, useAppSelector } from '../store/store';
-import { fetchContacts, setSearchQuery, Contact } from '../store/contactsSlice';
+import { fetchContacts, syncContacts, setSearchQuery, Contact } from '../store/contactsSlice';
 import { MainTabParamList } from '../navigation/RootNavigator';
 
 type NavProp = NativeStackNavigationProp<MainTabParamList, 'Contacts'>;
@@ -80,7 +80,7 @@ function ContactCard({ contact }: { contact: Contact }) {
 
 export default function ContactsScreen() {
   const dispatch = useAppDispatch();
-  const { contacts, filteredContacts, isLoading, searchQuery } = useAppSelector(
+  const { contacts, isLoading, searchQuery } = useAppSelector(
     (state) => state.contacts
   );
 
@@ -88,11 +88,29 @@ export default function ContactsScreen() {
     dispatch(fetchContacts());
   }, [dispatch]);
 
+  // Background sync every 30 seconds for real-time GHL contact updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      dispatch(syncContacts());
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [dispatch]);
+
   const onRefresh = useCallback(() => {
     dispatch(fetchContacts());
   }, [dispatch]);
 
-  const displayContacts = searchQuery ? filteredContacts : contacts;
+  // Filter contacts locally based on search query
+  const displayContacts = searchQuery
+    ? (contacts || []).filter((c) => {
+        const q = searchQuery.toLowerCase();
+        return (
+          c.name?.toLowerCase().includes(q) ||
+          c.phone?.includes(q) ||
+          c.email?.toLowerCase().includes(q)
+        );
+      })
+    : contacts || [];
 
   return (
     <View style={styles.container}>
@@ -112,7 +130,7 @@ export default function ContactsScreen() {
         ) : null}
       </View>
 
-      {isLoading && contacts.length === 0 ? (
+      {isLoading && (!contacts || contacts.length === 0) ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#3B82F6" />
         </View>

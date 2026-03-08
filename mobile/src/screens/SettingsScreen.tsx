@@ -14,8 +14,37 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useAppDispatch, useAppSelector } from '../store/store';
 import { logout } from '../store/authSlice';
 import { setAutoRecord, setWifiOnlyUpload } from '../store/recordingSlice';
-import { recordingManager } from '../services/recording';
-import api from '../services/api';
+import { api } from '../services/api';
+
+// Lazy-load recordingManager to avoid crash if RNFS fails
+let _recordingManager: any = null;
+function getRecordingManager() {
+  if (!_recordingManager) {
+    try {
+      _recordingManager = require('../services/recording').recordingManager;
+    } catch (e) {
+      console.error('Failed to load recordingManager:', e);
+    }
+  }
+  return _recordingManager;
+}
+
+/**
+ * Safely extract a string error message from any error shape.
+ * Handles FastAPI's {detail: [{type, loc, msg, input}]} format.
+ */
+function safeErrorMessage(err: any, fallback: string): string {
+  if (!err) return fallback;
+  const detail = err.response?.data?.detail;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail) && detail.length > 0) {
+    const first = detail[0];
+    if (first && typeof first.msg === 'string') return first.msg;
+    return 'Validation error. Please check your input.';
+  }
+  if (typeof err.message === 'string') return err.message;
+  return fallback;
+}
 
 function SettingRow({
   icon,
@@ -66,7 +95,7 @@ export default function SettingsScreen() {
 
   const fetchGHLStatus = async () => {
     try {
-      const res = await api.get('/api/integrations/ghl/status');
+      const res = await api.get('/integrations/ghl/status');
       setGhlStatus(res.data);
     } catch {
       setGhlStatus(null);
@@ -81,7 +110,7 @@ export default function SettingsScreen() {
     setGhlLoading(true);
     setGhlError('');
     try {
-      await api.post('/api/integrations/ghl/connect', {
+      await api.post('/integrations/ghl/connect', {
         api_key: ghlApiKey.trim(),
         location_id: ghlLocationId.trim() || undefined,
       });
@@ -90,7 +119,7 @@ export default function SettingsScreen() {
       await fetchGHLStatus();
       Alert.alert('Connected', 'GoHighLevel integration connected successfully.');
     } catch (err: any) {
-      setGhlError(err.response?.data?.detail || 'Failed to connect');
+      setGhlError(safeErrorMessage(err, 'Failed to connect'));
     } finally {
       setGhlLoading(false);
     }
@@ -104,7 +133,7 @@ export default function SettingsScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await api.post('/api/integrations/ghl/disconnect');
+            await api.post('/integrations/ghl/disconnect');
             setGhlStatus(null);
           } catch {}
         },
@@ -115,12 +144,12 @@ export default function SettingsScreen() {
   const handleGHLSync = async () => {
     setGhlSyncing(true);
     try {
-      const res = await api.post('/api/integrations/ghl/sync');
+      const res = await api.post('/integrations/ghl/sync');
       const d = res.data;
       Alert.alert('Sync Complete', `Created: ${d.created}, Updated: ${d.updated}, Skipped: ${d.skipped}`);
       await fetchGHLStatus();
     } catch (err: any) {
-      Alert.alert('Sync Failed', err.response?.data?.detail || 'Could not sync leads');
+      Alert.alert('Sync Failed', safeErrorMessage(err, 'Could not sync leads'));
     } finally {
       setGhlSyncing(false);
     }
@@ -138,8 +167,10 @@ export default function SettingsScreen() {
   };
 
   const handleRetryAll = () => {
+    const rm = getRecordingManager();
+    if (!rm) return;
     failedUploads.forEach((item) => {
-      recordingManager.retryRecording(item.id);
+      rm.retryRecording(item.id);
     });
   };
 
@@ -169,9 +200,9 @@ export default function SettingsScreen() {
           right={
             <Switch
               value={autoRecord}
-              onValueChange={(v) => dispatch(setAutoRecord(v))}
-              trackColor={{ false: '#334155', true: '#3B82F680' }}
-              thumbColor={autoRecord ? '#3B82F6' : '#64748B'}
+              onValueChange={(v: boolean) => { dispatch(setAutoRecord(v)); }}
+              trackColor={{ false: '#334155', true: '#D4A84380' }}
+              thumbColor={autoRecord ? '#D4A843' : '#64748B'}
             />
           }
         />
@@ -183,9 +214,9 @@ export default function SettingsScreen() {
           right={
             <Switch
               value={wifiOnlyUpload}
-              onValueChange={(v) => dispatch(setWifiOnlyUpload(v))}
-              trackColor={{ false: '#334155', true: '#3B82F680' }}
-              thumbColor={wifiOnlyUpload ? '#3B82F6' : '#64748B'}
+              onValueChange={(v: boolean) => { dispatch(setWifiOnlyUpload(v)); }}
+              trackColor={{ false: '#334155', true: '#D4A84380' }}
+              thumbColor={wifiOnlyUpload ? '#D4A843' : '#64748B'}
             />
           }
         />
@@ -249,7 +280,7 @@ export default function SettingsScreen() {
                   disabled={ghlSyncing}
                 >
                   {ghlSyncing ? (
-                    <ActivityIndicator size="small" color="#3B82F6" />
+                    <ActivityIndicator size="small" color="#D4A843" />
                   ) : (
                     <Text style={styles.syncText}>Sync Now</Text>
                   )}
@@ -351,14 +382,14 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#1E3A8A',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  profileAvatarText: { color: '#FFF', fontSize: 22, fontWeight: '600' },
+  profileAvatarText: { color: '#D4A843', fontSize: 22, fontWeight: '600' },
   profileName: { color: '#F8FAFC', fontSize: 18, fontWeight: '700' },
   profileEmail: { color: '#94A3B8', fontSize: 13, marginTop: 2 },
-  profileClinic: { color: '#3B82F6', fontSize: 13, marginTop: 2 },
+  profileClinic: { color: '#D4A843', fontSize: 13, marginTop: 2 },
   sectionTitle: {
     color: '#64748B',
     fontSize: 12,
@@ -419,14 +450,14 @@ const styles = StyleSheet.create({
   },
   connectedText: { color: '#10B981', fontSize: 13, fontWeight: '600' },
   syncButton: {
-    backgroundColor: '#3B82F620',
+    backgroundColor: '#D4A84320',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
     minWidth: 80,
     alignItems: 'center',
   },
-  syncText: { color: '#3B82F6', fontSize: 13, fontWeight: '600' },
+  syncText: { color: '#D4A843', fontSize: 13, fontWeight: '600' },
   disconnectRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -454,11 +485,11 @@ const styles = StyleSheet.create({
   },
   ghlErrorText: { color: '#EF4444', fontSize: 12, marginTop: 8 },
   ghlConnectButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#D4A843',
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 16,
   },
-  ghlConnectButtonText: { color: '#FFF', fontSize: 15, fontWeight: '700' },
+  ghlConnectButtonText: { color: '#0A1628', fontSize: 15, fontWeight: '700' },
 });

@@ -23,7 +23,7 @@ export default function DialerScreen() {
   const route = useRoute<DialerRouteProp>();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [callerName, setCallerName] = useState('');
-  const { contacts } = useAppSelector((state) => state.contacts);
+  const contacts = useAppSelector((state) => state.contacts.contacts) || [];
 
   // Pre-fill from navigation params (when tapping a contact)
   useEffect(() => {

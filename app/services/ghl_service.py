@@ -54,8 +54,18 @@ class GHLClient:
     def __init__(self, api_key: str, location_id: Optional[str] = None):
         self.api_key = api_key
         self.location_id = location_id
+
+        # Private Integration Tokens (pit-*) don't use "Bearer" prefix.
+        # OAuth tokens (usually JWT starting with "ey") need "Bearer" prefix.
+        if api_key.startswith("Bearer "):
+            auth_value = api_key  # User already included Bearer
+        elif api_key.startswith("ey"):
+            auth_value = f"Bearer {api_key}"  # OAuth JWT token
+        else:
+            auth_value = api_key  # Private Integration Token (no prefix)
+
         self.headers = {
-            "Authorization": f"Bearer {api_key}",
+            "Authorization": auth_value,
             "Version": "2021-07-28",
             "Content-Type": "application/json",
         }

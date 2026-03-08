@@ -64,18 +64,14 @@ public class CallStateModule extends ReactContextBaseJavaModule {
                 if (stateStr == null) return;
 
                 String eventState;
-                switch (stateStr) {
-                    case TelephonyManager.EXTRA_STATE_RINGING:
-                        eventState = "callRinging";
-                        break;
-                    case TelephonyManager.EXTRA_STATE_OFFHOOK:
-                        eventState = "callConnected";
-                        break;
-                    case TelephonyManager.EXTRA_STATE_IDLE:
-                        eventState = "callEnded";
-                        break;
-                    default:
-                        return;
+                if (TelephonyManager.EXTRA_STATE_RINGING.equals(stateStr)) {
+                    eventState = "callRinging";
+                } else if (TelephonyManager.EXTRA_STATE_OFFHOOK.equals(stateStr)) {
+                    eventState = "callConnected";
+                } else if (TelephonyManager.EXTRA_STATE_IDLE.equals(stateStr)) {
+                    eventState = "callEnded";
+                } else {
+                    return;
                 }
 
                 // Avoid duplicate events

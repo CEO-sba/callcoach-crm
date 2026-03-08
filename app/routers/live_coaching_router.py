@@ -200,7 +200,7 @@ async def live_coaching_ws(websocket: WebSocket, call_id: str):
         logger.error(f"WebSocket error for call {call_id}: {e}")
         try:
             await websocket.send_json({"type": "error", "content": str(e)})
-        except:
+        except Exception:
             pass
     finally:
         active_sessions.pop(call_id, None)

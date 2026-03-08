@@ -3,16 +3,17 @@ CallCoach CRM - GoHighLevel Integration Router
 
 Endpoints for connecting, syncing, and managing GHL integration.
 Users add their own GHL API key to pull leads into the CallCoach pipeline.
+Includes webhook endpoint for real-time contact sync from GHL.
 """
 import logging
 from datetime import datetime
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import GHLIntegration, PipelineDeal, DealActivity, User
+from app.models import GHLIntegration, PipelineDeal, DealActivity, User, Clinic
 from app.auth import get_current_user
 from app.services.ghl_service import (
     GHLClient,
@@ -437,3 +438,109 @@ def _upsert_deal(
     db.flush()
 
     return "created"
+
+
+# ── GHL Webhooks (real-time contact sync) ────────────────────────────
+
+webhook_router = APIRouter(prefix="/api/webhooks/ghl", tags=["ghl-webhooks"])
+
+
+@webhook_router.post("/contact")
+async def ghl_contact_webhook(request: Request, db: Session = Depends(get_db)):
+    """
+    Receive real-time contact create/update events from GoHighLevel.
+
+    GHL sends webhooks with event types like:
+    - ContactCreate
+    - ContactUpdate
+    - OpportunityCreate
+    - OpportunityStatusUpdate
+    - OpportunityStageUpdate
+
+    Configure in GHL: Settings > Webhooks > Add webhook URL:
+    https://www.callcoachsba.com/api/webhooks/ghl/contact
+    """
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    event_type = payload.get("type", "")
+    location_id = payload.get("locationId") or payload.get("location_id", "")
+
+    logger.info(f"GHL webhook received: type={event_type}, location={location_id}")
+
+    if not location_id:
+        # Try to extract from nested data
+        location_id = (
+            payload.get("contact", {}).get("locationId")
+            or payload.get("opportunity", {}).get("locationId")
+            or ""
+        )
+
+    if not location_id:
+        logger.warning("GHL webhook: no locationId found, ignoring")
+        return {"status": "ignored", "reason": "no locationId"}
+
+    # Find the clinic integration for this GHL location
+    integration = db.query(GHLIntegration).filter(
+        GHLIntegration.location_id == location_id,
+        GHLIntegration.is_active == True
+    ).first()
+
+    if not integration:
+        logger.warning(f"GHL webhook: no active integration for location {location_id}")
+        return {"status": "ignored", "reason": "no matching integration"}
+
+    # Find an admin user for this clinic to attribute the import
+    admin_user = db.query(User).filter(
+        User.clinic_id == integration.clinic_id,
+        User.role.in_(["admin", "manager"])
+    ).first()
+
+    if not admin_user:
+        admin_user = db.query(User).filter(
+            User.clinic_id == integration.clinic_id
+        ).first()
+
+    if not admin_user:
+        logger.warning(f"GHL webhook: no user found for clinic {integration.clinic_id}")
+        return {"status": "ignored", "reason": "no user for clinic"}
+
+    result = "ignored"
+
+    try:
+        if event_type in ("ContactCreate", "ContactUpdate", "ContactDndUpdate"):
+            contact_data = payload.get("contact") or payload
+            if contact_data:
+                deal_data = map_ghl_contact_to_deal(contact_data)
+                result = _upsert_deal(db, admin_user, deal_data, None)
+                db.commit()
+
+        elif event_type in (
+            "OpportunityCreate", "OpportunityStatusUpdate",
+            "OpportunityStageUpdate", "OpportunityMonetaryValueUpdate"
+        ):
+            opp_data = payload.get("opportunity") or payload
+            if opp_data:
+                deal_data = map_ghl_opportunity_to_deal(opp_data)
+                result = _upsert_deal(db, admin_user, deal_data, opp_data.get("id"))
+                db.commit()
+
+        # Update sync timestamp
+        integration.last_sync_at = datetime.utcnow()
+        integration.last_sync_status = "success"
+        if result == "created":
+            integration.total_leads_synced = (integration.total_leads_synced or 0) + 1
+        db.commit()
+
+    except Exception as e:
+        logger.error(f"GHL webhook processing error: {e}")
+        integration.last_sync_at = datetime.utcnow()
+        integration.last_sync_status = "failed"
+        integration.last_sync_error = str(e)[:500]
+        db.commit()
+        return {"status": "error", "message": str(e)[:200]}
+
+    logger.info(f"GHL webhook processed: type={event_type}, result={result}")
+    return {"status": "ok", "result": result}

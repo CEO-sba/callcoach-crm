@@ -74,6 +74,32 @@ def list_deals(
     return query.order_by(PipelineDeal.updated_at.desc()).offset(skip).limit(limit).all()
 
 
+@router.get("/stages/summary")
+def get_stage_summary(db: Session = Depends(get_db),
+                       current_user: User = Depends(get_current_user)):
+    """Get deal counts and values per pipeline stage."""
+    from sqlalchemy import func
+    results = db.query(
+        PipelineDeal.stage,
+        func.count(PipelineDeal.id).label("count"),
+        func.sum(PipelineDeal.deal_value).label("total_value")
+    ).filter(
+        PipelineDeal.clinic_id == current_user.clinic_id,
+        PipelineDeal.status == "open"
+    ).group_by(PipelineDeal.stage).all()
+
+    stages_data = []
+    for stage in VALID_STAGES:
+        match = next((r for r in results if r.stage == stage), None)
+        stages_data.append({
+            "stage": stage,
+            "count": match.count if match else 0,
+            "total_value": float(match.total_value or 0) if match else 0
+        })
+
+    return stages_data
+
+
 @router.get("/{deal_id}", response_model=DealOut)
 def get_deal(deal_id: str, db: Session = Depends(get_db),
              current_user: User = Depends(get_current_user)):
@@ -184,29 +210,3 @@ async def assess_health(deal_id: str, db: Session = Depends(get_db),
     db.commit()
 
     return assessment
-
-
-@router.get("/stages/summary")
-def get_stage_summary(db: Session = Depends(get_db),
-                       current_user: User = Depends(get_current_user)):
-    """Get deal counts and values per pipeline stage."""
-    from sqlalchemy import func
-    results = db.query(
-        PipelineDeal.stage,
-        func.count(PipelineDeal.id).label("count"),
-        func.sum(PipelineDeal.deal_value).label("total_value")
-    ).filter(
-        PipelineDeal.clinic_id == current_user.clinic_id,
-        PipelineDeal.status == "open"
-    ).group_by(PipelineDeal.stage).all()
-
-    stages_data = []
-    for stage in VALID_STAGES:
-        match = next((r for r in results if r.stage == stage), None)
-        stages_data.append({
-            "stage": stage,
-            "count": match.count if match else 0,
-            "total_value": float(match.total_value or 0) if match else 0
-        })
-
-    return stages_data
