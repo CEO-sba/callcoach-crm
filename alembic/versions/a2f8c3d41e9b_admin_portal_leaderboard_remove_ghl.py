@@ -43,10 +43,10 @@ def upgrade() -> None:
         pass
 
     # Add is_super_admin to users
-    op.add_column('users', sa.Column('is_super_admin', sa.Boolean(), nullable=True, server_default=sa.text('0')))
+    op.add_column('users', sa.Column('is_super_admin', sa.Boolean(), nullable=True, server_default=sa.text('false')))
 
     # Add leaderboard_visible to clinics
-    op.add_column('clinics', sa.Column('leaderboard_visible', sa.Boolean(), nullable=True, server_default=sa.text('1')))
+    op.add_column('clinics', sa.Column('leaderboard_visible', sa.Boolean(), nullable=True, server_default=sa.text('true')))
 
     # Make clinic_id nullable on users (for super admins)
     # Note: SQLite doesn't support ALTER COLUMN, so we use batch mode
