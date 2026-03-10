@@ -1,0 +1,18 @@
+[Unit]
+Description=CallCoach CRM FastAPI Application
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=callcoach
+Group=callcoach
+WorkingDirectory=/opt/callcoach-crm
+EnvironmentFile=/opt/callcoach-crm/.env
+ExecStart=/opt/callcoach-crm/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2 --log-level info
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

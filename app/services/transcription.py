@@ -2,7 +2,7 @@
 CallCoach CRM - Transcription Service
 
 Priority order:
-1. Groq Whisper API (cloud, free tier, fast) - recommended for Railway/production
+1. Groq Whisper API (cloud, free tier, fast) - recommended for production
 2. Local faster-whisper (offline, no API costs) - for local development
 3. Placeholder fallback
 """
@@ -159,7 +159,7 @@ async def transcribe_audio(file_path: str, model_size: str = "base") -> dict:
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"Audio file not found: {file_path}")
 
-    # Try Groq cloud first (works on Railway without heavy dependencies)
+    # Try Groq cloud first (works in production without heavy dependencies)
     from app.config import GROQ_API_KEY
     if GROQ_API_KEY:
         result = await _transcribe_with_groq(file_path)
@@ -174,7 +174,7 @@ async def transcribe_audio(file_path: str, model_size: str = "base") -> dict:
     # Final fallback
     logger.warning("No transcription method available. Set GROQ_API_KEY or install faster-whisper.")
     return {
-        "text": "[No transcription available. Set GROQ_API_KEY in Railway environment variables for cloud transcription.]",
+        "text": "[No transcription available. Set GROQ_API_KEY in .env for cloud transcription.]",
         "segments": [],
         "duration": 0,
         "language": "en"

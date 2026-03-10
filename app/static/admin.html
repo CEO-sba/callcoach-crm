@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CallCoach Admin | Skin Business Accelerator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #06080F;
+            --bg-secondary: #0D1117;
+            --bg-card: rgba(15, 20, 30, 0.7);
+            --bg-card-hover: rgba(20, 28, 42, 0.8);
+            --border: rgba(192, 196, 203, 0.12);
+            --border-hover: rgba(192, 196, 203, 0.3);
+            --gold: #C0C4CB;
+            --gold-light: #E8EAED;
+            --gold-dark: #8A9099;
+            --text-primary: #F1F5F9;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            --success: #22C55E;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --info: #3B82F6;
+            --accent: #8B5CF6;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(192, 196, 203, 0.2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(192, 196, 203, 0.4); }
+        .glass { background: var(--bg-card); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--border); }
+        .glass:hover { border-color: var(--border-hover); }
+        .glass-solid { background: var(--bg-secondary); border: 1px solid var(--border); }
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; border: none; font-family: inherit; }
+        .btn-gold { background: linear-gradient(135deg, var(--gold), var(--gold-light)); color: #000; }
+        .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(192, 196, 203, 0.3); }
+        .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+        .btn-danger { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #EF4444; }
+        .btn-danger:hover { background: rgba(239, 68, 68, 0.25); }
+        .btn-sm { padding: 6px 14px; font-size: 13px; }
+        .btn-xs { padding: 4px 10px; font-size: 12px; border-radius: 6px; }
+        .btn-accent { background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); color: #A78BFA; }
+        .btn-accent:hover { background: rgba(139, 92, 246, 0.3); }
+        .btn-success { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); color: #22C55E; }
+        .btn-success:hover { background: rgba(34, 197, 94, 0.25); }
+        .input { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-family: inherit; font-size: 14px; outline: none; transition: border-color 0.2s; }
+        .input:focus { border-color: var(--gold); }
+        .input::placeholder { color: var(--text-muted); }
+        select.input { cursor: pointer; }
+        .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge-green { background: rgba(34, 197, 94, 0.15); color: #22C55E; }
+        .badge-red { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
+        .badge-blue { background: rgba(59, 130, 246, 0.15); color: #3B82F6; }
+        .badge-yellow { background: rgba(245, 158, 11, 0.15); color: #F59E0B; }
+        .badge-gray { background: rgba(148, 163, 184, 0.1); color: #94A3B8; }
+        .badge-accent { background: rgba(139, 92, 246, 0.15); color: #A78BFA; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.6s linear infinite; }
+        .text-gradient { background: linear-gradient(135deg, #C0C4CB, #F5F6F8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .sidebar-link { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 8px; color: var(--text-secondary); font-weight: 500; font-size: 14px; transition: all 0.2s; cursor: pointer; text-decoration: none; }
+        .sidebar-link:hover { color: var(--text-primary); background: rgba(192, 196, 203, 0.06); }
+        .sidebar-link.active { color: var(--gold); background: rgba(192, 196, 203, 0.1); border: 1px solid rgba(192, 196, 203, 0.15); }
+        .table-row { transition: background 0.15s; }
+        .table-row:hover { background: rgba(192, 196, 203, 0.04); }
+        .toggle-track { width: 44px; height: 24px; border-radius: 12px; cursor: pointer; transition: background 0.2s; position: relative; }
+        .toggle-track.on { background: rgba(34,197,94,0.5); }
+        .toggle-track.off { background: rgba(148,163,184,0.2); }
+        .toggle-thumb { width: 18px; height: 18px; border-radius: 50%; background: white; position: absolute; top: 3px; transition: left 0.2s; }
+        .toggle-track.on .toggle-thumb { left: 23px; }
+        .toggle-track.off .toggle-thumb { left: 3px; }
+        .dim-bar { height: 8px; border-radius: 4px; transition: width 0.6s ease; }
+        .mobile-header { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 60; background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 12px 16px; align-items: center; justify-content: space-between; }
+        .hamburger { background: none; border: none; color: var(--text-primary); cursor: pointer; padding: 4px; }
+        .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 55; }
+        .mobile-overlay.show { display: block; }
+        @media (max-width: 768px) {
+            .mobile-header { display: flex; }
+            .desktop-sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
+            .desktop-sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0 !important; padding: 72px 16px 24px 16px !important; }
+        }
+        @media (max-width: 480px) {
+            .main-content { padding: 64px 12px 20px 12px !important; }
+        }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s; }
+        .modal-box { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 32px; max-width: 520px; width: 90%; max-height: 90vh; overflow-y: auto; }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ============ API HELPERS ============
+const API = '/api';
+const getToken = () => localStorage.getItem('callcoach_admin_token');
+const setToken = (t) => localStorage.setItem('callcoach_admin_token', t);
+const clearToken = () => localStorage.removeItem('callcoach_admin_token');
+
+const apiFetch = async (path, opts = {}) => {
+    const headers = { ...opts.headers };
+    const token = getToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (opts.body && !(opts.body instanceof FormData) && typeof opts.body !== 'string') {
+        if (!headers['Content-Type']) headers['Content-Type'] = 'application/json';
+        opts.body = JSON.stringify(opts.body);
+    }
+    const res = await fetch(`${API}${path}`, { ...opts, headers });
+    if (res.status === 401) { clearToken(); window.location.reload(); }
+    if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        const detail = e.detail;
+        const msg = typeof detail === 'string' ? detail : (Array.isArray(detail) ? detail.map(d => d.msg || String(d)).join(', ') : 'Request failed');
+        throw new Error(msg);
+    }
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
+};
+
+// ============ ICONS ============
+const Icons = {
+    dashboard: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>,
+    clinics: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M3 21h18M5 21V7l8-4v18M13 21V3l6 4v14"/><path d="M9 9h1M9 13h1M9 17h1M15 9h1M15 13h1"/></svg>,
+    analytics: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>,
+    users: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>,
+    back: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>,
+    plus: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>,
+    search: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>,
+    logout: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>,
+    shield: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+    settings: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
+    eye: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+    eyeOff: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>,
+};
+
+// ============ LOGO ============
+const Logo = () => (
+    <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'8px 0'}}>
+        <img src="/static/logo.svg" alt="CallCoach" style={{width:48,height:48}} onError={(e)=>{e.target.style.display='none'}}/>
+        <div>
+            <div style={{fontSize:18,fontWeight:900,letterSpacing:'-0.02em',fontFamily:"'Playfair Display',serif"}} className="text-gradient">CallCoach</div>
+            <div style={{fontSize:9,fontWeight:600,color:'var(--accent)',textTransform:'uppercase',letterSpacing:'0.15em'}}>ADMIN PORTAL</div>
+        </div>
+    </div>
+);
+
+// ============ STAT CARD ============
+const StatCard = ({ label, value, sub, accent }) => (
+    <div className="glass fade-in" style={{padding:'20px 24px',borderRadius:12,flex:1,minWidth:180}}>
+        <div style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>{label}</div>
+        <div style={{fontSize:28,fontWeight:700,color: accent || 'var(--text-primary)',letterSpacing:'-0.02em'}}>{value}</div>
+        {sub && <div style={{fontSize:12,color:'var(--text-secondary)',marginTop:4}}>{sub}</div>}
+    </div>
+);
+
+// ============ TOGGLE SWITCH ============
+const Toggle = ({ value, onChange, label }) => (
+    <div style={{display:'flex',alignItems:'center',gap:10}}>
+        <div className={`toggle-track ${value ? 'on' : 'off'}`} onClick={() => onChange(!value)}>
+            <div className="toggle-thumb"/>
+        </div>
+        {label && <span style={{fontSize:13,color:'var(--text-secondary)'}}>{label}</span>}
+    </div>
+);
+
+// ============ DIMENSION BAR ============
+const DimensionBar = ({ label, value, max = 100 }) => {
+    const pct = max > 0 ? (value / max) * 100 : 0;
+    const color = value >= 80 ? 'var(--success)' : value >= 60 ? 'var(--gold)' : value >= 40 ? 'var(--warning)' : 'var(--danger)';
+    return (
+        <div style={{marginBottom:10}}>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                <span style={{fontSize:12,color:'var(--text-secondary)'}}>{label}</span>
+                <span style={{fontSize:12,fontWeight:600,color}}>{value ? value.toFixed(1) : 'N/A'}</span>
+            </div>
+            <div style={{height:8,borderRadius:4,background:'rgba(255,255,255,0.06)'}}>
+                <div className="dim-bar" style={{width:`${pct}%`,background:color}}/>
+            </div>
+        </div>
+    );
+};
+
+// ============ MODAL ============
+const Modal = ({ children, onClose }) => (
+    <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-box" onClick={e => e.stopPropagation()}>
+            {children}
+        </div>
+    </div>
+);
+
+// ============ LOGIN PAGE ============
+const AdminLoginPage = ({ onLogin }) => {
+    const [form, setForm] = useState({ email: '', password: '' });
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault(); setError(''); setLoading(true);
+        try {
+            const data = await apiFetch('/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `username=${encodeURIComponent(form.email)}&password=${encodeURIComponent(form.password)}`
+            });
+            if (!data.is_super_admin) {
+                setError('Access denied. Super admin credentials required.');
+                return;
+            }
+            setToken(data.access_token);
+            onLogin();
+        } catch (err) { setError(err.message); } finally { setLoading(false); }
+    };
+
+    return (
+        <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+            <div className="glass fade-in" style={{maxWidth:420,width:'100%',padding:40,borderRadius:20}}>
+                <div style={{textAlign:'center',marginBottom:32}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:8}}>
+                        {Icons.shield}
+                        <span style={{fontSize:24,fontWeight:900,fontFamily:"'Playfair Display',serif"}} className="text-gradient">CallCoach Admin</span>
+                    </div>
+                    <div style={{fontSize:13,color:'var(--text-muted)'}}>Super Admin Portal</div>
+                </div>
+                {error && <div style={{padding:'10px 14px',borderRadius:8,background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.3)',color:'#EF4444',fontSize:13,marginBottom:16}}>{error}</div>}
+                <form onSubmit={handleSubmit}>
+                    <div style={{marginBottom:16}}>
+                        <label style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',display:'block',marginBottom:6}}>EMAIL</label>
+                        <input className="input" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="admin@callcoach.com" required/>
+                    </div>
+                    <div style={{marginBottom:24}}>
+                        <label style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',display:'block',marginBottom:6}}>PASSWORD</label>
+                        <input className="input" type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="Enter password" required/>
+                    </div>
+                    <button type="submit" className="btn btn-gold" style={{width:'100%',justifyContent:'center'}} disabled={loading}>
+                        {loading ? <div className="spinner"/> : 'Sign In'}
+                    </button>
+                </form>
+                <div style={{textAlign:'center',marginTop:20}}>
+                    <a href="/" style={{fontSize:12,color:'var(--text-muted)',textDecoration:'none'}}>Back to main app</a>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ============ DASHBOARD PAGE ============
+const DashboardPage = () => {
+    const [stats, setStats] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        apiFetch('/admin/dashboard').then(setStats).catch(console.error).finally(() => setLoading(false));
+    }, []);
+
+    if (loading) return <div style={{display:'flex',justifyContent:'center',padding:80}}><div className="spinner" style={{width:32,height:32}}/></div>;
+
+    return (
+        <div className="fade-in">
+            <h1 style={{fontSize:24,fontWeight:800,marginBottom:8,fontFamily:"'Playfair Display',serif"}} className="text-gradient">Platform Dashboard</h1>
+            <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:28}}>Overview of all clinics, users, and calls across the platform.</p>
+            {stats && (
+                <>
+                    <div style={{display:'flex',gap:16,flexWrap:'wrap',marginBottom:28}}>
+                        <StatCard label="Total Clinics" value={stats.total_clinics} sub={`${stats.active_clinics} active`} accent="var(--info)"/>
+                        <StatCard label="Total Users" value={stats.total_users}/>
+                        <StatCard label="Total Calls" value={stats.total_calls}/>
+                        <StatCard label="Avg Score" value={stats.platform_avg_score ? stats.platform_avg_score.toFixed(1) : 'N/A'} accent="var(--success)"/>
+                    </div>
+                    <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
+                        <StatCard label="Pipeline Value" value={`$${(stats.total_pipeline_value || 0).toLocaleString()}`} accent="var(--warning)"/>
+                        <StatCard label="Won Value" value={`$${(stats.total_won_value || 0).toLocaleString()}`} accent="var(--success)"/>
+                    </div>
+                </>
+            )}
+        </div>
+    );
+};
+
+// ============ CLINICS LIST PAGE ============
+const ClinicsListPage = ({ onSelect }) => {
+    const [clinics, setClinics] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState('');
+    const [showCreate, setShowCreate] = useState(false);
+
+    const load = () => {
+        setLoading(true);
+        apiFetch('/admin/clinics').then(setClinics).catch(console.error).finally(() => setLoading(false));
+    };
+    useEffect(load, []);
+
+    const filtered = clinics.filter(c =>
+        c.name.toLowerCase().includes(search.toLowerCase()) ||
+        (c.city || '').toLowerCase().includes(search.toLowerCase()) ||
+        (c.specialty || '').toLowerCase().includes(search.toLowerCase())
+    );
+
+    return (
+        <div className="fade-in">
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24,flexWrap:'wrap',gap:12}}>
+                <div>
+                    <h1 style={{fontSize:24,fontWeight:800,fontFamily:"'Playfair Display',serif"}} className="text-gradient">Doctor Accounts</h1>
+                    <p style={{fontSize:13,color:'var(--text-muted)',marginTop:4}}>{clinics.length} total clinics</p>
+                </div>
+                <button className="btn btn-gold" onClick={() => setShowCreate(true)}>{Icons.plus} New Doctor Account</button>
+            </div>
+            <div style={{marginBottom:20,position:'relative'}}>
+                <span style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:'var(--text-muted)'}}>{Icons.search}</span>
+                <input className="input" style={{paddingLeft:36}} placeholder="Search clinics by name, city, or specialty..." value={search} onChange={e => setSearch(e.target.value)}/>
+            </div>
+            {loading ? (
+                <div style={{display:'flex',justifyContent:'center',padding:40}}><div className="spinner"/></div>
+            ) : (
+                <div className="glass" style={{borderRadius:12,overflow:'hidden'}}>
+                    <table style={{width:'100%',borderCollapse:'collapse'}}>
+                        <thead>
+                            <tr style={{borderBottom:'1px solid var(--border)'}}>
+                                <th style={{padding:'12px 16px',textAlign:'left',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Clinic</th>
+                                <th style={{padding:'12px 16px',textAlign:'left',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>City</th>
+                                <th style={{padding:'12px 16px',textAlign:'left',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Specialty</th>
+                                <th style={{padding:'12px 16px',textAlign:'center',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Users</th>
+                                <th style={{padding:'12px 16px',textAlign:'center',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Calls</th>
+                                <th style={{padding:'12px 16px',textAlign:'center',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Avg Score</th>
+                                <th style={{padding:'12px 16px',textAlign:'center',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Status</th>
+                                <th style={{padding:'12px 16px',textAlign:'center',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Leaderboard</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filtered.map(c => (
+                                <tr key={c.id} className="table-row" style={{borderBottom:'1px solid var(--border)',cursor:'pointer'}} onClick={() => onSelect(c.id)}>
+                                    <td style={{padding:'14px 16px'}}>
+                                        <div style={{fontWeight:600,fontSize:14}}>{c.name}</div>
+                                        {c.email && <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>{c.email}</div>}
+                                    </td>
+                                    <td style={{padding:'14px 16px',fontSize:13,color:'var(--text-secondary)'}}>{c.city || '-'}</td>
+                                    <td style={{padding:'14px 16px',fontSize:13,color:'var(--text-secondary)'}}>{c.specialty || '-'}</td>
+                                    <td style={{padding:'14px 16px',textAlign:'center',fontSize:13,fontWeight:600}}>{c.user_count || 0}</td>
+                                    <td style={{padding:'14px 16px',textAlign:'center',fontSize:13,fontWeight:600}}>{c.call_count || 0}</td>
+                                    <td style={{padding:'14px 16px',textAlign:'center'}}>
+                                        {c.avg_score ? <span style={{fontWeight:700,color: c.avg_score >= 70 ? 'var(--success)' : c.avg_score >= 50 ? 'var(--warning)' : 'var(--danger)'}}>{c.avg_score.toFixed(1)}</span> : <span style={{color:'var(--text-muted)'}}>-</span>}
+                                    </td>
+                                    <td style={{padding:'14px 16px',textAlign:'center'}}>
+                                        <span className={`badge ${c.is_active ? 'badge-green' : 'badge-red'}`}>{c.is_active ? 'Active' : 'Inactive'}</span>
+                                    </td>
+                                    <td style={{padding:'14px 16px',textAlign:'center'}}>
+                                        {c.leaderboard_visible ? Icons.eye : Icons.eyeOff}
+                                    </td>
+                                </tr>
+                            ))}
+                            {filtered.length === 0 && (
+                                <tr><td colSpan={8} style={{padding:40,textAlign:'center',color:'var(--text-muted)',fontSize:14}}>No clinics found.</td></tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+            {showCreate && <CreateClinicModal onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); load(); }}/>}
+        </div>
+    );
+};
+
+// ============ CREATE CLINIC MODAL ============
+const CreateClinicModal = ({ onClose, onCreated }) => {
+    const [form, setForm] = useState({ clinic_name:'', clinic_phone:'', clinic_email:'', clinic_city:'', clinic_specialty:'', admin_email:'', admin_password:'', admin_full_name:'' });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleSubmit = async (e) => {
+        e.preventDefault(); setError(''); setLoading(true);
+        try {
+            await apiFetch('/admin/clinics', { method: 'POST', body: form });
+            onCreated();
+        } catch (err) { setError(err.message); } finally { setLoading(false); }
+    };
+
+    return (
+        <Modal onClose={onClose}>
+            <h2 style={{fontSize:20,fontWeight:800,marginBottom:4,fontFamily:"'Playfair Display',serif"}} className="text-gradient">Create Doctor Account</h2>
+            <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:24}}>Create a new clinic with an admin user.</p>
+            {error && <div style={{padding:'10px 14px',borderRadius:8,background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.3)',color:'#EF4444',fontSize:13,marginBottom:16}}>{error}</div>}
+            <form onSubmit={handleSubmit}>
+                <div style={{fontSize:12,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:12}}>Clinic Info</div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
+                    <input className="input" placeholder="Clinic Name *" value={form.clinic_name} onChange={e => setForm({...form, clinic_name: e.target.value})} required/>
+                    <input className="input" placeholder="Phone" value={form.clinic_phone} onChange={e => setForm({...form, clinic_phone: e.target.value})}/>
+                    <input className="input" placeholder="Clinic Email" value={form.clinic_email} onChange={e => setForm({...form, clinic_email: e.target.value})}/>
+                    <input className="input" placeholder="City" value={form.clinic_city} onChange={e => setForm({...form, clinic_city: e.target.value})}/>
+                    <input className="input" placeholder="Specialty" value={form.clinic_specialty} onChange={e => setForm({...form, clinic_specialty: e.target.value})} style={{gridColumn:'span 2'}}/>
+                </div>
+                <div style={{fontSize:12,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:12}}>Admin User</div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:24}}>
+                    <input className="input" placeholder="Full Name *" value={form.admin_full_name} onChange={e => setForm({...form, admin_full_name: e.target.value})} required/>
+                    <input className="input" type="email" placeholder="Email *" value={form.admin_email} onChange={e => setForm({...form, admin_email: e.target.value})} required/>
+                    <input className="input" type="password" placeholder="Password *" value={form.admin_password} onChange={e => setForm({...form, admin_password: e.target.value})} required style={{gridColumn:'span 2'}}/>
+                </div>
+                <div style={{display:'flex',gap:12,justifyContent:'flex-end'}}>
+                    <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+                    <button type="submit" className="btn btn-gold" disabled={loading}>{loading ? <div className="spinner"/> : 'Create Account'}</button>
+                </div>
+            </form>
+        </Modal>
+    );
+};
+
+// ============ CLINIC DETAIL PAGE ============
+const ClinicDetailPage = ({ clinicId, onBack }) => {
+    const [clinic, setClinic] = useState(null);
+    const [staff, setStaff] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [showAddUser, setShowAddUser] = useState(false);
+    const [tab, setTab] = useState('overview');
+
+    const loadClinic = () => {
+        setLoading(true);
+        Promise.all([
+            apiFetch(`/admin/clinics/${clinicId}`),
+            apiFetch(`/admin/clinics/${clinicId}/users`)
+        ]).then(([clinicData, staffData]) => {
+            setClinic(clinicData);
+            setStaff(staffData);
+        }).catch(console.error).finally(() => setLoading(false));
+    };
+    useEffect(loadClinic, [clinicId]);
+
+    const toggleActive = async () => {
+        if (!clinic) return;
+        try {
+            await apiFetch(`/admin/clinics/${clinicId}`, { method: 'PATCH', body: { is_active: !clinic.is_active } });
+            loadClinic();
+        } catch (err) { alert(err.message); }
+    };
+
+    const toggleLeaderboard = async () => {
+        if (!clinic) return;
+        try {
+            await apiFetch(`/admin/clinics/${clinicId}`, { method: 'PATCH', body: { leaderboard_visible: !clinic.leaderboard_visible } });
+            loadClinic();
+        } catch (err) { alert(err.message); }
+    };
+
+    const toggleUserActive = async (userId, currentActive) => {
+        try {
+            await apiFetch(`/admin/clinics/${clinicId}/users/${userId}`, { method: 'PATCH', body: { is_active: !currentActive } });
+            loadClinic();
+        } catch (err) { alert(err.message); }
+    };
+
+    if (loading) return <div style={{display:'flex',justifyContent:'center',padding:80}}><div className="spinner" style={{width:32,height:32}}/></div>;
+    if (!clinic) return <div style={{textAlign:'center',padding:40,color:'var(--text-muted)'}}>Clinic not found</div>;
+
+    return (
+        <div className="fade-in">
+            <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:24}}>
+                <button className="btn btn-ghost btn-sm" onClick={onBack}>{Icons.back} Back</button>
+                <div style={{flex:1}}>
+                    <h1 style={{fontSize:24,fontWeight:800,fontFamily:"'Playfair Display',serif"}} className="text-gradient">{clinic.name}</h1>
+                    <div style={{display:'flex',gap:8,marginTop:6}}>
+                        <span className={`badge ${clinic.is_active ? 'badge-green' : 'badge-red'}`}>{clinic.is_active ? 'Active' : 'Inactive'}</span>
+                        {clinic.city && <span className="badge badge-blue">{clinic.city}</span>}
+                        {clinic.specialty && <span className="badge badge-accent">{clinic.specialty}</span>}
+                    </div>
+                </div>
+            </div>
+
+            {/* Tab Nav */}
+            <div style={{display:'flex',gap:4,marginBottom:24,borderBottom:'1px solid var(--border)',paddingBottom:0}}>
+                {['overview','staff','settings'].map(t => (
+                    <button key={t} onClick={() => setTab(t)} style={{
+                        padding:'10px 20px',borderRadius:'8px 8px 0 0',fontSize:13,fontWeight:600,cursor:'pointer',transition:'all 0.2s',
+                        color: tab === t ? 'var(--gold)' : 'var(--text-muted)',
+                        background: tab === t ? 'rgba(192,196,203,0.06)' : 'transparent',
+                        border:'none',borderBottom: tab === t ? '2px solid var(--gold)' : '2px solid transparent',fontFamily:'inherit'
+                    }}>{t.charAt(0).toUpperCase() + t.slice(1)}</button>
+                ))}
+            </div>
+
+            {/* Overview Tab */}
+            {tab === 'overview' && (
+                <div>
+                    <div style={{display:'flex',gap:16,flexWrap:'wrap',marginBottom:24}}>
+                        <StatCard label="Total Staff" value={clinic.staff?.length || staff.length} accent="var(--info)"/>
+                        <StatCard label="Total Calls" value={clinic.total_calls || 0}/>
+                        <StatCard label="Avg Score" value={clinic.avg_score ? clinic.avg_score.toFixed(1) : 'N/A'} accent="var(--success)"/>
+                    </div>
+                    {clinic.staff && clinic.staff.length > 0 && (
+                        <div className="glass" style={{borderRadius:12,padding:24}}>
+                            <div style={{fontSize:16,fontWeight:700,marginBottom:16}}>Agent Performance</div>
+                            <div style={{display:'grid',gap:16,gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))'}}>
+                                {clinic.staff.map(s => (
+                                    <div key={s.user_id} className="glass" style={{borderRadius:10,padding:16}}>
+                                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                                            <div>
+                                                <div style={{fontWeight:600,fontSize:14}}>{s.name}</div>
+                                                <div style={{fontSize:11,color:'var(--text-muted)'}}>{s.role} | {s.total_calls} calls</div>
+                                            </div>
+                                            <div style={{fontSize:20,fontWeight:800,color: s.avg_score >= 70 ? 'var(--success)' : s.avg_score >= 50 ? 'var(--warning)' : 'var(--danger)'}}>
+                                                {s.avg_score ? s.avg_score.toFixed(1) : '-'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Staff Tab */}
+            {tab === 'staff' && (
+                <div>
+                    <div style={{display:'flex',justifyContent:'flex-end',marginBottom:16}}>
+                        <button className="btn btn-gold btn-sm" onClick={() => setShowAddUser(true)}>{Icons.plus} Add Staff</button>
+                    </div>
+                    <div className="glass" style={{borderRadius:12,overflow:'hidden'}}>
+                        <table style={{width:'100%',borderCollapse:'collapse'}}>
+                            <thead>
+                                <tr style={{borderBottom:'1px solid var(--border)'}}>
+                                    <th style={{padding:'12px 16px',textAlign:'left',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Name</th>
+                                    <th style={{padding:'12px 16px',textAlign:'left',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Email</th>
+                                    <th style={{padding:'12px 16px',textAlign:'center',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Role</th>
+                                    <th style={{padding:'12px 16px',textAlign:'center',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Status</th>
+                                    <th style={{padding:'12px 16px',textAlign:'center',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {staff.map(u => (
+                                    <tr key={u.id} className="table-row" style={{borderBottom:'1px solid var(--border)'}}>
+                                        <td style={{padding:'14px 16px',fontWeight:600,fontSize:14}}>{u.full_name}</td>
+                                        <td style={{padding:'14px 16px',fontSize:13,color:'var(--text-secondary)'}}>{u.email}</td>
+                                        <td style={{padding:'14px 16px',textAlign:'center'}}><span className={`badge ${u.role === 'admin' ? 'badge-accent' : u.role === 'manager' ? 'badge-blue' : 'badge-gray'}`}>{u.role}</span></td>
+                                        <td style={{padding:'14px 16px',textAlign:'center'}}><span className={`badge ${u.is_active ? 'badge-green' : 'badge-red'}`}>{u.is_active ? 'Active' : 'Inactive'}</span></td>
+                                        <td style={{padding:'14px 16px',textAlign:'center'}}>
+                                            <button className={`btn btn-xs ${u.is_active ? 'btn-danger' : 'btn-success'}`} onClick={() => toggleUserActive(u.id, u.is_active)}>
+                                                {u.is_active ? 'Deactivate' : 'Activate'}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {staff.length === 0 && (
+                                    <tr><td colSpan={5} style={{padding:40,textAlign:'center',color:'var(--text-muted)',fontSize:14}}>No staff members yet.</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                    {showAddUser && <AddUserModal clinicId={clinicId} onClose={() => setShowAddUser(false)} onCreated={() => { setShowAddUser(false); loadClinic(); }}/>}
+                </div>
+            )}
+
+            {/* Settings Tab */}
+            {tab === 'settings' && (
+                <div className="glass" style={{borderRadius:12,padding:24}}>
+                    <div style={{fontSize:16,fontWeight:700,marginBottom:20}}>Clinic Settings</div>
+                    <div style={{display:'flex',flexDirection:'column',gap:20}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'16px 0',borderBottom:'1px solid var(--border)'}}>
+                            <div>
+                                <div style={{fontWeight:600,fontSize:14}}>Clinic Status</div>
+                                <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>Active clinics can log in and use the platform.</div>
+                            </div>
+                            <Toggle value={clinic.is_active} onChange={toggleActive} label={clinic.is_active ? 'Active' : 'Inactive'}/>
+                        </div>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'16px 0',borderBottom:'1px solid var(--border)'}}>
+                            <div>
+                                <div style={{fontWeight:600,fontSize:14}}>Leaderboard Visibility</div>
+                                <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>When hidden, agents cannot see the leaderboard. Admins and managers always see it.</div>
+                            </div>
+                            <Toggle value={clinic.leaderboard_visible} onChange={toggleLeaderboard} label={clinic.leaderboard_visible ? 'Visible' : 'Hidden'}/>
+                        </div>
+                        <div style={{padding:'16px 0'}}>
+                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Clinic Details</div>
+                            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,fontSize:13,color:'var(--text-secondary)'}}>
+                                <div><span style={{color:'var(--text-muted)'}}>Phone:</span> {clinic.phone || 'Not set'}</div>
+                                <div><span style={{color:'var(--text-muted)'}}>Email:</span> {clinic.email || 'Not set'}</div>
+                                <div><span style={{color:'var(--text-muted)'}}>City:</span> {clinic.city || 'Not set'}</div>
+                                <div><span style={{color:'var(--text-muted)'}}>Specialty:</span> {clinic.specialty || 'Not set'}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ============ ADD USER MODAL ============
+const AddUserModal = ({ clinicId, onClose, onCreated }) => {
+    const [form, setForm] = useState({ full_name:'', email:'', password:'', role:'agent' });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleSubmit = async (e) => {
+        e.preventDefault(); setError(''); setLoading(true);
+        try {
+            await apiFetch(`/admin/clinics/${clinicId}/users`, { method: 'POST', body: form });
+            onCreated();
+        } catch (err) { setError(err.message); } finally { setLoading(false); }
+    };
+
+    return (
+        <Modal onClose={onClose}>
+            <h2 style={{fontSize:20,fontWeight:800,marginBottom:4,fontFamily:"'Playfair Display',serif"}} className="text-gradient">Add Staff Member</h2>
+            <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:24}}>Add a new user to this clinic.</p>
+            {error && <div style={{padding:'10px 14px',borderRadius:8,background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.3)',color:'#EF4444',fontSize:13,marginBottom:16}}>{error}</div>}
+            <form onSubmit={handleSubmit}>
+                <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:24}}>
+                    <input className="input" placeholder="Full Name *" value={form.full_name} onChange={e => setForm({...form, full_name: e.target.value})} required/>
+                    <input className="input" type="email" placeholder="Email *" value={form.email} onChange={e => setForm({...form, email: e.target.value})} required/>
+                    <input className="input" type="password" placeholder="Password *" value={form.password} onChange={e => setForm({...form, password: e.target.value})} required/>
+                    <select className="input" value={form.role} onChange={e => setForm({...form, role: e.target.value})}>
+                        <option value="agent">Agent</option>
+                        <option value="manager">Manager</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div style={{display:'flex',gap:12,justifyContent:'flex-end'}}>
+                    <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+                    <button type="submit" className="btn btn-gold" disabled={loading}>{loading ? <div className="spinner"/> : 'Add User'}</button>
+                </div>
+            </form>
+        </Modal>
+    );
+};
+
+// ============ PLATFORM ANALYTICS PAGE ============
+const AnalyticsPage = () => {
+    const [averages, setAverages] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        apiFetch('/admin/analytics/platform-averages').then(setAverages).catch(console.error).finally(() => setLoading(false));
+    }, []);
+
+    if (loading) return <div style={{display:'flex',justifyContent:'center',padding:80}}><div className="spinner" style={{width:32,height:32}}/></div>;
+
+    const dims = averages ? [
+        { label: 'Greeting', value: averages.greeting },
+        { label: 'Discovery', value: averages.discovery },
+        { label: 'Presentation', value: averages.presentation },
+        { label: 'Objection Handling', value: averages.objection_handling },
+        { label: 'Closing', value: averages.closing },
+        { label: 'Rapport', value: averages.rapport },
+        { label: 'Active Listening', value: averages.active_listening },
+        { label: 'Urgency Creation', value: averages.urgency_creation },
+        { label: 'Follow-up Setup', value: averages.follow_up_setup },
+    ] : [];
+
+    return (
+        <div className="fade-in">
+            <h1 style={{fontSize:24,fontWeight:800,marginBottom:8,fontFamily:"'Playfair Display',serif"}} className="text-gradient">Platform Analytics</h1>
+            <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:28}}>Anonymized averages across all clinics. No individual clinic data is exposed here.</p>
+
+            {averages && (
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24}}>
+                    <div className="glass" style={{borderRadius:12,padding:24}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+                            <div style={{fontSize:16,fontWeight:700}}>Overall Platform Average</div>
+                            <div style={{fontSize:32,fontWeight:800,color: averages.overall >= 70 ? 'var(--success)' : 'var(--warning)'}}>
+                                {averages.overall ? averages.overall.toFixed(1) : 'N/A'}
+                            </div>
+                        </div>
+                        <div style={{fontSize:13,color:'var(--text-muted)'}}>
+                            Based on aggregated scores across all clinics on the platform. Use these numbers to benchmark individual clinic performance.
+                        </div>
+                    </div>
+                    <div className="glass" style={{borderRadius:12,padding:24}}>
+                        <div style={{fontSize:16,fontWeight:700,marginBottom:20}}>Dimension Breakdown</div>
+                        {dims.map(d => (
+                            <DimensionBar key={d.label} label={d.label} value={d.value}/>
+                        ))}
+                    </div>
+                </div>
+            )}
+            {!averages && <div style={{textAlign:'center',padding:40,color:'var(--text-muted)'}}>No analytics data available yet.</div>}
+        </div>
+    );
+};
+
+// ============ MAIN APP ============
+const App = () => {
+    const [authed, setAuthed] = useState(!!getToken());
+    const [page, setPage] = useState('dashboard');
+    const [selectedClinic, setSelectedClinic] = useState(null);
+    const [user, setUser] = useState(null);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    useEffect(() => {
+        if (authed) apiFetch('/auth/me').then(u => {
+            if (!u.is_super_admin) { clearToken(); setAuthed(false); return; }
+            setUser(u);
+        }).catch(() => { clearToken(); setAuthed(false); });
+    }, [authed]);
+
+    const logout = () => { clearToken(); setAuthed(false); setUser(null); };
+
+    if (!authed) return <AdminLoginPage onLogin={() => setAuthed(true)}/>;
+
+    const navItems = [
+        { id: 'dashboard', label: 'Dashboard', icon: Icons.dashboard },
+        { id: 'clinics', label: 'Doctor Accounts', icon: Icons.clinics },
+        { id: 'analytics', label: 'Platform Analytics', icon: Icons.analytics },
+    ];
+
+    const renderPage = () => {
+        if (selectedClinic) return <ClinicDetailPage clinicId={selectedClinic} onBack={() => setSelectedClinic(null)}/>;
+        switch (page) {
+            case 'dashboard': return <DashboardPage/>;
+            case 'clinics': return <ClinicsListPage onSelect={id => { setSelectedClinic(id); }}/>;
+            case 'analytics': return <AnalyticsPage/>;
+            default: return <DashboardPage/>;
+        }
+    };
+
+    const navTo = (id) => { setPage(id); setSelectedClinic(null); setSidebarOpen(false); };
+
+    return (
+        <div style={{display:'flex',minHeight:'100vh',background:'var(--bg-primary)'}}>
+            {/* Mobile Header */}
+            <div className="mobile-header">
+                <button className="hamburger" onClick={() => setSidebarOpen(!sidebarOpen)}>
+                    <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+                </button>
+                <span style={{fontSize:15,fontWeight:900,fontFamily:"'Playfair Display',serif"}} className="text-gradient">Admin Portal</span>
+                <div style={{width:24}}/>
+            </div>
+            {/* Mobile Overlay */}
+            <div className={`mobile-overlay ${sidebarOpen ? 'show' : ''}`} onClick={() => setSidebarOpen(false)}/>
+            {/* Sidebar */}
+            <aside className={`glass-solid desktop-sidebar ${sidebarOpen ? 'open' : ''}`} style={{width:240,padding:'20px 12px',display:'flex',flexDirection:'column',position:'fixed',top:0,left:0,bottom:0,zIndex:60}}>
+                <div style={{padding:'0 8px',marginBottom:32}}><Logo/></div>
+                <nav style={{display:'flex',flexDirection:'column',gap:4,flex:1}}>
+                    {navItems.map(item => (
+                        <a key={item.id} className={`sidebar-link ${page === item.id && !selectedClinic ? 'active' : ''}`} onClick={() => navTo(item.id)}>
+                            {item.icon}<span>{item.label}</span>
+                        </a>
+                    ))}
+                </nav>
+                <div style={{padding:'16px 8px',borderTop:'1px solid var(--border)'}}>
+                    {user && <div style={{fontSize:13,fontWeight:600,marginBottom:2}}>{user.full_name}</div>}
+                    <div style={{fontSize:11,color:'var(--accent)',marginBottom:12,fontWeight:600}}>Super Admin</div>
+                    <a href="/" style={{display:'flex',alignItems:'center',gap:8,fontSize:13,color:'var(--text-muted)',textDecoration:'none',marginBottom:8,padding:'4px 0'}}>
+                        {Icons.back} Main App
+                    </a>
+                    <a className="sidebar-link" onClick={logout} style={{color:'var(--danger)'}}>{Icons.logout}<span>Sign Out</span></a>
+                    <div style={{fontSize:9,color:'var(--text-muted)',textAlign:'center',marginTop:12,letterSpacing:'0.08em',textTransform:'uppercase'}}>Powered by SBA</div>
+                </div>
+            </aside>
+            {/* Main */}
+            <main className="main-content" style={{flex:1,marginLeft:240,padding:'32px 40px',maxWidth:1200}}>
+                {renderPage()}
+            </main>
+        </div>
+    );
+};
+
+ReactDOM.render(<App/>, document.getElementById('root'));
+</script>
+</body>
+</html>

@@ -21,15 +21,17 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user_id: str
-    clinic_id: str
+    clinic_id: Optional[str] = None  # NULL for super admins
     role: str
+    is_super_admin: bool = False
 
 class UserOut(BaseModel):
     id: str
     email: str
     full_name: str
     role: str
-    clinic_id: str
+    clinic_id: Optional[str] = None
+    is_super_admin: bool = False
     is_active: bool
     created_at: datetime
     class Config:
@@ -53,6 +55,7 @@ class ClinicOut(BaseModel):
     city: Optional[str]
     specialty: Optional[str]
     is_active: bool
+    leaderboard_visible: bool = True
     created_at: datetime
     class Config:
         from_attributes = True
@@ -198,8 +201,6 @@ class DealOut(BaseModel):
     follow_up_notes: Optional[str]
     total_calls: int
     total_touchpoints: int
-    ghl_contact_id: Optional[str] = None
-    ghl_opportunity_id: Optional[str] = None
     ai_win_probability: Optional[float]
     ai_recommended_action: Optional[str]
     ai_deal_health: Optional[str]
@@ -257,3 +258,62 @@ class LiveCoachingMessage(BaseModel):
     confidence: Optional[float] = None
     category: Optional[str] = None
     timestamp: Optional[float] = None
+
+
+# ---- Admin Portal ----
+class AdminClinicCreate(BaseModel):
+    clinic_name: str
+    clinic_phone: Optional[str] = None
+    clinic_email: Optional[str] = None
+    clinic_city: Optional[str] = None
+    clinic_specialty: Optional[str] = None
+    admin_email: str
+    admin_password: str
+    admin_full_name: str
+
+class AdminClinicOut(BaseModel):
+    id: str
+    name: str
+    phone: Optional[str]
+    email: Optional[str]
+    city: Optional[str]
+    specialty: Optional[str]
+    is_active: bool
+    leaderboard_visible: bool
+    created_at: datetime
+    staff_count: int = 0
+    total_calls: int = 0
+    avg_score: Optional[float] = None
+    class Config:
+        from_attributes = True
+
+class AdminDashboardStats(BaseModel):
+    total_clinics: int
+    active_clinics: int
+    total_users: int
+    total_calls: int
+    platform_avg_score: Optional[float]
+    total_pipeline_value: float
+    total_won_value: float
+
+class PlatformAverages(BaseModel):
+    overall: Optional[float] = None
+    greeting: Optional[float] = None
+    discovery: Optional[float] = None
+    presentation: Optional[float] = None
+    objection_handling: Optional[float] = None
+    closing: Optional[float] = None
+    rapport: Optional[float] = None
+    active_listening: Optional[float] = None
+    urgency_creation: Optional[float] = None
+    follow_up_setup: Optional[float] = None
+    total_calls_analyzed: int = 0
+
+class ClinicUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    city: Optional[str] = None
+    specialty: Optional[str] = None
+    is_active: Optional[bool] = None
+    leaderboard_visible: Optional[bool] = None

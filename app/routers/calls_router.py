@@ -19,22 +19,26 @@ from app.auth import get_current_user
 from app.config import UPLOAD_DIR, ALLOWED_AUDIO_EXTENSIONS
 from app.services.transcription import transcribe_audio, get_transcription_status
 from app.services.ai_coach import analyze_call
+from app.services.storage import upload_recording, get_recording_url, get_local_path_for_transcription
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/calls", tags=["calls"])
 
 
-def _process_call_recording_sync(call_id: str, file_path: str):
+def _process_call_recording_sync(call_id: str, recording_path: str):
     """Background task to transcribe and analyze a call recording.
 
     NOTE: This is intentionally synchronous because FastAPI's BackgroundTasks
     runs async functions with asyncio.run() which can conflict with the
     existing event loop. We use a sync wrapper instead.
+
+    recording_path can be a local file path OR an 'r2://...' URI.
     """
     import asyncio
 
     db = SessionLocal()
+    local_tmp = None  # track temp file for cleanup
     try:
         call = db.query(Call).filter(Call.id == call_id).first()
         if not call:
@@ -44,7 +48,12 @@ def _process_call_recording_sync(call_id: str, file_path: str):
         # Step 1: Transcribe
         call.transcription_status = "processing"
         db.commit()
-        logger.info(f"Starting transcription for call {call_id}, file: {file_path}")
+        logger.info(f"Starting transcription for call {call_id}, path: {recording_path}")
+
+        # Resolve to local file (downloads from R2 if needed)
+        file_path = get_local_path_for_transcription(recording_path)
+        if file_path != recording_path:
+            local_tmp = file_path  # mark for cleanup
 
         try:
             # Run the async transcribe function in a new event loop
@@ -258,6 +267,12 @@ def _process_call_recording_sync(call_id: str, file_path: str):
     except Exception as e:
         logger.error(f"Background processing failed for call {call_id}: {e}\n{traceback.format_exc()}")
     finally:
+        # Clean up temp file downloaded from R2
+        if local_tmp:
+            try:
+                os.unlink(local_tmp)
+            except OSError:
+                pass
         db.close()
 
 
@@ -303,11 +318,17 @@ def get_call_audio(
     if not call.recording_path:
         raise HTTPException(status_code=404, detail="No recording for this call")
 
+    # If stored in R2, redirect to presigned URL
+    r2_url = get_recording_url(call.recording_path)
+    if r2_url:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=r2_url)
+
+    # Otherwise serve from local disk
     file_path = Path(call.recording_path)
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Recording file not found on disk")
 
-    # Determine media type from extension
     ext = file_path.suffix.lower()
     media_types = {
         ".webm": "audio/webm",
@@ -364,27 +385,29 @@ async def record_call(
     db.commit()
     db.refresh(call)
 
-    # Save audio file
-    call_dir = UPLOAD_DIR / current_user.clinic_id
-    call_dir.mkdir(parents=True, exist_ok=True)
-    file_path = call_dir / f"{call.id}{ext}"
-
+    # Save audio file (R2 cloud if configured, else local disk)
     content = await file.read()
     logger.info(f"Received audio file: {len(content)} bytes, ext: {ext}, filename: {file.filename}")
 
-    with open(file_path, "wb") as buffer:
-        buffer.write(content)
+    media_types = {
+        ".webm": "audio/webm", ".ogg": "audio/ogg", ".mp3": "audio/mpeg",
+        ".wav": "audio/wav", ".m4a": "audio/mp4", ".flac": "audio/flac",
+        ".aac": "audio/aac", ".mp4": "audio/mp4",
+    }
+    recording_path = upload_recording(
+        file_content=content,
+        clinic_id=current_user.clinic_id,
+        call_id=call.id,
+        extension=ext,
+        content_type=media_types.get(ext, "audio/webm"),
+    )
 
-    # Verify file was saved
-    saved_size = file_path.stat().st_size
-    logger.info(f"Saved audio file to {file_path}: {saved_size} bytes")
-
-    call.recording_path = str(file_path)
+    call.recording_path = recording_path
     call.transcription_status = "pending"
     db.commit()
 
     # Process in background (transcribe + AI analyze) - use SYNC version
-    background_tasks.add_task(_process_call_recording_sync, call.id, str(file_path))
+    background_tasks.add_task(_process_call_recording_sync, call.id, recording_path)
 
     db.refresh(call)
     return call
@@ -440,20 +463,27 @@ async def upload_recording(
             detail=f"Unsupported file type. Allowed: {', '.join(ALLOWED_AUDIO_EXTENSIONS)}"
         )
 
-    # Save file
-    call_dir = UPLOAD_DIR / current_user.clinic_id
-    call_dir.mkdir(parents=True, exist_ok=True)
-    file_path = call_dir / f"{call_id}{ext}"
+    # Save file (R2 cloud if configured, else local disk)
+    content = await file.read()
+    media_types = {
+        ".webm": "audio/webm", ".ogg": "audio/ogg", ".mp3": "audio/mpeg",
+        ".wav": "audio/wav", ".m4a": "audio/mp4", ".flac": "audio/flac",
+        ".aac": "audio/aac", ".mp4": "audio/mp4",
+    }
+    recording_path = upload_recording(
+        file_content=content,
+        clinic_id=current_user.clinic_id,
+        call_id=call_id,
+        extension=ext,
+        content_type=media_types.get(ext, "audio/webm"),
+    )
 
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
-    call.recording_path = str(file_path)
+    call.recording_path = recording_path
     call.transcription_status = "pending"
     db.commit()
 
     # Process in background - use SYNC version
-    background_tasks.add_task(_process_call_recording_sync, call_id, str(file_path))
+    background_tasks.add_task(_process_call_recording_sync, call_id, recording_path)
 
     db.refresh(call)
     return call

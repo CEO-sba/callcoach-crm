@@ -1,15 +1,18 @@
 """
 CallCoach CRM - Coaching & Analytics Router
 """
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional, List
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import User, CoachingInsight, Call
+from app.models import User, Clinic, CoachingInsight, Call
 from app.schemas import CoachingInsightOut, DashboardStats
 from app.auth import get_current_user
 from app.services.analytics import get_dashboard_stats, get_agent_performance
 from app.services.ai_coach import analyze_agent_growth
+from app.services.comparison_service import (
+    compare_agents, get_dimension_leaderboard, get_platform_benchmarks
+)
 
 router = APIRouter(prefix="/api", tags=["coaching"])
 
@@ -17,6 +20,8 @@ router = APIRouter(prefix="/api", tags=["coaching"])
 @router.get("/dashboard", response_model=DashboardStats)
 def dashboard(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Get dashboard statistics."""
+    if not current_user.clinic_id:
+        raise HTTPException(status_code=400, detail="Super admins should use the admin dashboard")
     return get_dashboard_stats(db, current_user.clinic_id)
 
 
@@ -127,7 +132,18 @@ async def generate_growth_plan(
 
 @router.get("/coaching/leaderboard")
 def leaderboard(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Get team leaderboard."""
+    """Get team leaderboard. Respects clinic leaderboard_visible setting for agents."""
+    if not current_user.clinic_id:
+        raise HTTPException(status_code=400, detail="Super admins should use admin portal")
+
+    clinic = db.query(Clinic).filter(Clinic.id == current_user.clinic_id).first()
+    if not clinic:
+        raise HTTPException(status_code=404, detail="Clinic not found")
+
+    # Agents can only see leaderboard if the clinic has it enabled
+    if current_user.role not in ["admin", "manager"] and not clinic.leaderboard_visible:
+        return {"visible": False, "message": "Leaderboard is currently hidden by your clinic admin.", "leaderboard": []}
+
     from sqlalchemy import func
     results = db.query(
         User.id,
@@ -140,14 +156,104 @@ def leaderboard(db: Session = Depends(get_db), current_user: User = Depends(get_
         Call.overall_score.isnot(None)
     ).group_by(User.id).order_by(func.avg(Call.overall_score).desc()).all()
 
-    return [
-        {
-            "rank": i + 1,
-            "user_id": r.id,
-            "name": r.full_name,
-            "avg_score": round(float(r.avg_score), 1),
-            "total_calls": r.total_calls,
-            "best_score": round(float(r.best_score), 1)
-        }
-        for i, r in enumerate(results)
-    ]
+    return {
+        "visible": True,
+        "leaderboard_enabled": clinic.leaderboard_visible,
+        "leaderboard": [
+            {
+                "rank": i + 1,
+                "user_id": r.id,
+                "name": r.full_name,
+                "avg_score": round(float(r.avg_score), 1),
+                "total_calls": r.total_calls,
+                "best_score": round(float(r.best_score), 1)
+            }
+            for i, r in enumerate(results)
+        ]
+    }
+
+
+@router.get("/coaching/leaderboard/dimensions")
+def leaderboard_dimensions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get detailed leaderboard with per-dimension scores for all team members."""
+    if not current_user.clinic_id:
+        raise HTTPException(status_code=400, detail="Super admins should use admin portal")
+
+    clinic = db.query(Clinic).filter(Clinic.id == current_user.clinic_id).first()
+    if not clinic:
+        raise HTTPException(status_code=404, detail="Clinic not found")
+
+    # Agents can only see if enabled
+    if current_user.role not in ["admin", "manager"] and not clinic.leaderboard_visible:
+        return {"visible": False, "message": "Leaderboard is currently hidden.", "leaderboard": []}
+
+    return {
+        "visible": True,
+        "leaderboard": get_dimension_leaderboard(db, current_user.clinic_id)
+    }
+
+
+@router.get("/coaching/compare")
+def compare_team_members(
+    user_ids: str = Query(..., description="Comma-separated user IDs to compare"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Compare agents side-by-side across all 9 dimensions. Same clinic only."""
+    if not current_user.clinic_id:
+        raise HTTPException(status_code=400, detail="Super admins should use admin portal")
+
+    if current_user.role not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Only admin or manager can compare agents")
+
+    ids = [uid.strip() for uid in user_ids.split(",") if uid.strip()]
+    if len(ids) < 2:
+        raise HTTPException(status_code=400, detail="Provide at least 2 user IDs to compare")
+    if len(ids) > 5:
+        raise HTTPException(status_code=400, detail="Maximum 5 agents can be compared at once")
+
+    result = compare_agents(db, ids, current_user.clinic_id)
+    if isinstance(result, dict) and "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+
+    return {"comparison": result}
+
+
+@router.get("/coaching/platform-benchmark")
+def platform_benchmark(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get platform-wide averages for benchmarking (admin/manager only). No clinic-specific data exposed."""
+    if current_user.role not in ["admin", "manager"] and not current_user.is_super_admin:
+        raise HTTPException(status_code=403, detail="Only admin or manager can view platform benchmarks")
+
+    return get_platform_benchmarks(db)
+
+
+@router.patch("/coaching/leaderboard/visibility")
+def toggle_leaderboard_visibility(
+    visible: bool,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Toggle leaderboard visibility for the clinic (admin only)."""
+    if current_user.role != "admin" and not current_user.is_super_admin:
+        raise HTTPException(status_code=403, detail="Only clinic admin can toggle leaderboard visibility")
+
+    if not current_user.clinic_id:
+        raise HTTPException(status_code=400, detail="Super admins must use /api/admin/clinics/{id} to toggle")
+
+    clinic = db.query(Clinic).filter(Clinic.id == current_user.clinic_id).first()
+    if not clinic:
+        raise HTTPException(status_code=404, detail="Clinic not found")
+
+    clinic.leaderboard_visible = visible
+    db.commit()
+    return {
+        "status": "ok",
+        "leaderboard_visible": clinic.leaderboard_visible,
+    }

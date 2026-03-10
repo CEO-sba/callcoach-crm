@@ -38,8 +38,13 @@ def register(data: ClinicCreate, user: UserCreate, db: Session = Depends(get_db)
     db.commit()
     db.refresh(new_user)
 
-    token = create_access_token({"sub": new_user.id, "clinic_id": clinic.id, "role": new_user.role})
-    return Token(access_token=token, user_id=new_user.id, clinic_id=clinic.id, role=new_user.role)
+    token = create_access_token({
+        "sub": new_user.id,
+        "clinic_id": clinic.id,
+        "role": new_user.role,
+        "is_super_admin": False
+    })
+    return Token(access_token=token, user_id=new_user.id, clinic_id=clinic.id, role=new_user.role, is_super_admin=False)
 
 
 class SimpleRegister(BaseModel):
@@ -71,8 +76,13 @@ def register_simple(data: SimpleRegister, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
 
-    token = create_access_token({"sub": new_user.id, "clinic_id": clinic.id, "role": new_user.role})
-    return Token(access_token=token, user_id=new_user.id, clinic_id=clinic.id, role=new_user.role)
+    token = create_access_token({
+        "sub": new_user.id,
+        "clinic_id": clinic.id,
+        "role": new_user.role,
+        "is_super_admin": False
+    })
+    return Token(access_token=token, user_id=new_user.id, clinic_id=clinic.id, role=new_user.role, is_super_admin=False)
 
 
 @router.post("/login", response_model=Token)
@@ -84,8 +94,19 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account deactivated")
 
-    token = create_access_token({"sub": user.id, "clinic_id": user.clinic_id, "role": user.role})
-    return Token(access_token=token, user_id=user.id, clinic_id=user.clinic_id, role=user.role)
+    token = create_access_token({
+        "sub": user.id,
+        "clinic_id": user.clinic_id,
+        "role": user.role,
+        "is_super_admin": user.is_super_admin
+    })
+    return Token(
+        access_token=token,
+        user_id=user.id,
+        clinic_id=user.clinic_id,
+        role=user.role,
+        is_super_admin=user.is_super_admin
+    )
 
 
 @router.get("/me", response_model=UserOut)

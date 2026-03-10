@@ -291,6 +291,7 @@ const LoginPage = ({ onLogin }) => {
                 await apiFetch('/auth/register-simple', { method:'POST', body:{ email:form.email, password:form.password, full_name:form.full_name, clinic_name:form.clinic_name }});
             }
             const data = await apiFetch('/auth/login', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:`username=${encodeURIComponent(form.email)}&password=${encodeURIComponent(form.password)}` });
+            if (data.is_super_admin) { window.location.href = '/admin'; return; }
             setToken(data.access_token);
             onLogin();
         } catch(err) { setError(err.message); } finally { setLoading(false); }
@@ -1048,18 +1049,39 @@ const CoachingPage = () => {
     const [insights, setInsights] = useState([]);
     const [perf, setPerf] = useState(null);
     const [leaderboard, setLeaderboard] = useState([]);
+    const [lbVisible, setLbVisible] = useState(true);
+    const [lbMessage, setLbMessage] = useState('');
     const [weeklyReport, setWeeklyReport] = useState(null);
     const [growthPlan, setGrowthPlan] = useState(null);
     const [activeTab, setActiveTab] = useState('overview');
     const [growthLoading, setGrowthLoading] = useState(false);
     const [reportLoading, setReportLoading] = useState(false);
+    const [comparison, setComparison] = useState(null);
+    const [compareIds, setCompareIds] = useState([]);
+    const [compareLoading, setCompareLoading] = useState(false);
 
     useEffect(()=>{
         apiFetch('/coaching/insights').then(setInsights).catch(()=>{});
         apiFetch('/coaching/performance').then(setPerf).catch(()=>{});
-        apiFetch('/coaching/leaderboard').then(setLeaderboard).catch(()=>{});
+        apiFetch('/coaching/leaderboard').then(data => {
+            if (data && data.leaderboard) { setLeaderboard(data.leaderboard); setLbVisible(data.visible !== false); setLbMessage(data.message || ''); }
+            else if (Array.isArray(data)) { setLeaderboard(data); }
+        }).catch(()=>{});
         apiFetch('/reports/weekly').then(setWeeklyReport).catch(()=>{});
     },[]);
+
+    const runCompare = async () => {
+        if (compareIds.length < 2) return;
+        setCompareLoading(true);
+        try {
+            const res = await apiFetch(`/coaching/compare?user_ids=${compareIds.join(',')}`);
+            setComparison(res.comparison || res);
+        } catch(e) { alert(e.message); } finally { setCompareLoading(false); }
+    };
+
+    const toggleCompareId = (id) => {
+        setCompareIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : prev.length >= 5 ? prev : [...prev, id]);
+    };
 
     const generateGrowth = async () => {
         setGrowthLoading(true);
@@ -1084,6 +1106,7 @@ const CoachingPage = () => {
         {id:'overview',label:'Performance'},
         {id:'insights',label:'Coaching Tips'},
         {id:'leaderboard',label:'Leaderboard'},
+        {id:'compare',label:'Compare Agents'},
         {id:'report',label:'Weekly Report'},
         {id:'growth',label:'Growth Plan'},
     ];
@@ -1172,7 +1195,11 @@ const CoachingPage = () => {
             {activeTab === 'leaderboard' && (
                 <div className="glass" style={{padding:24,borderRadius:12}}>
                     <h3 style={{fontSize:16,fontWeight:700,marginBottom:16}}>Team Leaderboard</h3>
-                    {leaderboard.length === 0 ? (
+                    {!lbVisible ? (
+                        <div style={{padding:40,textAlign:'center'}}>
+                            <p style={{color:'var(--text-muted)',fontSize:14}}>{lbMessage || 'Leaderboard is currently hidden by your clinic admin.'}</p>
+                        </div>
+                    ) : leaderboard.length === 0 ? (
                         <p style={{color:'var(--text-muted)',fontSize:13}}>No rankings yet. Team members need to complete analyzed calls.</p>
                     ) : (
                         <div style={{overflowX:'auto'}}>
@@ -1198,6 +1225,71 @@ const CoachingPage = () => {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {activeTab === 'compare' && (
+                <div>
+                    <div className="glass" style={{padding:24,borderRadius:12,marginBottom:16}}>
+                        <h3 style={{fontSize:16,fontWeight:700,marginBottom:12}}>Compare Agents</h3>
+                        <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:16}}>Select 2-5 agents from the leaderboard to compare across all 9 scoring dimensions.</p>
+                        {leaderboard.length === 0 ? (
+                            <p style={{color:'var(--text-muted)',fontSize:13}}>No agents available. Team members need to complete analyzed calls first.</p>
+                        ) : (
+                            <div>
+                                <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:16}}>
+                                    {leaderboard.map(r => (
+                                        <button key={r.user_id} onClick={() => toggleCompareId(r.user_id)} className={`btn btn-xs ${compareIds.includes(r.user_id) ? 'btn-gold' : 'btn-ghost'}`}>
+                                            {r.name}
+                                        </button>
+                                    ))}
+                                </div>
+                                <button className="btn btn-gold btn-sm" onClick={runCompare} disabled={compareIds.length < 2 || compareLoading}>
+                                    {compareLoading ? <span className="spinner"></span> : null}
+                                    {compareIds.length < 2 ? `Select ${2 - compareIds.length} more` : 'Compare'}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                    {comparison && Array.isArray(comparison) && comparison.length > 0 && (
+                        <div style={{display:'grid',gridTemplateColumns:`repeat(${Math.min(comparison.length, 3)}, 1fr)`,gap:16}}>
+                            {comparison.map(agent => (
+                                <div key={agent.user_id} className="glass" style={{padding:20,borderRadius:12}}>
+                                    <div style={{textAlign:'center',marginBottom:16}}>
+                                        <div style={{fontSize:16,fontWeight:700}}>{agent.name}</div>
+                                        <div style={{fontSize:12,color:'var(--text-muted)'}}>{agent.role} | {agent.total_calls} calls</div>
+                                        <div style={{fontSize:28,fontWeight:800,marginTop:8,color: agent.avg_score >= 70 ? 'var(--success)' : agent.avg_score >= 50 ? 'var(--warning)' : 'var(--danger)'}}>{agent.avg_score || 0}</div>
+                                        <div style={{fontSize:11,color:'var(--text-muted)'}}>Avg Score</div>
+                                    </div>
+                                    <div style={{borderTop:'1px solid var(--border)',paddingTop:16}}>
+                                        {agent.dimensions && Object.entries(agent.dimensions).map(([dim, val]) => (
+                                            <div key={dim} style={{marginBottom:8}}>
+                                                <div style={{display:'flex',justifyContent:'space-between',marginBottom:3}}>
+                                                    <span style={{fontSize:11,color:'var(--text-secondary)'}}>{dim}</span>
+                                                    <span style={{fontSize:11,fontWeight:600,color: val >= 70 ? 'var(--success)' : val >= 50 ? 'var(--warning)' : 'var(--danger)'}}>{val}</span>
+                                                </div>
+                                                <div style={{height:6,borderRadius:3,background:'rgba(255,255,255,0.06)'}}>
+                                                    <div style={{height:6,borderRadius:3,width:`${val}%`,background: val >= 70 ? 'var(--success)' : val >= 50 ? 'var(--warning)' : 'var(--danger)',transition:'width 0.6s'}}/>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {agent.trend && agent.trend.length > 0 && (
+                                        <div style={{marginTop:12,borderTop:'1px solid var(--border)',paddingTop:12}}>
+                                            <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:6}}>Recent Trend</div>
+                                            <div style={{display:'flex',alignItems:'end',gap:2,height:40}}>
+                                                {agent.trend.map((t,i) => {
+                                                    const h = Math.max(4, (t.score/100)*40);
+                                                    const c = t.score >= 70 ? 'var(--success)' : t.score >= 50 ? 'var(--warning)' : 'var(--danger)';
+                                                    return <div key={i} style={{flex:1,height:h,background:c,borderRadius:2,opacity:0.8,minWidth:3}}/>;
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>
@@ -1871,254 +1963,7 @@ const ReportsPage = () => {
 };
 
 // ============ INTEGRATIONS (GHL) ============
-const IntegrationsPage = () => {
-    const [status, setStatus] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [syncing, setSyncing] = useState(false);
-    const [apiKey, setApiKey] = useState('');
-    const [locationId, setLocationId] = useState('');
-    const [pipelineId, setPipelineId] = useState('');
-    const [pipelines, setPipelines] = useState([]);
-    const [syncResult, setSyncResult] = useState(null);
-    const [error, setError] = useState('');
-    const [connecting, setConnecting] = useState(false);
-
-    const fetchStatus = async () => {
-        try {
-            const data = await apiFetch('/integrations/ghl/status');
-            setStatus(data);
-            if (data.sync_pipeline_id) setPipelineId(data.sync_pipeline_id);
-            if (data.location_id) setLocationId(data.location_id);
-        } catch (e) { console.error(e); }
-        setLoading(false);
-    };
-
-    useEffect(() => { fetchStatus(); }, []);
-
-    const handleConnect = async () => {
-        if (!apiKey.trim()) { setError('Please enter your GoHighLevel API key'); return; }
-        setConnecting(true); setError('');
-        try {
-            const result = await apiFetch('/integrations/ghl/connect', {
-                method: 'POST',
-                body: {
-                    api_key: apiKey.trim(),
-                    location_id: locationId.trim() || null,
-                    sync_pipeline_id: pipelineId || null,
-                    auto_sync_enabled: true
-                }
-            });
-            setPipelines(result.pipelines || []);
-            setApiKey('');
-            await fetchStatus();
-        } catch (e) {
-            setError(e.message || 'Failed to connect. Check your API key.');
-        }
-        setConnecting(false);
-    };
-
-    const handleDisconnect = async () => {
-        if (!confirm('Disconnect GoHighLevel? Synced leads will remain in your pipeline.')) return;
-        try {
-            await apiFetch('/integrations/ghl/disconnect', { method: 'POST' });
-            setStatus(null); setPipelines([]);
-            await fetchStatus();
-        } catch (e) { setError(e.message); }
-    };
-
-    const handleSync = async () => {
-        setSyncing(true); setSyncResult(null); setError('');
-        try {
-            const result = await apiFetch('/integrations/ghl/sync?sync_type=opportunities', { method: 'POST' });
-            setSyncResult(result);
-            await fetchStatus();
-        } catch (e) {
-            setError(e.message || 'Sync failed');
-        }
-        setSyncing(false);
-    };
-
-    const handleFetchPipelines = async () => {
-        try {
-            const data = await apiFetch('/integrations/ghl/pipelines');
-            setPipelines(data.pipelines || []);
-        } catch (e) { setError('Could not fetch pipelines: ' + e.message); }
-    };
-
-    const handleUpdateSettings = async () => {
-        try {
-            await apiFetch('/integrations/ghl/settings', {
-                method: 'PATCH',
-                body: { sync_pipeline_id: pipelineId || null }
-            });
-            await fetchStatus();
-        } catch (e) { setError(e.message); }
-    };
-
-    if (loading) return <div style={{padding:40,textAlign:'center',color:'var(--text-muted)'}}>Loading integration status...</div>;
-
-    const isConnected = status && status.is_connected && status.is_active;
-
-    return (
-        <div>
-            <div style={{marginBottom:32}}>
-                <h1 style={{fontSize:28,fontWeight:800,fontFamily:"'Playfair Display',serif"}}>Integrations</h1>
-                <p style={{color:'var(--text-muted)',marginTop:4}}>Connect external CRMs to auto-sync leads into your pipeline</p>
-            </div>
-
-            {/* GHL Integration Card */}
-            <div className="glass" style={{borderRadius:16,padding:28,marginBottom:24}}>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
-                    <div style={{display:'flex',alignItems:'center',gap:16}}>
-                        <div style={{width:48,height:48,borderRadius:12,background:'linear-gradient(135deg,#FF6B35,#F7931E)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,fontWeight:800,color:'#fff'}}>G</div>
-                        <div>
-                            <div style={{fontSize:18,fontWeight:700}}>GoHighLevel</div>
-                            <div style={{fontSize:13,color:'var(--text-muted)'}}>Sync leads and opportunities from your GHL account</div>
-                        </div>
-                    </div>
-                    <div style={{display:'flex',alignItems:'center',gap:8}}>
-                        <div style={{width:10,height:10,borderRadius:'50%',background:isConnected?'var(--success)':'var(--text-muted)'}}/>
-                        <span style={{fontSize:13,fontWeight:600,color:isConnected?'var(--success)':'var(--text-muted)'}}>{isConnected?'Connected':'Not Connected'}</span>
-                    </div>
-                </div>
-
-                {error && <div style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.3)',borderRadius:8,padding:'10px 14px',marginBottom:16,color:'#EF4444',fontSize:13}}>{error}</div>}
-
-                {!isConnected ? (
-                    /* Connect Form */
-                    <div>
-                        <div style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--text-secondary)'}}>Connect Your GHL Account</div>
-                        <div style={{display:'flex',flexDirection:'column',gap:12}}>
-                            <div>
-                                <label style={{fontSize:12,color:'var(--text-muted)',marginBottom:4,display:'block'}}>API Key *</label>
-                                <input type="password" value={apiKey} onChange={e=>setApiKey(e.target.value)} placeholder="Enter your GoHighLevel API key" style={{width:'100%',background:'rgba(15,20,30,0.5)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 14px',color:'var(--text-primary)',fontSize:14,outline:'none'}}/>
-                            </div>
-                            <div>
-                                <label style={{fontSize:12,color:'var(--text-muted)',marginBottom:4,display:'block'}}>Location ID (optional)</label>
-                                <input value={locationId} onChange={e=>setLocationId(e.target.value)} placeholder="Your GHL sub-account/location ID" style={{width:'100%',background:'rgba(15,20,30,0.5)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 14px',color:'var(--text-primary)',fontSize:14,outline:'none'}}/>
-                            </div>
-                            <div style={{fontSize:12,color:'var(--text-muted)',lineHeight:'1.6'}}>
-                                Find your API key in GoHighLevel &gt; Settings &gt; Business Profile &gt; API Key, or create one at Settings &gt; API Keys.
-                            </div>
-                            <button className="btn btn-gold" onClick={handleConnect} disabled={connecting} style={{alignSelf:'flex-start',opacity:connecting?0.6:1}}>
-                                {connecting?'Validating...':'Connect GoHighLevel'}
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    /* Connected State */
-                    <div>
-                        {/* Sync Stats */}
-                        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:16,marginBottom:24}}>
-                            <div className="glass" style={{borderRadius:12,padding:16,textAlign:'center'}}>
-                                <div style={{fontSize:28,fontWeight:800,color:'var(--info)'}}>{status.total_leads_synced||0}</div>
-                                <div style={{fontSize:12,color:'var(--text-muted)'}}>Total Leads Synced</div>
-                            </div>
-                            <div className="glass" style={{borderRadius:12,padding:16,textAlign:'center'}}>
-                                <div style={{fontSize:14,fontWeight:600,color:status.last_sync_status==='success'?'var(--success)':status.last_sync_status==='failed'?'var(--danger)':'var(--text-muted)'}}>{status.last_sync_status||'Never'}</div>
-                                <div style={{fontSize:12,color:'var(--text-muted)'}}>Last Sync Status</div>
-                            </div>
-                            <div className="glass" style={{borderRadius:12,padding:16,textAlign:'center'}}>
-                                <div style={{fontSize:14,fontWeight:600}}>{status.last_sync_at ? new Date(status.last_sync_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : 'Never'}</div>
-                                <div style={{fontSize:12,color:'var(--text-muted)'}}>Last Synced At</div>
-                            </div>
-                        </div>
-
-                        {/* Pipeline Selection */}
-                        <div style={{marginBottom:20}}>
-                            <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:8}}>
-                                <label style={{fontSize:13,fontWeight:600}}>Sync Pipeline</label>
-                                <button onClick={handleFetchPipelines} style={{fontSize:11,color:'var(--info)',background:'none',border:'none',cursor:'pointer',textDecoration:'underline'}}>Refresh pipelines</button>
-                            </div>
-                            {pipelines.length > 0 && (
-                                <div style={{display:'flex',gap:8,alignItems:'center'}}>
-                                    <select value={pipelineId} onChange={e=>{setPipelineId(e.target.value);}} style={{flex:1,background:'rgba(15,20,30,0.5)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 14px',color:'var(--text-primary)',fontSize:14}}>
-                                        <option value="">All pipelines</option>
-                                        {pipelines.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                    </select>
-                                    <button className="btn" onClick={handleUpdateSettings} style={{background:'var(--info)',color:'#fff',padding:'10px 16px',fontSize:13}}>Save</button>
-                                </div>
-                            )}
-                            {pipelines.length === 0 && <div style={{fontSize:12,color:'var(--text-muted)'}}>Click "Refresh pipelines" to load your GHL pipelines</div>}
-                        </div>
-
-                        {/* Sync Button */}
-                        <div style={{display:'flex',gap:12,alignItems:'center'}}>
-                            <button className="btn btn-gold" onClick={handleSync} disabled={syncing} style={{opacity:syncing?0.6:1}}>
-                                {syncing?'Syncing leads...':'Sync Now'}
-                            </button>
-                            <button className="btn" onClick={handleDisconnect} style={{background:'rgba(239,68,68,0.1)',color:'var(--danger)',border:'1px solid rgba(239,68,68,0.3)'}}>Disconnect</button>
-                        </div>
-
-                        {/* Sync Result */}
-                        {syncResult && (
-                            <div className="glass" style={{borderRadius:12,padding:16,marginTop:16}}>
-                                <div style={{fontSize:14,fontWeight:600,marginBottom:8}}>Sync Complete</div>
-                                <div style={{display:'flex',gap:24,fontSize:13}}>
-                                    <span style={{color:'var(--success)'}}>{syncResult.created} created</span>
-                                    <span style={{color:'var(--info)'}}>{syncResult.updated} updated</span>
-                                    <span style={{color:'var(--text-muted)'}}>{syncResult.skipped} skipped</span>
-                                </div>
-                                {syncResult.errors && syncResult.errors.length > 0 && (
-                                    <div style={{marginTop:8,fontSize:12,color:'var(--danger)'}}>
-                                        {syncResult.errors.length} error(s): {syncResult.errors[0]}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Sync Error */}
-                        {status.last_sync_error && (
-                            <div style={{marginTop:12,fontSize:12,color:'var(--danger)'}}>Last error: {status.last_sync_error}</div>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {/* How It Works */}
-            <div className="glass" style={{borderRadius:16,padding:28,marginBottom:24}}>
-                <div style={{fontSize:16,fontWeight:700,marginBottom:16}}>How GHL Sync Works</div>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:16}}>
-                    {[
-                        {step:'1',title:'Add API Key',desc:'Enter your GoHighLevel API key from Settings > API Keys'},
-                        {step:'2',title:'Select Pipeline',desc:'Choose which GHL pipeline to sync leads from'},
-                        {step:'3',title:'Sync Leads',desc:'Click Sync Now to pull leads into your CallCoach pipeline'},
-                        {step:'4',title:'Auto-Updated',desc:'New leads appear in your pipeline with GHL data auto-mapped'},
-                    ].map(s => (
-                        <div key={s.step} style={{display:'flex',gap:12}}>
-                            <div style={{width:32,height:32,borderRadius:'50%',background:'rgba(59,130,246,0.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color:'var(--info)',flexShrink:0}}>{s.step}</div>
-                            <div>
-                                <div style={{fontSize:14,fontWeight:600}}>{s.title}</div>
-                                <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>{s.desc}</div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Real-time Webhook Setup */}
-            <div className="glass" style={{borderRadius:16,padding:28}}>
-                <div style={{fontSize:16,fontWeight:700,marginBottom:12}}>Real-Time Sync (Webhook)</div>
-                <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:16,lineHeight:'1.6'}}>
-                    For instant contact sync when leads are added or updated in GHL, set up a webhook in your GoHighLevel account.
-                </p>
-                <div style={{background:'rgba(15,20,30,0.5)',border:'1px solid var(--border)',borderRadius:8,padding:'12px 16px',marginBottom:16}}>
-                    <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Webhook URL</div>
-                    <div style={{fontSize:14,fontFamily:'monospace',color:'var(--info)',wordBreak:'break-all'}}>
-                        {window.location.origin}/api/webhooks/ghl/contact
-                    </div>
-                </div>
-                <div style={{fontSize:13,color:'var(--text-muted)',lineHeight:'1.6'}}>
-                    <div style={{fontWeight:600,color:'var(--text-secondary)',marginBottom:8}}>Setup Steps:</div>
-                    <div>1. Go to GHL &gt; Settings &gt; Webhooks</div>
-                    <div>2. Click "Add Webhook" and paste the URL above</div>
-                    <div>3. Select events: ContactCreate, ContactUpdate, OpportunityCreate, OpportunityStatusUpdate</div>
-                    <div>4. Save. New leads will now sync to CallCoach automatically.</div>
-                </div>
-            </div>
-        </div>
-    );
-};
+// IntegrationsPage removed - GHL integration deprecated
 
 // ============ MAIN APP ============
 const App = () => {
@@ -2144,7 +1989,6 @@ const App = () => {
         {id:'coaching',label:'Coaching',icon:Icons.coaching},
         {id:'reports',label:'Reports',icon:Icons.target},
         {id:'academy',label:'Academy',icon:Icons.academy},
-        {id:'integrations',label:'Integrations',icon:Icons.integration},
     ];
 
     const renderPage = () => {
@@ -2158,7 +2002,6 @@ const App = () => {
             case 'coaching': return <CoachingPage/>;
             case 'reports': return <ReportsPage/>;
             case 'academy': return <LearningPage/>;
-            case 'integrations': return <IntegrationsPage/>;
             default: return <DashboardPage/>;
         }
     };

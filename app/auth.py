@@ -56,6 +56,8 @@ def get_current_user(
 
 def require_role(allowed_roles: list):
     def role_checker(current_user: User = Depends(get_current_user)):
+        if current_user.is_super_admin:
+            return current_user  # Super admins bypass role checks
         if current_user.role not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -63,3 +65,13 @@ def require_role(allowed_roles: list):
             )
         return current_user
     return role_checker
+
+
+def require_super_admin(current_user: User = Depends(get_current_user)):
+    """Dependency that requires super admin access."""
+    if not current_user.is_super_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Super admin access required"
+        )
+    return current_user
