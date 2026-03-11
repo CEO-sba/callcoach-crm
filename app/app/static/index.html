@@ -2468,6 +2468,13 @@ const SettingsPage = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [apiKey, setApiKey] = useState('');
+    const [metaConfig, setMetaConfig] = useState(null);
+    const [metaForm, setMetaForm] = useState({access_token:'',page_id:'',page_name:''});
+    const [savingMeta, setSavingMeta] = useState(false);
+    const [socialAccounts, setSocialAccounts] = useState([]);
+    const [showSocialModal, setShowSocialModal] = useState(false);
+    const [socialForm, setSocialForm] = useState({platform:'instagram',access_token:'',account_name:'',account_id:'',profile_url:''});
+    const [savingSocial, setSavingSocial] = useState(false);
 
     useEffect(() => { loadSettings(); }, []);
 
@@ -2480,6 +2487,14 @@ const SettingsPage = () => {
         try {
             const key = await apiFetch('/leads/api-key/current');
             if (key) setApiKey(key.api_key);
+        } catch(e) {}
+        try {
+            const meta = await apiFetch('/meta/config');
+            if (meta) { setMetaConfig(meta); setMetaForm({access_token:'',page_id:meta.page_id||'',page_name:meta.page_name||''}); }
+        } catch(e) {}
+        try {
+            const accts = await apiFetch('/social/accounts');
+            if (accts) setSocialAccounts(accts);
         } catch(e) {}
         setLoading(false);
     };
@@ -2505,6 +2520,48 @@ const SettingsPage = () => {
         if (!confirm('Regenerate API key? Old webhooks will stop working.')) return;
         try { const res = await apiFetch('/leads/api-key/regenerate', {method:'POST'}); setApiKey(res.api_key); } catch(e) {}
     };
+
+    const saveMeta = async () => {
+        setSavingMeta(true);
+        try {
+            const body = {...metaForm};
+            if (!body.access_token && metaConfig) { setSavingMeta(false); alert('Access token required'); return; }
+            const res = await apiFetch('/meta/connect', {method:'POST', body});
+            setMetaConfig(res);
+            setMetaForm({access_token:'',page_id:res.page_id||'',page_name:res.page_name||''});
+            alert('Meta Ads connected!');
+        } catch(e) { alert('Error connecting Meta'); }
+        setSavingMeta(false);
+    };
+
+    const disconnectMeta = async () => {
+        if (!confirm('Disconnect Meta Ads?')) return;
+        try { await apiFetch('/meta/disconnect', {method:'DELETE'}); setMetaConfig(null); setMetaForm({access_token:'',page_id:'',page_name:''}); alert('Meta disconnected'); } catch(e) {}
+    };
+
+    const connectSocial = async () => {
+        setSavingSocial(true);
+        try {
+            const res = await apiFetch('/social/accounts', {method:'POST', body:socialForm});
+            setSocialAccounts(prev => {
+                const idx = prev.findIndex(a => a.platform === res.platform);
+                if (idx >= 0) { const n = [...prev]; n[idx] = res; return n; }
+                return [...prev, res];
+            });
+            setShowSocialModal(false);
+            setSocialForm({platform:'instagram',access_token:'',account_name:'',account_id:'',profile_url:''});
+            alert('Account connected!');
+        } catch(e) { alert('Error connecting account'); }
+        setSavingSocial(false);
+    };
+
+    const disconnectSocial = async (id) => {
+        if (!confirm('Disconnect this account?')) return;
+        try { await apiFetch(`/social/accounts/${id}`, {method:'DELETE'}); setSocialAccounts(prev => prev.filter(a => a.id !== id)); } catch(e) {}
+    };
+
+    const platformIcons = {instagram:'IG',facebook:'FB',youtube:'YT',linkedin:'LI',twitter:'X',snapchat:'SC',tiktok:'TT'};
+    const platformColors = {instagram:'#E1306C',facebook:'#1877F2',youtube:'#FF0000',linkedin:'#0077B5',twitter:'#000',snapchat:'#FFFC00',tiktok:'#000'};
 
     if (loading) return <div style={{padding:40,textAlign:'center'}}><span className="spinner"></span></div>;
 
@@ -2533,6 +2590,62 @@ const SettingsPage = () => {
                     {waConfig?.is_active && <button className="btn btn-danger" onClick={disconnectWhatsApp}>Disconnect</button>}
                 </div>
             </div>
+            {/* Meta Ads Connection */}
+            <div className="glass" style={{padding:24,borderRadius:12,marginBottom:20}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                    <h3 style={{fontSize:16,fontWeight:600,color:'var(--gold)'}}>Meta Ads (Facebook / Instagram)</h3>
+                    {metaConfig?.is_active && <span className="badge badge-green">Connected</span>}
+                </div>
+                {metaConfig?.is_active ? (
+                    <div>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+                            <div style={{fontSize:13,color:'var(--text-secondary)'}}>Page: <strong style={{color:'var(--text-primary)'}}>{metaConfig.page_name || 'N/A'}</strong></div>
+                            <div style={{fontSize:13,color:'var(--text-secondary)'}}>Page ID: <code style={{fontSize:12,color:'var(--gold)'}}>{metaConfig.page_id}</code></div>
+                        </div>
+                        <div style={{marginTop:12,padding:12,borderRadius:8,background:'rgba(255,255,255,0.02)',border:'1px solid var(--border)'}}>
+                            <div style={{fontSize:12,color:'var(--text-muted)'}}>Lead Forms Webhook: <code style={{color:'var(--gold)'}}>https://callcoachsba.com/api/meta/webhook</code></div>
+                        </div>
+                        <button className="btn btn-danger btn-sm" style={{marginTop:12}} onClick={disconnectMeta}>Disconnect Meta</button>
+                    </div>
+                ) : (
+                    <div>
+                        <p style={{fontSize:13,color:'var(--text-secondary)',marginBottom:12}}>Connect your Meta account to auto-import leads from Facebook and Instagram ad forms.</p>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}} className="resp-grid-2">
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Page ID</label><input className="input" value={metaForm.page_id} onChange={e=>setMetaForm({...metaForm,page_id:e.target.value})} placeholder="Facebook Page ID"/></div>
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Page Name</label><input className="input" value={metaForm.page_name} onChange={e=>setMetaForm({...metaForm,page_name:e.target.value})} placeholder="e.g. My Clinic"/></div>
+                            <div style={{gridColumn:'1/-1'}}><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Access Token</label><input className="input" type="password" value={metaForm.access_token} onChange={e=>setMetaForm({...metaForm,access_token:e.target.value})} placeholder="Page access token with leads_retrieval permission"/></div>
+                        </div>
+                        <button className="btn btn-gold" style={{marginTop:14}} onClick={saveMeta} disabled={savingMeta}>{savingMeta?<span className="spinner"></span>:'Connect Meta'}</button>
+                    </div>
+                )}
+            </div>
+            {/* Social Media Accounts */}
+            <div className="glass" style={{padding:24,borderRadius:12,marginBottom:20}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                    <h3 style={{fontSize:16,fontWeight:600,color:'var(--gold)'}}>Social Media Accounts</h3>
+                    <button className="btn btn-gold btn-sm" onClick={()=>setShowSocialModal(true)}>+ Connect Account</button>
+                </div>
+                {socialAccounts.length === 0 ? (
+                    <p style={{fontSize:13,color:'var(--text-muted)',textAlign:'center',padding:20}}>No social accounts connected yet. Connect Instagram, Facebook, YouTube, LinkedIn, X, or TikTok.</p>
+                ) : (
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:12}}>
+                        {socialAccounts.map(a => (
+                            <div key={a.id} style={{padding:14,borderRadius:10,border:'1px solid var(--border)',background:'rgba(255,255,255,0.02)'}}>
+                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                                    <span style={{display:'inline-flex',alignItems:'center',gap:6}}>
+                                        <span style={{width:28,height:28,borderRadius:6,background:platformColors[a.platform]||'var(--gold)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#fff'}}>{platformIcons[a.platform]||'?'}</span>
+                                        <span style={{fontSize:13,fontWeight:600,textTransform:'capitalize'}}>{a.platform}</span>
+                                    </span>
+                                    <span className="badge badge-green" style={{fontSize:10}}>Active</span>
+                                </div>
+                                <div style={{fontSize:12,color:'var(--text-secondary)',marginBottom:4}}>{a.account_name || 'Connected'}</div>
+                                {a.profile_url && <div style={{fontSize:11,color:'var(--text-muted)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.profile_url}</div>}
+                                <button className="btn btn-danger btn-sm" style={{marginTop:8,fontSize:11}} onClick={()=>disconnectSocial(a.id)}>Disconnect</button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
             {/* API Key for Webhooks */}
             <div className="glass" style={{padding:24,borderRadius:12}}>
                 <h3 style={{fontSize:16,fontWeight:600,color:'var(--gold)',marginBottom:12}}>Lead Webhook API Key</h3>
@@ -2548,45 +2661,96 @@ const SettingsPage = () => {
                     Webhook URL: <code style={{color:'var(--text-secondary)'}}>POST https://callcoachsba.com/api/leads/webhook/{apiKey}</code>
                 </div>}
             </div>
+            {/* Social Connect Modal */}
+            {showSocialModal && <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={()=>setShowSocialModal(false)}>
+                <div className="glass" style={{padding:28,borderRadius:16,width:'100%',maxWidth:480}} onClick={e=>e.stopPropagation()}>
+                    <h3 style={{fontSize:16,fontWeight:600,color:'var(--gold)',marginBottom:16}}>Connect Social Account</h3>
+                    <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Platform</label>
+                            <select className="input" value={socialForm.platform} onChange={e=>setSocialForm({...socialForm,platform:e.target.value})}>
+                                <option value="instagram">Instagram</option><option value="facebook">Facebook</option><option value="youtube">YouTube</option>
+                                <option value="linkedin">LinkedIn</option><option value="twitter">X (Twitter)</option><option value="snapchat">Snapchat</option><option value="tiktok">TikTok</option>
+                            </select>
+                        </div>
+                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Account Name</label><input className="input" value={socialForm.account_name} onChange={e=>setSocialForm({...socialForm,account_name:e.target.value})} placeholder="e.g. @myclinic"/></div>
+                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Account / Page ID</label><input className="input" value={socialForm.account_id} onChange={e=>setSocialForm({...socialForm,account_id:e.target.value})} placeholder="Platform account ID"/></div>
+                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Profile URL</label><input className="input" value={socialForm.profile_url} onChange={e=>setSocialForm({...socialForm,profile_url:e.target.value})} placeholder="https://instagram.com/myclinic"/></div>
+                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Access Token</label><input className="input" type="password" value={socialForm.access_token} onChange={e=>setSocialForm({...socialForm,access_token:e.target.value})} placeholder="API access token"/></div>
+                    </div>
+                    <div style={{display:'flex',gap:8,marginTop:18}}>
+                        <button className="btn btn-gold" onClick={connectSocial} disabled={savingSocial}>{savingSocial?<span className="spinner"></span>:'Connect'}</button>
+                        <button className="btn btn-ghost" onClick={()=>setShowSocialModal(false)}>Cancel</button>
+                    </div>
+                </div>
+            </div>}
         </div>
     );
 };
 
 // ============ UNIFIED INBOX PAGE ============
 const UnifiedInboxPage = () => {
-    const [conversations, setConversations] = useState([
-        {id:1, platform:'whatsapp', contact:'Sarah Johnson', message:'Hi, need help scheduling', timestamp:'2m', unread:true},
-        {id:2, platform:'instagram', contact:'Mike Chen', message:'Thanks for the info!', timestamp:'1h', unread:false},
-        {id:3, platform:'facebook', contact:'Emma Davis', message:'Can you call me back?', timestamp:'3h', unread:true},
-        {id:4, platform:'email', contact:'Lisa Park', message:'Meeting confirmation', timestamp:'5h', unread:false}
-    ]);
+    const [conversations, setConversations] = useState([]);
+    const [stats, setStats] = useState(null);
     const [selected, setSelected] = useState(null);
     const [messages, setMessages] = useState([]);
     const [newMsg, setNewMsg] = useState('');
     const [filter, setFilter] = useState('all');
+    const [loading, setLoading] = useState(true);
+    const [sending, setSending] = useState(false);
+    const [aiLoading, setAiLoading] = useState(false);
 
-    const selectConvo = (convo) => {
+    useEffect(() => {
+        Promise.all([
+            apiFetch('/inbox/conversations').catch(()=>[]),
+            apiFetch('/inbox/stats').catch(()=>null)
+        ]).then(([convos, s]) => { setConversations(convos.conversations||convos||[]); setStats(s); setLoading(false); });
+    }, []);
+
+    const selectConvo = async (convo) => {
         setSelected(convo);
-        setMessages([
-            {id:1, direction:'inbound', content:'Hi there!', sender:convo.contact, time:'2:30 PM'},
-            {id:2, direction:'outbound', content:'Hello! How can I help?', sender:'You', time:'2:31 PM'},
-            {id:3, direction:'inbound', content:'I have a question about your services', sender:convo.contact, time:'2:32 PM'}
-        ]);
+        try {
+            const detail = await apiFetch(`/inbox/conversations/${convo.id}`);
+            setMessages(detail.messages || []);
+        } catch { setMessages([]); }
     };
 
-    const sendMessage = () => {
-        if(!newMsg.trim()) return;
-        setMessages([...messages, {id:Math.random(), direction:'outbound', content:newMsg, sender:'You', time:new Date().toLocaleTimeString()}]);
-        setNewMsg('');
+    const sendMessage = async () => {
+        if(!newMsg.trim() || !selected) return;
+        setSending(true);
+        try {
+            const resp = await apiFetch(`/inbox/conversations/${selected.id}/messages`, { method:'POST', body:{ content:newMsg, channel: selected.platform || 'whatsapp' }});
+            setMessages(prev => [...prev, resp]);
+            setNewMsg('');
+        } catch(e) { alert(e.message); }
+        setSending(false);
+    };
+
+    const generateAiReply = async () => {
+        if(!selected) return;
+        setAiLoading(true);
+        try {
+            const resp = await apiFetch(`/inbox/conversations/${selected.id}/ai-reply`, { method:'POST' });
+            if(resp.suggested_reply) setNewMsg(resp.suggested_reply);
+        } catch(e) { alert(e.message); }
+        setAiLoading(false);
     };
 
     const filtered = filter === 'all' ? conversations : conversations.filter(c => c.platform === filter);
-    const platformIcons = {whatsapp:'💬', instagram:'📸', facebook:'👍', linkedin:'🔗', x:'𝕏', email:'✉️'};
+    const platformIcons = {whatsapp:'\uD83D\uDCAC', instagram:'\uD83D\uDCF8', facebook:'\uD83D\uDC4D', linkedin:'\uD83D\uDD17', x:'\uD835\uDD4F', email:'\u2709\uFE0F'};
+    const timeAgo = (d) => { if(!d) return ''; const diff = Date.now() - new Date(d).getTime(); const mins = Math.floor(diff/60000); if(mins<60) return mins+'m'; const hrs = Math.floor(mins/60); if(hrs<24) return hrs+'h'; return Math.floor(hrs/24)+'d'; };
 
     return (
         <div className="fade-in">
             <h1 className="page-title" style={{fontSize:24,fontWeight:700,marginBottom:20}}>Unified Inbox</h1>
-            <div style={{display:'flex',gap:16,height:'calc(100vh - 140px)'}}>
+            {stats && <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:20}}>
+                {[{label:'Total Conversations',value:stats.total_conversations||0},{label:'Unread',value:stats.unread_count||0},{label:'AI Handled',value:stats.ai_handled||0},{label:'Avg Response',value:stats.avg_response_time||'N/A'}].map(s=>(
+                    <div key={s.label} className="glass" style={{padding:14,borderRadius:10}}>
+                        <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:6}}>{s.label}</div>
+                        <div style={{fontSize:22,fontWeight:700,color:'var(--gold)'}}>{s.value}</div>
+                    </div>
+                ))}
+            </div>}
+            <div style={{display:'flex',gap:16,height:'calc(100vh - '+(stats?'240':'140')+'px)'}}>
                 <div className="glass" style={{width:320,borderRadius:12,display:'flex',flexDirection:'column',overflow:'hidden',flexShrink:0}}>
                     <div style={{padding:12,borderBottom:'1px solid var(--border)',display:'flex',gap:8,flexWrap:'wrap'}}>
                         {['all','whatsapp','instagram','facebook','email'].map(p => (
@@ -2596,18 +2760,18 @@ const UnifiedInboxPage = () => {
                         ))}
                     </div>
                     <div style={{flex:1,overflowY:'auto',overflowX:'hidden'}} className="scrollbar-hide">
-                        {filtered.length===0 ? <div style={{padding:20,textAlign:'center',color:'var(--text-muted)',fontSize:13}}>No conversations</div> : filtered.map(c => (
+                        {loading ? <div style={{padding:20,textAlign:'center',color:'var(--text-muted)',fontSize:13}}>Loading...</div> : filtered.length===0 ? <div style={{padding:20,textAlign:'center',color:'var(--text-muted)',fontSize:13}}>No conversations</div> : filtered.map(c => (
                             <div key={c.id} onClick={()=>selectConvo(c)} style={{padding:12,borderBottom:'1px solid var(--border)',cursor:'pointer',background:selected?.id===c.id?'rgba(192,196,203,0.08)':'transparent',transition:'all 0.2s'}}>
                                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',marginBottom:6}}>
                                     <div style={{display:'flex',alignItems:'center',gap:8}}>
-                                        <span style={{fontSize:16}}>{platformIcons[c.platform]}</span>
-                                        <span style={{fontWeight:600,fontSize:13,color:'var(--text-primary)'}}>{c.contact}</span>
+                                        <span style={{fontSize:16}}>{platformIcons[c.platform]||'\uD83D\uDCAC'}</span>
+                                        <span style={{fontWeight:600,fontSize:13,color:'var(--text-primary)'}}>{c.contact_name||c.lead_name||'Unknown'}</span>
                                     </div>
-                                    <span style={{fontSize:11,color:'var(--text-muted)'}}>{c.timestamp}</span>
+                                    <span style={{fontSize:11,color:'var(--text-muted)'}}>{timeAgo(c.last_message_at||c.updated_at)}</span>
                                 </div>
                                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                    <span style={{fontSize:12,color:'var(--text-secondary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:200}}>{c.message}</span>
-                                    {c.unread && <span className="badge badge-gold" style={{fontSize:10}}>NEW</span>}
+                                    <span style={{fontSize:12,color:'var(--text-secondary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:200}}>{c.last_message||c.subject||''}</span>
+                                    {(c.unread_count>0||c.unread) && <span className="badge badge-gold" style={{fontSize:10}}>NEW</span>}
                                 </div>
                             </div>
                         ))}
@@ -2618,22 +2782,29 @@ const UnifiedInboxPage = () => {
                         <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-muted)'}}>Select a conversation to start</div>
                     ) : (
                         <>
-                            <div style={{padding:'12px 20px',borderBottom:'1px solid var(--border)'}}>
-                                <span style={{fontWeight:600,fontSize:14}}>{selected.contact}</span>
-                                <span className="badge" style={{marginLeft:10,fontSize:10}}>{platformIcons[selected.platform]} {selected.platform}</span>
+                            <div style={{padding:'12px 20px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                <div>
+                                    <span style={{fontWeight:600,fontSize:14}}>{selected.contact_name||selected.lead_name||'Unknown'}</span>
+                                    <span className="badge" style={{marginLeft:10,fontSize:10}}>{platformIcons[selected.platform]||''} {selected.platform}</span>
+                                </div>
+                                <div style={{display:'flex',gap:8}}>
+                                    <span className={`badge ${selected.status==='active'?'badge-green':selected.status==='handed_off'?'badge-yellow':'badge-gray'}`} style={{fontSize:10}}>{selected.status||'active'}</span>
+                                </div>
                             </div>
                             <div style={{flex:1,overflowY:'auto',padding:16,display:'flex',flexDirection:'column',gap:10}} className="scrollbar-hide">
-                                {messages.map(m => (
-                                    <div key={m.id} style={{display:'flex',justifyContent:m.direction==='outbound'?'flex-end':'flex-start'}}>
-                                        <div style={{maxWidth:'65%',padding:'10px 14px',borderRadius:10,fontSize:13,background:m.direction==='outbound'?'rgba(59,130,246,0.15)':'rgba(255,255,255,0.05)',border:'1px solid '+(m.direction==='outbound'?'rgba(59,130,246,0.2)':'var(--border)'),color:'var(--text-primary)'}}>
-                                            {m.content}<div style={{fontSize:10,color:'var(--text-muted)',marginTop:4}}>{m.time}</div>
+                                {messages.length===0 ? <div style={{textAlign:'center',color:'var(--text-muted)',fontSize:13,marginTop:40}}>No messages yet</div> : messages.map((m,i) => (
+                                    <div key={m.id||i} style={{display:'flex',justifyContent:(m.direction==='outbound'||m.sender_type==='agent'||m.sender_type==='ai_employee')?'flex-end':'flex-start'}}>
+                                        <div style={{maxWidth:'65%',padding:'10px 14px',borderRadius:10,fontSize:13,background:(m.direction==='outbound'||m.sender_type==='agent'||m.sender_type==='ai_employee')?'rgba(59,130,246,0.15)':'rgba(255,255,255,0.05)',border:'1px solid '+((m.direction==='outbound'||m.sender_type==='agent'||m.sender_type==='ai_employee')?'rgba(59,130,246,0.2)':'var(--border)'),color:'var(--text-primary)'}}>
+                                            {m.sender_type==='ai_employee' && <div style={{fontSize:10,color:'var(--gold)',marginBottom:4}}>AI Employee</div>}
+                                            {m.content}<div style={{fontSize:10,color:'var(--text-muted)',marginTop:4}}>{m.created_at ? new Date(m.created_at).toLocaleTimeString() : ''}</div>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                             <div style={{padding:12,borderTop:'1px solid var(--border)',display:'flex',gap:8}}>
+                                <button className="btn btn-ghost" onClick={generateAiReply} disabled={aiLoading} style={{fontSize:11,whiteSpace:'nowrap'}}>{aiLoading?'Thinking...':'AI Reply'}</button>
                                 <input className="input" placeholder="Type message..." value={newMsg} onChange={e=>setNewMsg(e.target.value)} onKeyPress={e=>e.key==='Enter'&&sendMessage()} style={{flex:1,fontSize:13}}/>
-                                <button className="btn btn-gold" onClick={sendMessage} style={{fontSize:12}}>Send</button>
+                                <button className="btn btn-gold" onClick={sendMessage} disabled={sending} style={{fontSize:12}}>{sending?'...':'Send'}</button>
                             </div>
                         </>
                     )}
@@ -2646,32 +2817,71 @@ const UnifiedInboxPage = () => {
 // ============ HIRING PAGE ============
 const HiringPage = () => {
     const [tab, setTab] = useState('positions');
-    const [positions, setPositions] = useState([
-        {id:1, title:'Sales Executive', dept:'Sales', salary:'50k-70k', status:'Open', candidates:8},
-        {id:2, title:'Marketing Manager', dept:'Marketing', salary:'60k-80k', status:'Reviewing', candidates:12},
-        {id:3, title:'Software Engineer', dept:'Engineering', salary:'80k-120k', status:'Open', candidates:15}
-    ]);
-    const [candidates, setCandidates] = useState([
-        {id:1, name:'John Smith', position:'Sales Executive', status:'Interview', score:85, source:'LinkedIn', date:'2025-02-01'},
-        {id:2, name:'Alice Brown', position:'Marketing Manager', status:'Offer', score:92, source:'Referral', date:'2025-01-28'},
-        {id:3, name:'Bob Wilson', position:'Software Engineer', status:'Applied', score:78, source:'Indeed', date:'2025-02-05'}
-    ]);
-    const [interviews, setInterviews] = useState([
-        {id:1, candidate:'John Smith', position:'Sales Executive', interviewer:'Sarah Lee', date:'2025-02-15 10:00 AM', status:'Scheduled'},
-        {id:2, candidate:'Alice Brown', position:'Marketing Manager', interviewer:'Mike Davis', date:'2025-02-16 2:00 PM', status:'Scheduled'}
-    ]);
+    const [dashboard, setDashboard] = useState(null);
+    const [positions, setPositions] = useState([]);
+    const [candidates, setCandidates] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [showAddPosition, setShowAddPosition] = useState(false);
+    const [showAddCandidate, setShowAddCandidate] = useState(false);
+    const [newPosition, setNewPosition] = useState({title:'',department:'',salary_range:'',description:'',requirements:''});
+    const [newCandidate, setNewCandidate] = useState({name:'',email:'',phone:'',position_id:'',source:'',resume_text:''});
+    const [genJdLoading, setGenJdLoading] = useState(null);
+    const [evalLoading, setEvalLoading] = useState(null);
 
-    const statBadgeColor = (status) => {
-        if(status==='Open') return 'badge-green';
-        if(status==='Reviewing') return 'badge-yellow';
-        return 'badge-gray';
+    const loadData = () => {
+        setLoading(true);
+        Promise.all([
+            apiFetch('/hiring/dashboard').catch(()=>null),
+            apiFetch('/hiring/positions').catch(()=>[]),
+            apiFetch('/hiring/candidates').catch(()=>[])
+        ]).then(([d, p, c]) => { setDashboard(d); setPositions(p.positions||p||[]); setCandidates(c.candidates||c||[]); setLoading(false); });
     };
+    useEffect(loadData, []);
+
+    const createPosition = async () => {
+        try {
+            await apiFetch('/hiring/positions', { method:'POST', body:newPosition });
+            setShowAddPosition(false); setNewPosition({title:'',department:'',salary_range:'',description:'',requirements:''});
+            loadData();
+        } catch(e) { alert(e.message); }
+    };
+
+    const addCandidate = async () => {
+        try {
+            await apiFetch('/hiring/candidates', { method:'POST', body:newCandidate });
+            setShowAddCandidate(false); setNewCandidate({name:'',email:'',phone:'',position_id:'',source:'',resume_text:''});
+            loadData();
+        } catch(e) { alert(e.message); }
+    };
+
+    const generateJD = async (posId) => {
+        setGenJdLoading(posId);
+        try {
+            const resp = await apiFetch(`/hiring/positions/${posId}/generate-jd`, { method:'POST' });
+            alert('JD Generated! Check the position details.');
+            loadData();
+        } catch(e) { alert(e.message); }
+        setGenJdLoading(null);
+    };
+
+    const aiEvaluate = async (candId) => {
+        setEvalLoading(candId);
+        try {
+            await apiFetch(`/hiring/candidates/${candId}/ai-evaluate`, { method:'POST' });
+            loadData();
+        } catch(e) { alert(e.message); }
+        setEvalLoading(null);
+    };
+
+    const interviews = candidates.filter(c => c.interviews && c.interviews.length > 0).flatMap(c => (c.interviews||[]).map(iv => ({...iv, candidate_name: c.name, position_title: c.position_title || ''})));
+    const statBadgeColor = (s) => s==='open'||s==='Open'?'badge-green':s==='reviewing'||s==='Reviewing'?'badge-yellow':'badge-gray';
+    const ds = dashboard || {};
 
     return (
         <div className="fade-in">
             <h1 className="page-title" style={{fontSize:24,fontWeight:700,marginBottom:20}}>Hiring Pipeline</h1>
             <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:24}}>
-                {[{label:'Open Positions',value:'3'},{label:'Total Candidates',value:'8'},{label:'Interviews This Week',value:'2'},{label:'Positions Filled',value:'1'}].map(s => (
+                {[{label:'Open Positions',value:ds.open_positions||0},{label:'Total Candidates',value:ds.total_candidates||0},{label:'Interviews Scheduled',value:ds.interviews_scheduled||0},{label:'Positions Filled',value:ds.positions_filled||0}].map(s => (
                     <div key={s.label} className="glass" style={{padding:16,borderRadius:10}}>
                         <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:8}}>{s.label}</div>
                         <div style={{fontSize:28,fontWeight:700,color:'var(--gold)'}}>{s.value}</div>
@@ -2680,91 +2890,174 @@ const HiringPage = () => {
             </div>
             <div style={{display:'flex',gap:8,marginBottom:16}}>
                 {['positions','candidates','interviews'].map(t => (
-                    <button key={t} onClick={()=>setTab(t)} className={tab===t?'btn btn-gold':'btn btn-ghost'} style={{fontSize:13,textTransform:'capitalize'}}>
-                        {t}
-                    </button>
+                    <button key={t} onClick={()=>setTab(t)} className={tab===t?'btn btn-gold':'btn btn-ghost'} style={{fontSize:13,textTransform:'capitalize'}}>{t}</button>
                 ))}
             </div>
             <div className="glass" style={{borderRadius:12,padding:20}}>
+                {loading ? <div style={{textAlign:'center',padding:40,color:'var(--text-muted)'}}>Loading...</div> : <>
                 {tab==='positions' && (
                     <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:16}}>
                         {positions.map(p => (
                             <div key={p.id} style={{padding:16,border:'1px solid var(--border)',borderRadius:10,background:'rgba(255,255,255,0.02)'}}>
                                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',marginBottom:12}}>
                                     <div><div style={{fontWeight:600,fontSize:14,marginBottom:4}}>{p.title}</div>
-                                    <span className="badge badge-gray" style={{fontSize:11}}>{p.dept}</span></div>
+                                    <span className="badge badge-gray" style={{fontSize:11}}>{p.department}</span></div>
                                     <span className={`badge ${statBadgeColor(p.status)}`} style={{fontSize:11}}>{p.status}</span>
                                 </div>
-                                <div style={{fontSize:13,color:'var(--text-secondary)',marginBottom:10}}>{p.salary}/year</div>
-                                <div style={{fontSize:12,color:'var(--text-muted)'}}>{p.candidates} candidates</div>
+                                <div style={{fontSize:13,color:'var(--text-secondary)',marginBottom:10}}>{p.salary_range||'Not set'}</div>
+                                <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:8}}>{p.candidate_count||0} candidates</div>
+                                <button className="btn btn-ghost" onClick={()=>generateJD(p.id)} disabled={genJdLoading===p.id} style={{fontSize:11}}>{genJdLoading===p.id?'Generating...':'Generate JD'}</button>
                             </div>
                         ))}
                         <div style={{padding:40,border:'2px dashed var(--border)',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                            <button className="btn btn-gold" style={{fontSize:13}}>+ Add Position</button>
+                            <button className="btn btn-gold" onClick={()=>setShowAddPosition(true)} style={{fontSize:13}}>+ Add Position</button>
                         </div>
                     </div>
                 )}
                 {tab==='candidates' && (
-                    <div style={{overflowX:'auto'}}>
-                        <table style={{width:'100%',fontSize:13}}>
-                            <thead><tr style={{borderBottom:'1px solid var(--border)'}}>
-                                <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Name</th>
-                                <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Position</th>
-                                <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Status</th>
-                                <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Score</th>
-                                <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Source</th>
-                            </tr></thead>
-                            <tbody>
-                                {candidates.map(c => (
-                                    <tr key={c.id} style={{borderBottom:'1px solid var(--border)',cursor:'pointer'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.02)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                                        <td style={{padding:12,color:'var(--text-primary)'}}>{c.name}</td>
-                                        <td style={{padding:12,color:'var(--text-secondary)'}}>{c.position}</td>
-                                        <td style={{padding:12}}><span className={c.status==='Offer'?'badge badge-green':c.status==='Interview'?'badge badge-blue':'badge badge-yellow'} style={{fontSize:11}}>{c.status}</span></td>
-                                        <td style={{padding:12,fontWeight:600,color:'var(--gold)'}}>{c.score}%</td>
-                                        <td style={{padding:12,color:'var(--text-muted)'}}>{c.source}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                    <>
+                        <button className="btn btn-gold" onClick={()=>setShowAddCandidate(true)} style={{fontSize:12,marginBottom:12}}>+ Add Candidate</button>
+                        <div style={{overflowX:'auto'}}>
+                            <table style={{width:'100%',fontSize:13}}>
+                                <thead><tr style={{borderBottom:'1px solid var(--border)'}}>
+                                    <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Name</th>
+                                    <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Position</th>
+                                    <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Status</th>
+                                    <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Score</th>
+                                    <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Source</th>
+                                    <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Actions</th>
+                                </tr></thead>
+                                <tbody>
+                                    {candidates.map(c => (
+                                        <tr key={c.id} style={{borderBottom:'1px solid var(--border)'}}>
+                                            <td style={{padding:12,color:'var(--text-primary)'}}>{c.name}</td>
+                                            <td style={{padding:12,color:'var(--text-secondary)'}}>{c.position_title||''}</td>
+                                            <td style={{padding:12}}><span className={c.status==='offer'?'badge badge-green':c.status==='interview'?'badge badge-blue':'badge badge-yellow'} style={{fontSize:11}}>{c.status}</span></td>
+                                            <td style={{padding:12,fontWeight:600,color:'var(--gold)'}}>{c.ai_score ? c.ai_score+'%' : 'N/A'}</td>
+                                            <td style={{padding:12,color:'var(--text-muted)'}}>{c.source||''}</td>
+                                            <td style={{padding:12}}><button className="btn btn-ghost" onClick={()=>aiEvaluate(c.id)} disabled={evalLoading===c.id} style={{fontSize:11}}>{evalLoading===c.id?'...':'AI Evaluate'}</button></td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
                 )}
                 {tab==='interviews' && (
                     <div style={{display:'flex',flexDirection:'column',gap:12}}>
-                        {interviews.map(i => (
-                            <div key={i.id} style={{padding:16,border:'1px solid var(--border)',borderRadius:10,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                        {interviews.length===0 ? <div style={{textAlign:'center',padding:40,color:'var(--text-muted)',fontSize:13}}>No interviews scheduled</div> : interviews.map((iv,i) => (
+                            <div key={iv.id||i} style={{padding:16,border:'1px solid var(--border)',borderRadius:10,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                                 <div>
-                                    <div style={{fontWeight:600,fontSize:13,marginBottom:4}}>{i.candidate}</div>
-                                    <div style={{fontSize:12,color:'var(--text-secondary)',marginBottom:4}}>{i.position}</div>
-                                    <div style={{fontSize:12,color:'var(--text-muted)'}}>{i.interviewer} • {i.date}</div>
+                                    <div style={{fontWeight:600,fontSize:13,marginBottom:4}}>{iv.candidate_name}</div>
+                                    <div style={{fontSize:12,color:'var(--text-secondary)',marginBottom:4}}>{iv.position_title}</div>
+                                    <div style={{fontSize:12,color:'var(--text-muted)'}}>{iv.interviewer||''} {iv.scheduled_at ? new Date(iv.scheduled_at).toLocaleString() : iv.date||''}</div>
                                 </div>
-                                <span className="badge badge-green" style={{fontSize:11}}>{i.status}</span>
+                                <span className="badge badge-green" style={{fontSize:11}}>{iv.status||'Scheduled'}</span>
                             </div>
                         ))}
                     </div>
                 )}
+                </>}
             </div>
+            {showAddPosition && <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}} onClick={()=>setShowAddPosition(false)}>
+                <div className="glass" style={{padding:24,borderRadius:12,width:420,maxHeight:'80vh',overflowY:'auto'}} onClick={e=>e.stopPropagation()}>
+                    <h3 style={{fontSize:16,fontWeight:700,marginBottom:16}}>Add Position</h3>
+                    {['title','department','salary_range','description','requirements'].map(f=>(
+                        <div key={f} style={{marginBottom:12}}>
+                            <label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>{f.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</label>
+                            {f==='description'||f==='requirements' ? <textarea className="input" value={newPosition[f]} onChange={e=>setNewPosition({...newPosition,[f]:e.target.value})} rows={3} style={{fontSize:13,width:'100%'}}/> :
+                            <input className="input" value={newPosition[f]} onChange={e=>setNewPosition({...newPosition,[f]:e.target.value})} style={{fontSize:13,width:'100%'}}/>}
+                        </div>
+                    ))}
+                    <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+                        <button className="btn btn-ghost" onClick={()=>setShowAddPosition(false)}>Cancel</button>
+                        <button className="btn btn-gold" onClick={createPosition}>Create</button>
+                    </div>
+                </div>
+            </div>}
+            {showAddCandidate && <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}} onClick={()=>setShowAddCandidate(false)}>
+                <div className="glass" style={{padding:24,borderRadius:12,width:420,maxHeight:'80vh',overflowY:'auto'}} onClick={e=>e.stopPropagation()}>
+                    <h3 style={{fontSize:16,fontWeight:700,marginBottom:16}}>Add Candidate</h3>
+                    {[{f:'name',type:'text'},{f:'email',type:'email'},{f:'phone',type:'text'},{f:'source',type:'text'}].map(({f,type})=>(
+                        <div key={f} style={{marginBottom:12}}>
+                            <label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>{f.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</label>
+                            <input className="input" type={type} value={newCandidate[f]} onChange={e=>setNewCandidate({...newCandidate,[f]:e.target.value})} style={{fontSize:13,width:'100%'}}/>
+                        </div>
+                    ))}
+                    <div style={{marginBottom:12}}>
+                        <label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Position</label>
+                        <select className="input" value={newCandidate.position_id} onChange={e=>setNewCandidate({...newCandidate,position_id:e.target.value})} style={{fontSize:13,width:'100%'}}>
+                            <option value="">Select Position</option>
+                            {positions.map(p=><option key={p.id} value={p.id}>{p.title}</option>)}
+                        </select>
+                    </div>
+                    <div style={{marginBottom:12}}>
+                        <label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Resume / Notes</label>
+                        <textarea className="input" value={newCandidate.resume_text} onChange={e=>setNewCandidate({...newCandidate,resume_text:e.target.value})} rows={3} style={{fontSize:13,width:'100%'}}/>
+                    </div>
+                    <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+                        <button className="btn btn-ghost" onClick={()=>setShowAddCandidate(false)}>Cancel</button>
+                        <button className="btn btn-gold" onClick={addCandidate}>Add</button>
+                    </div>
+                </div>
+            </div>}
         </div>
     );
 };
 
 // ============ CONSULTATIONS PAGE ============
 const ConsultationsPage = () => {
-    const [consultations, setConsultations] = useState([
-        {id:1, patient:'Sarah Johnson', doctor:'Dr. Smith', date:'2025-02-10 2:00 PM', status:'Completed', duration:'45 min', link:'https://zoom.us/j/123'},
-        {id:2, patient:'Mike Chen', doctor:'Dr. Davis', date:'2025-02-15 10:00 AM', status:'Upcoming', duration:'-', link:'https://zoom.us/j/456'},
-        {id:3, patient:'Emma Wilson', doctor:'Dr. Lee', date:'2025-02-08 1:30 PM', status:'Completed', duration:'30 min', link:'https://zoom.us/j/789'}
-    ]);
+    const [consultations, setConsultations] = useState([]);
+    const [dashboard, setDashboard] = useState(null);
     const [selected, setSelected] = useState(null);
+    const [detail, setDetail] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [analyzing, setAnalyzing] = useState(false);
+    const [showSchedule, setShowSchedule] = useState(false);
+    const [newConsult, setNewConsult] = useState({patient_name:'',doctor_name:'',scheduled_at:'',procedure:'',meeting_link:'',notes:''});
 
-    const selectConsult = (c) => {
-        setSelected(c);
+    const loadData = () => {
+        setLoading(true);
+        Promise.all([
+            apiFetch('/consultations').catch(()=>[]),
+            apiFetch('/consultations/dashboard').catch(()=>null)
+        ]).then(([c, d]) => { setConsultations(c.consultations||c||[]); setDashboard(d); setLoading(false); });
     };
+    useEffect(loadData, []);
+
+    const selectConsult = async (c) => {
+        setSelected(c);
+        try {
+            const d = await apiFetch(`/consultations/${c.id}`);
+            setDetail(d);
+        } catch { setDetail(null); }
+    };
+
+    const scheduleNew = async () => {
+        try {
+            await apiFetch('/consultations', { method:'POST', body:newConsult });
+            setShowSchedule(false); setNewConsult({patient_name:'',doctor_name:'',scheduled_at:'',procedure:'',meeting_link:'',notes:''});
+            loadData();
+        } catch(e) { alert(e.message); }
+    };
+
+    const analyzeConsult = async (id) => {
+        setAnalyzing(true);
+        try {
+            const resp = await apiFetch(`/consultations/${id}/analyze`, { method:'POST' });
+            setDetail(prev => ({...prev, analysis: resp.analysis || resp}));
+        } catch(e) { alert(e.message); }
+        setAnalyzing(false);
+    };
+
+    const ds = dashboard || {};
+    const d = detail || selected || {};
 
     return (
         <div className="fade-in">
             <h1 className="page-title" style={{fontSize:24,fontWeight:700,marginBottom:20}}>Video Consultations</h1>
             <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:24}}>
-                {[{label:'Upcoming',value:'1'},{label:'Completed',value:'5'},{label:'Total Hours',value:'18.5'},{label:'Avg Rating',value:'4.8⭐'}].map(s => (
+                {[{label:'Upcoming',value:ds.upcoming||0},{label:'Completed',value:ds.completed||0},{label:'Total Hours',value:ds.total_hours||0},{label:'Avg Rating',value:ds.avg_rating?ds.avg_rating.toFixed(1):'N/A'}].map(s => (
                     <div key={s.label} className="glass" style={{padding:16,borderRadius:10}}>
                         <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:8}}>{s.label}</div>
                         <div style={{fontSize:24,fontWeight:700,color:'var(--gold)'}}>{s.value}</div>
@@ -2775,57 +3068,76 @@ const ConsultationsPage = () => {
                 <div className="glass" style={{borderRadius:12,padding:16,display:'flex',flexDirection:'column',overflow:'hidden'}}>
                     <div style={{fontWeight:600,fontSize:14,marginBottom:12}}>Consultations</div>
                     <div style={{flex:1,overflowY:'auto',display:'flex',flexDirection:'column',gap:8}} className="scrollbar-hide">
-                        {consultations.map(c => (
+                        {loading ? <div style={{padding:20,textAlign:'center',color:'var(--text-muted)'}}>Loading...</div> : consultations.length===0 ? <div style={{padding:20,textAlign:'center',color:'var(--text-muted)',fontSize:13}}>No consultations yet</div> : consultations.map(c => (
                             <div key={c.id} onClick={()=>selectConsult(c)} style={{padding:12,border:'1px solid var(--border)',borderRadius:8,cursor:'pointer',background:selected?.id===c.id?'rgba(192,196,203,0.08)':'transparent',transition:'all 0.2s'}}>
                                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',marginBottom:6}}>
-                                    <span style={{fontWeight:600,fontSize:13}}>{c.patient}</span>
-                                    <span className={c.status==='Completed'?'badge badge-green':'badge badge-blue'} style={{fontSize:10}}>{c.status}</span>
+                                    <span style={{fontWeight:600,fontSize:13}}>{c.patient_name}</span>
+                                    <span className={c.status==='completed'?'badge badge-green':c.status==='scheduled'?'badge badge-blue':'badge badge-yellow'} style={{fontSize:10}}>{c.status}</span>
                                 </div>
-                                <div style={{fontSize:11,color:'var(--text-secondary)',marginBottom:4}}>{c.doctor}</div>
-                                <div style={{fontSize:11,color:'var(--text-muted)'}}>{c.date}</div>
+                                <div style={{fontSize:11,color:'var(--text-secondary)',marginBottom:4}}>{c.doctor_name} {c.procedure ? '| '+c.procedure : ''}</div>
+                                <div style={{fontSize:11,color:'var(--text-muted)'}}>{c.scheduled_at ? new Date(c.scheduled_at).toLocaleString() : ''}</div>
                             </div>
                         ))}
                     </div>
-                    <button className="btn btn-gold" style={{marginTop:12,fontSize:12}}>+ Schedule Consultation</button>
+                    <button className="btn btn-gold" onClick={()=>setShowSchedule(true)} style={{marginTop:12,fontSize:12}}>+ Schedule Consultation</button>
                 </div>
                 <div className="glass" style={{borderRadius:12,padding:16,display:'flex',flexDirection:'column',overflow:'hidden'}}>
                     {!selected ? (
                         <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-muted)',fontSize:13}}>Select a consultation to view details</div>
-                    ) : selected.status==='Completed' ? (
-                        <>
-                            <div style={{fontWeight:600,fontSize:14,marginBottom:12}}>{selected.patient} - {selected.doctor}</div>
-                            <div style={{marginBottom:16}}>
+                    ) : d.status==='completed' ? (
+                        <div style={{flex:1,overflowY:'auto'}} className="scrollbar-hide">
+                            <div style={{fontWeight:600,fontSize:14,marginBottom:12}}>{d.patient_name} - {d.doctor_name}</div>
+                            {d.transcription && <div style={{marginBottom:16}}>
                                 <div style={{fontSize:12,color:'var(--text-secondary)',marginBottom:8,fontWeight:600}}>Transcription</div>
-                                <div style={{fontSize:12,color:'var(--text-primary)',lineHeight:1.6,padding:12,background:'rgba(255,255,255,0.02)',borderRadius:8,maxHeight:120,overflowY:'auto'}} className="scrollbar-hide">
-                                    Patient reported symptoms and concerns. Doctor provided assessment and recommended follow-up. Prescription details discussed.
-                                </div>
-                            </div>
-                            <div style={{marginBottom:16}}>
-                                <div style={{fontSize:12,color:'var(--text-secondary)',marginBottom:8,fontWeight:600}}>AI Summary & Key Points</div>
-                                <ul style={{fontSize:12,color:'var(--text-primary)',paddingLeft:20,lineHeight:1.8}}>
-                                    <li>Patient presents with symptoms</li>
-                                    <li>Follow-up recommended in 1 week</li>
-                                    <li>Prescription issued</li>
-                                    <li>Patient advised on lifestyle changes</li>
-                                </ul>
-                            </div>
-                            <div style={{marginBottom:16}}>
-                                <div style={{fontSize:12,color:'var(--text-secondary)',marginBottom:8,fontWeight:600}}>AI Suggestions</div>
-                                <div style={{fontSize:12,color:'var(--text-primary)',lineHeight:1.6}}>Schedule follow-up within 7 days. Consider additional lab work. Ensure patient compliance with medication.</div>
-                            </div>
-                        </>
+                                <div style={{fontSize:12,color:'var(--text-primary)',lineHeight:1.6,padding:12,background:'rgba(255,255,255,0.02)',borderRadius:8,maxHeight:120,overflowY:'auto'}} className="scrollbar-hide">{d.transcription}</div>
+                            </div>}
+                            {(d.analysis || d.ai_summary) && <div style={{marginBottom:16}}>
+                                <div style={{fontSize:12,color:'var(--text-secondary)',marginBottom:8,fontWeight:600}}>AI Analysis</div>
+                                <div style={{fontSize:12,color:'var(--text-primary)',lineHeight:1.6,padding:12,background:'rgba(255,255,255,0.02)',borderRadius:8,whiteSpace:'pre-wrap'}}>{typeof (d.analysis||d.ai_summary) === 'object' ? JSON.stringify(d.analysis||d.ai_summary, null, 2) : (d.analysis||d.ai_summary)}</div>
+                            </div>}
+                            {d.coaching_tips && <div style={{marginBottom:16}}>
+                                <div style={{fontSize:12,color:'var(--text-secondary)',marginBottom:8,fontWeight:600}}>Coaching Tips</div>
+                                <div style={{fontSize:12,color:'var(--text-primary)',lineHeight:1.6}}>{typeof d.coaching_tips === 'object' ? JSON.stringify(d.coaching_tips, null, 2) : d.coaching_tips}</div>
+                            </div>}
+                            <button className="btn btn-gold" onClick={()=>analyzeConsult(d.id)} disabled={analyzing} style={{fontSize:12}}>{analyzing?'Analyzing...':'Run AI Analysis'}</button>
+                        </div>
                     ) : (
                         <div style={{flex:1,display:'flex',flexDirection:'column',gap:12}}>
-                            <div><span style={{color:'var(--text-muted)',fontSize:12}}>Patient:</span> <span style={{fontWeight:600,fontSize:13}}>{selected.patient}</span></div>
-                            <div><span style={{color:'var(--text-muted)',fontSize:12}}>Doctor:</span> <span style={{fontWeight:600,fontSize:13}}>{selected.doctor}</span></div>
-                            <div><span style={{color:'var(--text-muted)',fontSize:12}}>Date & Time:</span> <span style={{fontWeight:600,fontSize:13}}>{selected.date}</span></div>
-                            <div style={{marginTop:12}}>
-                                <a href={selected.link} target="_blank" rel="noopener noreferrer" className="btn btn-gold" style={{width:'100%',textAlign:'center',fontSize:12}}>Join Meeting</a>
-                            </div>
+                            <div><span style={{color:'var(--text-muted)',fontSize:12}}>Patient:</span> <span style={{fontWeight:600,fontSize:13}}>{d.patient_name}</span></div>
+                            <div><span style={{color:'var(--text-muted)',fontSize:12}}>Doctor:</span> <span style={{fontWeight:600,fontSize:13}}>{d.doctor_name}</span></div>
+                            <div><span style={{color:'var(--text-muted)',fontSize:12}}>Procedure:</span> <span style={{fontWeight:600,fontSize:13}}>{d.procedure||'General'}</span></div>
+                            <div><span style={{color:'var(--text-muted)',fontSize:12}}>Date & Time:</span> <span style={{fontWeight:600,fontSize:13}}>{d.scheduled_at ? new Date(d.scheduled_at).toLocaleString() : ''}</span></div>
+                            {d.notes && <div><span style={{color:'var(--text-muted)',fontSize:12}}>Notes:</span> <span style={{fontSize:13}}>{d.notes}</span></div>}
+                            {d.meeting_link && <div style={{marginTop:12}}>
+                                <a href={d.meeting_link} target="_blank" rel="noopener noreferrer" className="btn btn-gold" style={{width:'100%',textAlign:'center',fontSize:12}}>Join Meeting</a>
+                            </div>}
                         </div>
                     )}
                 </div>
             </div>
+            {showSchedule && <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}} onClick={()=>setShowSchedule(false)}>
+                <div className="glass" style={{padding:24,borderRadius:12,width:420}} onClick={e=>e.stopPropagation()}>
+                    <h3 style={{fontSize:16,fontWeight:700,marginBottom:16}}>Schedule Consultation</h3>
+                    {['patient_name','doctor_name','procedure','meeting_link'].map(f=>(
+                        <div key={f} style={{marginBottom:12}}>
+                            <label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>{f.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</label>
+                            <input className="input" value={newConsult[f]} onChange={e=>setNewConsult({...newConsult,[f]:e.target.value})} style={{fontSize:13,width:'100%'}}/>
+                        </div>
+                    ))}
+                    <div style={{marginBottom:12}}>
+                        <label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Date & Time</label>
+                        <input className="input" type="datetime-local" value={newConsult.scheduled_at} onChange={e=>setNewConsult({...newConsult,scheduled_at:e.target.value})} style={{fontSize:13,width:'100%'}}/>
+                    </div>
+                    <div style={{marginBottom:12}}>
+                        <label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Notes</label>
+                        <textarea className="input" value={newConsult.notes} onChange={e=>setNewConsult({...newConsult,notes:e.target.value})} rows={3} style={{fontSize:13,width:'100%'}}/>
+                    </div>
+                    <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+                        <button className="btn btn-ghost" onClick={()=>setShowSchedule(false)}>Cancel</button>
+                        <button className="btn btn-gold" onClick={scheduleNew}>Schedule</button>
+                    </div>
+                </div>
+            </div>}
         </div>
     );
 };
@@ -2833,62 +3145,100 @@ const ConsultationsPage = () => {
 // ============ OPERATIONS PAGE ============
 const OperationsPage = () => {
     const [tab, setTab] = useState('billing');
-    const [invoices, setInvoices] = useState([
-        {id:1, number:'INV-001', patient:'Sarah Johnson', amount:2500, status:'Paid', date:'2025-02-01'},
-        {id:2, number:'INV-002', patient:'Mike Chen', amount:1800, status:'Pending', date:'2025-02-05'},
-        {id:3, number:'INV-003', patient:'Emma Wilson', amount:3200, status:'Overdue', date:'2025-01-15'}
-    ]);
-    const [inventory, setInventory] = useState([
-        {id:1, name:'Surgical Masks', category:'PPE', stock:500, minStock:100, supplier:'MedSupply Inc', lastRestocked:'2025-02-01'},
-        {id:2, name:'Syringes (10ml)', category:'Equipment', stock:45, minStock:50, supplier:'MedEquip Ltd', lastRestocked:'2025-01-28'},
-        {id:3, name:'Gauze Pads', category:'Supplies', stock:0, minStock:100, supplier:'MedSupply Inc', lastRestocked:'2025-01-10'}
-    ]);
-    const [patients, setPatients] = useState([
-        {id:1, name:'Sarah Johnson', phone:'555-0101', procedures:3, spent:8500, lastVisit:'2025-02-08'},
-        {id:2, name:'Mike Chen', phone:'555-0102', procedures:5, spent:15200, lastVisit:'2025-02-05'},
-        {id:3, name:'Emma Wilson', phone:'555-0103', procedures:2, spent:4200, lastVisit:'2025-02-01'}
-    ]);
+    const [dashboard, setDashboard] = useState(null);
+    const [inventory, setInventory] = useState([]);
+    const [patients, setPatients] = useState([]);
+    const [procedures, setProcedures] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [showAddItem, setShowAddItem] = useState(false);
+    const [showAddPatient, setShowAddPatient] = useState(false);
+    const [newItem, setNewItem] = useState({name:'',category:'',current_stock:0,min_stock:0,unit_cost:0,supplier:''});
+    const [newPatient, setNewPatient] = useState({name:'',phone:'',email:'',date_of_birth:'',medical_history:''});
+    const [aiLoading, setAiLoading] = useState(null);
+    const [aiResult, setAiResult] = useState(null);
 
+    const loadData = () => {
+        setLoading(true);
+        Promise.all([
+            apiFetch('/operations/dashboard').catch(()=>null),
+            apiFetch('/operations/inventory').catch(()=>[]),
+            apiFetch('/operations/patients').catch(()=>[]),
+            apiFetch('/operations/procedures').catch(()=>[])
+        ]).then(([d, inv, pat, proc]) => { setDashboard(d); setInventory(inv.items||inv||[]); setPatients(pat.patients||pat||[]); setProcedures(proc.procedures||proc||[]); setLoading(false); });
+    };
+    useEffect(loadData, []);
+
+    const addInventoryItem = async () => {
+        try { await apiFetch('/operations/inventory', { method:'POST', body:newItem }); setShowAddItem(false); setNewItem({name:'',category:'',current_stock:0,min_stock:0,unit_cost:0,supplier:''}); loadData(); } catch(e) { alert(e.message); }
+    };
+
+    const addPatientRecord = async () => {
+        try { await apiFetch('/operations/patients', { method:'POST', body:newPatient }); setShowAddPatient(false); setNewPatient({name:'',phone:'',email:'',date_of_birth:'',medical_history:''}); loadData(); } catch(e) { alert(e.message); }
+    };
+
+    const restockItem = async (id) => {
+        const qty = prompt('Enter restock quantity:');
+        if(!qty) return;
+        try { await apiFetch(`/operations/inventory/${id}/restock`, { method:'POST', body:{ quantity: parseInt(qty) }}); loadData(); } catch(e) { alert(e.message); }
+    };
+
+    const runAiAnalysis = async (type) => {
+        setAiLoading(type);
+        try {
+            const resp = await apiFetch(`/operations/ai/${type}`, { method:'POST' });
+            setAiResult({type, data: resp});
+        } catch(e) { alert(e.message); }
+        setAiLoading(null);
+    };
+
+    const ds = dashboard || {};
     const getStockColor = (stock, min) => stock > min ? 'badge-green' : stock > min * 0.5 ? 'badge-yellow' : 'badge-red';
 
     return (
         <div className="fade-in">
             <h1 className="page-title" style={{fontSize:24,fontWeight:700,marginBottom:20}}>Operations</h1>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:16}}>
+                {[{label:'Total Patients',value:ds.total_patients||0},{label:'Active Inventory',value:ds.total_inventory_items||0},{label:'Low Stock Alerts',value:ds.low_stock_count||0},{label:'Procedures Done',value:ds.total_procedures||0}].map(s=>(
+                    <div key={s.label} className="glass" style={{padding:14,borderRadius:10}}>
+                        <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:6}}>{s.label}</div>
+                        <div style={{fontSize:22,fontWeight:700,color:'var(--gold)'}}>{s.value}</div>
+                    </div>
+                ))}
+            </div>
             <div style={{display:'flex',gap:8,marginBottom:16}}>
-                {['billing','inventory','patients'].map(t => (
-                    <button key={t} onClick={()=>setTab(t)} className={tab===t?'btn btn-gold':'btn btn-ghost'} style={{fontSize:13,textTransform:'capitalize'}}>
-                        {t}
-                    </button>
+                {['billing','inventory','patients','ai-insights'].map(t => (
+                    <button key={t} onClick={()=>setTab(t)} className={tab===t?'btn btn-gold':'btn btn-ghost'} style={{fontSize:13,textTransform:'capitalize'}}>{t.replace('-',' ')}</button>
                 ))}
             </div>
             <div className="glass" style={{borderRadius:12,padding:20}}>
+                {loading ? <div style={{textAlign:'center',padding:40,color:'var(--text-muted)'}}>Loading...</div> : <>
                 {tab==='billing' && (
                     <>
                         <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:20}}>
-                            {[{label:'Total Revenue',value:'$26,500'},{label:'Pending Invoices',value:'$1,800'},{label:'Overdue Amount',value:'$3,200'}].map(s => (
+                            {[{label:'Revenue (30d)',value:'$'+(ds.revenue_30d||0).toLocaleString()},{label:'Avg Procedure Value',value:'$'+(ds.avg_procedure_value||0).toFixed(0)},{label:'Total Procedures',value:ds.total_procedures||0}].map(s => (
                                 <div key={s.label} style={{padding:12,background:'rgba(255,255,255,0.02)',borderRadius:8}}>
                                     <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:6}}>{s.label}</div>
                                     <div style={{fontSize:20,fontWeight:700,color:'var(--gold)'}}>{s.value}</div>
                                 </div>
                             ))}
                         </div>
-                        <button className="btn btn-gold" style={{marginBottom:12,fontSize:12}}>+ Create Invoice</button>
+                        <div style={{fontWeight:600,fontSize:13,marginBottom:12}}>Recent Procedures</div>
                         <table style={{width:'100%',fontSize:12}}>
                             <thead><tr style={{borderBottom:'1px solid var(--border)'}}>
-                                <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Invoice #</th>
+                                <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Procedure</th>
                                 <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Patient</th>
-                                <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Amount</th>
-                                <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Status</th>
+                                <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Doctor</th>
+                                <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Revenue</th>
                                 <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Date</th>
                             </tr></thead>
                             <tbody>
-                                {invoices.map(i => (
-                                    <tr key={i.id} style={{borderBottom:'1px solid var(--border)'}}>
-                                        <td style={{padding:12,fontWeight:600}}>{i.number}</td>
-                                        <td style={{padding:12}}>{i.patient}</td>
-                                        <td style={{padding:12,fontWeight:600,color:'var(--gold)'}}>${i.amount}</td>
-                                        <td style={{padding:12}}><span className={i.status==='Paid'?'badge badge-green':i.status==='Pending'?'badge badge-yellow':'badge badge-red'} style={{fontSize:10}}>{i.status}</span></td>
-                                        <td style={{padding:12,color:'var(--text-muted)',fontSize:11}}>{i.date}</td>
+                                {procedures.slice(0,10).map((p,i) => (
+                                    <tr key={p.id||i} style={{borderBottom:'1px solid var(--border)'}}>
+                                        <td style={{padding:12,fontWeight:600}}>{p.name||p.procedure_name||''}</td>
+                                        <td style={{padding:12}}>{p.patient_name||''}</td>
+                                        <td style={{padding:12,color:'var(--text-secondary)'}}>{p.doctor_name||''}</td>
+                                        <td style={{padding:12,fontWeight:600,color:'var(--gold)'}}>${p.revenue||p.cost||0}</td>
+                                        <td style={{padding:12,color:'var(--text-muted)',fontSize:11}}>{p.performed_at ? new Date(p.performed_at).toLocaleDateString() : ''}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -2897,7 +3247,7 @@ const OperationsPage = () => {
                 )}
                 {tab==='inventory' && (
                     <>
-                        <button className="btn btn-gold" style={{marginBottom:12,fontSize:12}}>+ Add Item</button>
+                        <button className="btn btn-gold" onClick={()=>setShowAddItem(true)} style={{marginBottom:12,fontSize:12}}>+ Add Item</button>
                         <table style={{width:'100%',fontSize:12}}>
                             <thead><tr style={{borderBottom:'1px solid var(--border)'}}>
                                 <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Item Name</th>
@@ -2905,17 +3255,17 @@ const OperationsPage = () => {
                                 <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Stock</th>
                                 <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Min Stock</th>
                                 <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Supplier</th>
-                                <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Last Restocked</th>
+                                <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Actions</th>
                             </tr></thead>
                             <tbody>
                                 {inventory.map(item => (
                                     <tr key={item.id} style={{borderBottom:'1px solid var(--border)'}}>
                                         <td style={{padding:12}}>{item.name}</td>
                                         <td style={{padding:12}}><span className="badge badge-gray" style={{fontSize:10}}>{item.category}</span></td>
-                                        <td style={{padding:12}}><span className={`badge ${getStockColor(item.stock, item.minStock)}`} style={{fontSize:10}}>{item.stock}</span></td>
-                                        <td style={{padding:12,color:'var(--text-secondary)'}}>{item.minStock}</td>
+                                        <td style={{padding:12}}><span className={`badge ${getStockColor(item.current_stock, item.min_stock)}`} style={{fontSize:10}}>{item.current_stock}</span></td>
+                                        <td style={{padding:12,color:'var(--text-secondary)'}}>{item.min_stock}</td>
                                         <td style={{padding:12,color:'var(--text-secondary)',fontSize:11}}>{item.supplier}</td>
-                                        <td style={{padding:12,color:'var(--text-muted)',fontSize:11}}>{item.lastRestocked}</td>
+                                        <td style={{padding:12}}><button className="btn btn-ghost" onClick={()=>restockItem(item.id)} style={{fontSize:11}}>Restock</button></td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -2924,11 +3274,12 @@ const OperationsPage = () => {
                 )}
                 {tab==='patients' && (
                     <>
-                        <button className="btn btn-gold" style={{marginBottom:12,fontSize:12}}>+ Add Patient</button>
+                        <button className="btn btn-gold" onClick={()=>setShowAddPatient(true)} style={{marginBottom:12,fontSize:12}}>+ Add Patient</button>
                         <table style={{width:'100%',fontSize:12}}>
                             <thead><tr style={{borderBottom:'1px solid var(--border)'}}>
                                 <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Name</th>
                                 <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Phone</th>
+                                <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Email</th>
                                 <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Procedures</th>
                                 <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Total Spent</th>
                                 <th style={{textAlign:'left',padding:12,fontWeight:600,color:'var(--text-secondary)'}}>Last Visit</th>
@@ -2937,17 +3288,49 @@ const OperationsPage = () => {
                                 {patients.map(p => (
                                     <tr key={p.id} style={{borderBottom:'1px solid var(--border)'}}>
                                         <td style={{padding:12,fontWeight:600}}>{p.name}</td>
-                                        <td style={{padding:12,color:'var(--text-secondary)'}}>{p.phone}</td>
-                                        <td style={{padding:12}}>{p.procedures}</td>
-                                        <td style={{padding:12,fontWeight:600,color:'var(--gold)'}}>${p.spent}</td>
-                                        <td style={{padding:12,color:'var(--text-muted)',fontSize:11}}>{p.lastVisit}</td>
+                                        <td style={{padding:12,color:'var(--text-secondary)'}}>{p.phone||''}</td>
+                                        <td style={{padding:12,color:'var(--text-secondary)',fontSize:11}}>{p.email||''}</td>
+                                        <td style={{padding:12}}>{p.procedure_count||p.total_procedures||0}</td>
+                                        <td style={{padding:12,fontWeight:600,color:'var(--gold)'}}>${p.total_spent||p.total_revenue||0}</td>
+                                        <td style={{padding:12,color:'var(--text-muted)',fontSize:11}}>{p.last_visit ? new Date(p.last_visit).toLocaleDateString() : ''}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </>
                 )}
+                {tab==='ai-insights' && (
+                    <div style={{display:'flex',flexDirection:'column',gap:16}}>
+                        <div style={{display:'flex',gap:8}}>
+                            <button className="btn btn-gold" onClick={()=>runAiAnalysis('inventory-analysis')} disabled={aiLoading==='inventory-analysis'} style={{fontSize:12}}>{aiLoading==='inventory-analysis'?'Analyzing...':'AI Inventory Analysis'}</button>
+                            <button className="btn btn-gold" onClick={()=>runAiAnalysis('patient-insights')} disabled={aiLoading==='patient-insights'} style={{fontSize:12}}>{aiLoading==='patient-insights'?'Analyzing...':'AI Patient Insights'}</button>
+                            <button className="btn btn-gold" onClick={()=>runAiAnalysis('operations-report')} disabled={aiLoading==='operations-report'} style={{fontSize:12}}>{aiLoading==='operations-report'?'Generating...':'AI Operations Report'}</button>
+                        </div>
+                        {aiResult && <div style={{padding:16,background:'rgba(255,255,255,0.02)',borderRadius:8}}>
+                            <div style={{fontSize:13,fontWeight:600,marginBottom:8,color:'var(--gold)'}}>{aiResult.type.replace(/-/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</div>
+                            <div style={{fontSize:12,color:'var(--text-primary)',lineHeight:1.7,whiteSpace:'pre-wrap'}}>{typeof aiResult.data === 'object' ? (aiResult.data.analysis || aiResult.data.insights || aiResult.data.report || JSON.stringify(aiResult.data, null, 2)) : aiResult.data}</div>
+                        </div>}
+                    </div>
+                )}
+                </>}
             </div>
+            {showAddItem && <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}} onClick={()=>setShowAddItem(false)}>
+                <div className="glass" style={{padding:24,borderRadius:12,width:400}} onClick={e=>e.stopPropagation()}>
+                    <h3 style={{fontSize:16,fontWeight:700,marginBottom:16}}>Add Inventory Item</h3>
+                    {['name','category','supplier'].map(f=><div key={f} style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>{f.replace(/\b\w/g,l=>l.toUpperCase())}</label><input className="input" value={newItem[f]} onChange={e=>setNewItem({...newItem,[f]:e.target.value})} style={{fontSize:13,width:'100%'}}/></div>)}
+                    {['current_stock','min_stock','unit_cost'].map(f=><div key={f} style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>{f.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</label><input className="input" type="number" value={newItem[f]} onChange={e=>setNewItem({...newItem,[f]:parseFloat(e.target.value)||0})} style={{fontSize:13,width:'100%'}}/></div>)}
+                    <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}><button className="btn btn-ghost" onClick={()=>setShowAddItem(false)}>Cancel</button><button className="btn btn-gold" onClick={addInventoryItem}>Add</button></div>
+                </div>
+            </div>}
+            {showAddPatient && <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}} onClick={()=>setShowAddPatient(false)}>
+                <div className="glass" style={{padding:24,borderRadius:12,width:400}} onClick={e=>e.stopPropagation()}>
+                    <h3 style={{fontSize:16,fontWeight:700,marginBottom:16}}>Add Patient</h3>
+                    {['name','phone','email'].map(f=><div key={f} style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>{f.replace(/\b\w/g,l=>l.toUpperCase())}</label><input className="input" value={newPatient[f]} onChange={e=>setNewPatient({...newPatient,[f]:e.target.value})} style={{fontSize:13,width:'100%'}}/></div>)}
+                    <div style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Date of Birth</label><input className="input" type="date" value={newPatient.date_of_birth} onChange={e=>setNewPatient({...newPatient,date_of_birth:e.target.value})} style={{fontSize:13,width:'100%'}}/></div>
+                    <div style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Medical History</label><textarea className="input" value={newPatient.medical_history} onChange={e=>setNewPatient({...newPatient,medical_history:e.target.value})} rows={3} style={{fontSize:13,width:'100%'}}/></div>
+                    <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}><button className="btn btn-ghost" onClick={()=>setShowAddPatient(false)}>Cancel</button><button className="btn btn-gold" onClick={addPatientRecord}>Add</button></div>
+                </div>
+            </div>}
         </div>
     );
 };
@@ -2955,29 +3338,80 @@ const OperationsPage = () => {
 // ============ MARKETING HUB PAGE ============
 const MarketingHubPage = () => {
     const [tab, setTab] = useState('performance');
+    const [dashboard, setDashboard] = useState(null);
+    const [adData, setAdData] = useState([]);
+    const [content, setContent] = useState([]);
+    const [reports, setReports] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [filterPlatform, setFilterPlatform] = useState('all');
-    const [adData, setAdData] = useState([
-        {id:1, campaign:'Spring Wellness', impressions:45230, clicks:1450, ctr:'3.2%', cpc:'$0.82', spend:1189, conversions:58, costPer:20.50},
-        {id:2, campaign:'Summer Promo', impressions:32100, clicks:980, ctr:'3.1%', cpc:'$1.05', spend:1029, conversions:42, costPer:24.50},
-        {id:3, campaign:'Brand Awareness', impressions:78000, clicks:2340, ctr:'3.0%', cpc:'$0.65', spend:1521, conversions:71, costPer:21.42}
-    ]);
-    const [content, setContent] = useState([
-        {id:1, type:'Video Script', category:'Dental', preview:'Quick 30-second dental cleaning procedure video..', status:'Generated', score:8.5},
-        {id:2, type:'Image Ad', category:'Orthodontics', preview:'Before/after smile transformation showcase..', status:'Approved', score:9.1},
-        {id:3, type:'UGC', category:'Dental', preview:'Patient testimonial script: real people talking..', status:'Published', score:8.8}
-    ]);
+    const [aiInsights, setAiInsights] = useState(null);
+    const [insightsLoading, setInsightsLoading] = useState(false);
+    const [genContentLoading, setGenContentLoading] = useState(false);
+    const [genReportLoading, setGenReportLoading] = useState(false);
+    const [showGenContent, setShowGenContent] = useState(false);
+    const [contentPrompt, setContentPrompt] = useState({content_type:'video_script', procedure:'', target_audience:'', platform:'instagram', tone:'professional'});
 
-    const contentTypeColor = (type) => {
-        if(type==='Video Script') return 'badge-blue';
-        if(type==='Image Ad') return 'badge-gold';
-        return 'badge-green';
+    const loadData = () => {
+        setLoading(true);
+        Promise.all([
+            apiFetch('/marketing/dashboard').catch(()=>null),
+            apiFetch('/marketing/ad-performance').catch(()=>[]),
+            apiFetch('/marketing/content').catch(()=>[]),
+            apiFetch('/marketing/reports').catch(()=>[])
+        ]).then(([d, ads, cont, reps]) => {
+            setDashboard(d);
+            setAdData(ads.performances||ads||[]);
+            setContent(cont.content_pieces||cont||[]);
+            setReports(reps.reports||reps||[]);
+            setLoading(false);
+        });
     };
+    useEffect(loadData, []);
+
+    const getInsights = async () => {
+        setInsightsLoading(true);
+        try {
+            const resp = await apiFetch('/marketing/ad-performance/insights', { method:'POST' });
+            setAiInsights(resp);
+        } catch(e) { alert(e.message); }
+        setInsightsLoading(false);
+    };
+
+    const generateContent = async () => {
+        setGenContentLoading(true);
+        try {
+            await apiFetch('/marketing/content/generate', { method:'POST', body:contentPrompt });
+            setShowGenContent(false);
+            loadData();
+        } catch(e) { alert(e.message); }
+        setGenContentLoading(false);
+    };
+
+    const generateReport = async () => {
+        setGenReportLoading(true);
+        try {
+            await apiFetch('/marketing/reports/generate', { method:'POST', body:{ report_type:'weekly', platform:'combined' }});
+            loadData();
+        } catch(e) { alert(e.message); }
+        setGenReportLoading(false);
+    };
+
+    const scoreContent = async (id) => {
+        try {
+            await apiFetch(`/marketing/content/${id}/score`, { method:'POST' });
+            loadData();
+        } catch(e) { alert(e.message); }
+    };
+
+    const ds = dashboard || {};
+    const filtered = filterPlatform === 'all' ? adData : adData.filter(a => (a.platform||'').toLowerCase() === filterPlatform.toLowerCase());
+    const contentTypeColor = (t) => t==='video_script'||t==='Video Script'?'badge-blue':t==='image_ad'||t==='Image Ad'?'badge-gold':'badge-green';
 
     return (
         <div className="fade-in">
             <h1 className="page-title" style={{fontSize:24,fontWeight:700,marginBottom:20}}>Marketing Hub</h1>
             <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:24}}>
-                {[{label:'Total Ad Spend',value:'$3,739'},{label:'Total Conversions',value:'171'},{label:'Avg CPC',value:'$0.84'},{label:'Avg ROAS',value:'3.2x'}].map(s => (
+                {[{label:'Total Ad Spend',value:'$'+(ds.total_spend||0).toLocaleString()},{label:'Total Conversions',value:ds.total_conversions||0},{label:'Avg CPC',value:'$'+(ds.avg_cpc||0).toFixed(2)},{label:'Avg ROAS',value:(ds.avg_roas||0).toFixed(1)+'x'}].map(s => (
                     <div key={s.label} className="glass" style={{padding:16,borderRadius:10}}>
                         <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:8}}>{s.label}</div>
                         <div style={{fontSize:24,fontWeight:700,color:'var(--gold)'}}>{s.value}</div>
@@ -2986,95 +3420,115 @@ const MarketingHubPage = () => {
             </div>
             <div style={{display:'flex',gap:8,marginBottom:16}}>
                 {['performance','content','reports'].map(t => (
-                    <button key={t} onClick={()=>setTab(t)} className={tab===t?'btn btn-gold':'btn btn-ghost'} style={{fontSize:13,textTransform:'capitalize'}}>
-                        {t}
-                    </button>
+                    <button key={t} onClick={()=>setTab(t)} className={tab===t?'btn btn-gold':'btn btn-ghost'} style={{fontSize:13,textTransform:'capitalize'}}>{t}</button>
                 ))}
             </div>
             <div className="glass" style={{borderRadius:12,padding:20}}>
+                {loading ? <div style={{textAlign:'center',padding:40,color:'var(--text-muted)'}}>Loading...</div> : <>
                 {tab==='performance' && (
                     <>
                         <div style={{display:'flex',gap:8,marginBottom:16}}>
-                            {['all','Meta','Google'].map(p => (
-                                <button key={p} onClick={()=>setFilterPlatform(p)} className={filterPlatform===p?'btn btn-ghost':'btn btn-ghost'} style={{fontSize:12}}>
-                                    {p}
-                                </button>
+                            {['all','meta','google'].map(p => (
+                                <button key={p} onClick={()=>setFilterPlatform(p)} className={filterPlatform===p?'btn btn-gold':'btn btn-ghost'} style={{fontSize:12,textTransform:'capitalize'}}>{p}</button>
                             ))}
+                            <button className="btn btn-ghost" onClick={getInsights} disabled={insightsLoading} style={{fontSize:12,marginLeft:'auto'}}>{insightsLoading?'Analyzing...':'Get AI Insights'}</button>
                         </div>
+                        {filtered.length===0 ? <div style={{textAlign:'center',padding:40,color:'var(--text-muted)',fontSize:13}}>No ad performance data yet. Add campaign data to get started.</div> :
                         <table style={{width:'100%',fontSize:11}}>
                             <thead><tr style={{borderBottom:'1px solid var(--border)'}}>
                                 <th style={{textAlign:'left',padding:10,fontWeight:600,color:'var(--text-secondary)'}}>Campaign</th>
+                                <th style={{textAlign:'left',padding:10,fontWeight:600,color:'var(--text-secondary)'}}>Platform</th>
                                 <th style={{textAlign:'left',padding:10,fontWeight:600,color:'var(--text-secondary)'}}>Impressions</th>
                                 <th style={{textAlign:'left',padding:10,fontWeight:600,color:'var(--text-secondary)'}}>Clicks</th>
                                 <th style={{textAlign:'left',padding:10,fontWeight:600,color:'var(--text-secondary)'}}>CTR</th>
-                                <th style={{textAlign:'left',padding:10,fontWeight:600,color:'var(--text-secondary)'}}>CPC</th>
                                 <th style={{textAlign:'left',padding:10,fontWeight:600,color:'var(--text-secondary)'}}>Spend</th>
                                 <th style={{textAlign:'left',padding:10,fontWeight:600,color:'var(--text-secondary)'}}>Conversions</th>
                                 <th style={{textAlign:'left',padding:10,fontWeight:600,color:'var(--text-secondary)'}}>Cost/Conv</th>
                             </tr></thead>
                             <tbody>
-                                {adData.map(a => (
+                                {filtered.map(a => (
                                     <tr key={a.id} style={{borderBottom:'1px solid var(--border)'}}>
-                                        <td style={{padding:10,fontWeight:600}}>{a.campaign}</td>
-                                        <td style={{padding:10,color:'var(--text-secondary)'}}>{a.impressions.toLocaleString()}</td>
-                                        <td style={{padding:10,color:'var(--text-secondary)'}}>{a.clicks}</td>
-                                        <td style={{padding:10,color:'var(--success)',fontWeight:600}}>{a.ctr}</td>
-                                        <td style={{padding:10,color:'var(--text-primary)'}}>{a.cpc}</td>
-                                        <td style={{padding:10,fontWeight:600,color:'var(--gold)'}}>${a.spend}</td>
-                                        <td style={{padding:10,color:'var(--info)',fontWeight:600}}>{a.conversions}</td>
-                                        <td style={{padding:10,color:'var(--text-secondary)'}}>${a.costPer.toFixed(2)}</td>
+                                        <td style={{padding:10,fontWeight:600}}>{a.campaign_name||a.campaign||''}</td>
+                                        <td style={{padding:10}}><span className="badge badge-gray" style={{fontSize:10}}>{a.platform||''}</span></td>
+                                        <td style={{padding:10,color:'var(--text-secondary)'}}>{(a.impressions||0).toLocaleString()}</td>
+                                        <td style={{padding:10,color:'var(--text-secondary)'}}>{a.clicks||0}</td>
+                                        <td style={{padding:10,color:'var(--success)',fontWeight:600}}>{a.ctr ? a.ctr.toFixed(1)+'%' : ((a.clicks/(a.impressions||1))*100).toFixed(1)+'%'}</td>
+                                        <td style={{padding:10,fontWeight:600,color:'var(--gold)'}}>${a.spend||0}</td>
+                                        <td style={{padding:10,color:'var(--info)',fontWeight:600}}>{a.conversions||0}</td>
+                                        <td style={{padding:10,color:'var(--text-secondary)'}}>${a.conversions ? ((a.spend||0)/(a.conversions)).toFixed(2) : 'N/A'}</td>
                                     </tr>
                                 ))}
                             </tbody>
-                        </table>
-                        <div style={{marginTop:20,padding:16,background:'rgba(255,255,255,0.02)',borderRadius:8}}>
-                            <div style={{fontSize:12,fontWeight:600,marginBottom:8,color:'var(--text-primary)'}}>AI Optimization Suggestions</div>
-                            <ul style={{fontSize:11,color:'var(--text-secondary)',lineHeight:1.8,paddingLeft:20}}>
-                                <li>Increase budget for "Summer Promo" - highest ROAS at 2.8x</li>
-                                <li>Test new audiences for "Brand Awareness" campaign</li>
-                                <li>Consider A/B testing different ad creatives</li>
-                            </ul>
-                        </div>
+                        </table>}
+                        {aiInsights && <div style={{marginTop:20,padding:16,background:'rgba(255,255,255,0.02)',borderRadius:8}}>
+                            <div style={{fontSize:12,fontWeight:600,marginBottom:8,color:'var(--gold)'}}>AI Optimization Insights</div>
+                            <div style={{fontSize:12,color:'var(--text-primary)',lineHeight:1.7,whiteSpace:'pre-wrap'}}>{typeof aiInsights === 'object' ? (aiInsights.insights || aiInsights.analysis || JSON.stringify(aiInsights, null, 2)) : aiInsights}</div>
+                        </div>}
                     </>
                 )}
                 {tab==='content' && (
                     <>
-                        <button className="btn btn-gold" style={{marginBottom:16,fontSize:12}}>+ Generate New</button>
+                        <button className="btn btn-gold" onClick={()=>setShowGenContent(true)} style={{marginBottom:16,fontSize:12}}>+ Generate Content</button>
+                        {content.length===0 ? <div style={{textAlign:'center',padding:40,color:'var(--text-muted)',fontSize:13}}>No content pieces yet. Generate your first one!</div> :
                         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:12}}>
                             {content.map(c => (
                                 <div key={c.id} style={{padding:16,border:'1px solid var(--border)',borderRadius:10,display:'flex',flexDirection:'column',gap:10}}>
-                                    <div><span className={`badge ${contentTypeColor(c.type)}`} style={{fontSize:10}}>{c.type}</span></div>
-                                    <div><span className="badge badge-gray" style={{fontSize:10}}>{c.category}</span></div>
-                                    <div style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,minHeight:40}}>{c.preview}</div>
+                                    <div><span className={`badge ${contentTypeColor(c.content_type||c.type)}`} style={{fontSize:10}}>{(c.content_type||c.type||'').replace(/_/g,' ')}</span></div>
+                                    {c.procedure && <div><span className="badge badge-gray" style={{fontSize:10}}>{c.procedure}</span></div>}
+                                    <div style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,minHeight:40,overflow:'hidden',textOverflow:'ellipsis',display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical'}}>{c.content||c.preview||''}</div>
                                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                        <span className={c.status==='Approved'?'badge badge-green':c.status==='Published'?'badge badge-blue':'badge badge-yellow'} style={{fontSize:10}}>{c.status}</span>
-                                        <span style={{fontSize:11,color:'var(--gold)',fontWeight:600}}>{c.score}/10</span>
+                                        <span className={c.status==='approved'?'badge badge-green':c.status==='published'?'badge badge-blue':'badge badge-yellow'} style={{fontSize:10}}>{c.status}</span>
+                                        <div style={{display:'flex',alignItems:'center',gap:8}}>
+                                            {c.score && <span style={{fontSize:11,color:'var(--gold)',fontWeight:600}}>{c.score}/10</span>}
+                                            <button className="btn btn-ghost" onClick={()=>scoreContent(c.id)} style={{fontSize:10,padding:'2px 8px'}}>Score</button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
-                        </div>
+                        </div>}
                     </>
                 )}
                 {tab==='reports' && (
                     <>
-                        <button className="btn btn-gold" style={{marginBottom:16,fontSize:12}}>+ Generate Report</button>
+                        <button className="btn btn-gold" onClick={generateReport} disabled={genReportLoading} style={{marginBottom:16,fontSize:12}}>{genReportLoading?'Generating...':'+ Generate Report'}</button>
+                        {reports.length===0 ? <div style={{textAlign:'center',padding:40,color:'var(--text-muted)',fontSize:13}}>No reports generated yet.</div> :
                         <div style={{display:'flex',flexDirection:'column',gap:12}}>
-                            {[{week:'Feb 3-9',platform:'Meta',metrics:'45K impressions, 1.2K clicks, 48 conversions'},{week:'Jan 27 - Feb 2',platform:'Google',metrics:'38K impressions, 890 clicks, 35 conversions'},{week:'Jan 20-26',platform:'Combined',metrics:'89K impressions, 2.5K clicks, 92 conversions'}].map((r,i) => (
-                                <div key={i} style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
+                            {reports.map(r => (
+                                <div key={r.id} style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
                                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',marginBottom:12}}>
                                         <div>
-                                            <div style={{fontWeight:600,fontSize:13,marginBottom:4}}>Week {r.week}</div>
-                                            <span className="badge badge-gray" style={{fontSize:11}}>{r.platform}</span>
+                                            <div style={{fontWeight:600,fontSize:13,marginBottom:4}}>{r.title||r.report_type||'Report'}</div>
+                                            <span className="badge badge-gray" style={{fontSize:11}}>{r.platform||'Combined'}</span>
+                                            <span style={{fontSize:11,color:'var(--text-muted)',marginLeft:8}}>{r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}</span>
                                         </div>
                                     </div>
-                                    <div style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.6}}>{r.metrics}</div>
-                                    <div style={{marginTop:10,fontSize:11,color:'var(--info)'}}>📊 AI Recommendations available</div>
+                                    <div style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.6,whiteSpace:'pre-wrap',maxHeight:100,overflow:'hidden'}}>{typeof r.content === 'object' ? JSON.stringify(r.content).substring(0,200) : (r.content||'').substring(0,200)}...</div>
                                 </div>
                             ))}
-                        </div>
+                        </div>}
                     </>
                 )}
+                </>}
             </div>
+            {showGenContent && <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}} onClick={()=>setShowGenContent(false)}>
+                <div className="glass" style={{padding:24,borderRadius:12,width:420}} onClick={e=>e.stopPropagation()}>
+                    <h3 style={{fontSize:16,fontWeight:700,marginBottom:16}}>Generate Content</h3>
+                    <div style={{marginBottom:12}}>
+                        <label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Content Type</label>
+                        <select className="input" value={contentPrompt.content_type} onChange={e=>setContentPrompt({...contentPrompt,content_type:e.target.value})} style={{fontSize:13,width:'100%'}}>
+                            {['video_script','image_ad','carousel','ugc_script','blog_post','social_caption'].map(t=><option key={t} value={t}>{t.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</option>)}
+                        </select>
+                    </div>
+                    {['procedure','target_audience'].map(f=><div key={f} style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>{f.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</label><input className="input" value={contentPrompt[f]} onChange={e=>setContentPrompt({...contentPrompt,[f]:e.target.value})} style={{fontSize:13,width:'100%'}}/></div>)}
+                    <div style={{marginBottom:12}}>
+                        <label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Platform</label>
+                        <select className="input" value={contentPrompt.platform} onChange={e=>setContentPrompt({...contentPrompt,platform:e.target.value})} style={{fontSize:13,width:'100%'}}>
+                            {['instagram','facebook','youtube','linkedin','tiktok'].map(p=><option key={p} value={p}>{p.charAt(0).toUpperCase()+p.slice(1)}</option>)}
+                        </select>
+                    </div>
+                    <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}><button className="btn btn-ghost" onClick={()=>setShowGenContent(false)}>Cancel</button><button className="btn btn-gold" onClick={generateContent} disabled={genContentLoading}>{genContentLoading?'Generating...':'Generate'}</button></div>
+                </div>
+            </div>}
         </div>
     );
 };
@@ -3083,44 +3537,69 @@ const MarketingHubPage = () => {
 const LegalFinancePage = () => {
     const [tab, setTab] = useState('finance');
     const [filterType, setFilterType] = useState('all');
-    const [records, setRecords] = useState([
-        {id:1, date:'2025-02-05', desc:'Monthly Retainer - Legal Services', category:'Professional Services', amount:5000, type:'expense', method:'Check'},
-        {id:2, date:'2025-02-03', desc:'Patient Invoicing Collection', category:'Revenue', amount:12500, type:'income', method:'Bank Transfer'},
-        {id:3, date:'2025-02-01', desc:'Office Rent', category:'Facilities', amount:3500, type:'expense', method:'ACH'},
-        {id:4, date:'2025-01-28', desc:'Patient Invoicing Collection', category:'Revenue', amount:8200, type:'income', method:'Credit Card'}
-    ]);
-    const [documents, setDocuments] = useState([
-        {id:1, title:'Service Agreement', type:'Contract', status:'Active', validUntil:'2026-02-01'},
-        {id:2, title:'Employee NDA', type:'NDA', status:'Active', validUntil:'2027-06-15'},
-        {id:3, title:'Privacy Policy', type:'Policy', status:'Active', validUntil:'Ongoing'},
-        {id:4, title:'Vendor Contract - ABC Supplies', type:'Contract', status:'Expired', validUntil:'2024-12-31'},
-        {id:5, title:'Partnership Agreement', type:'Agreement', status:'Draft', validUntil:'Pending'}
-    ]);
+    const [financeDash, setFinanceDash] = useState(null);
+    const [records, setRecords] = useState([]);
+    const [invoices, setInvoices] = useState([]);
+    const [documents, setDocuments] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [showAddRecord, setShowAddRecord] = useState(false);
+    const [showAddDoc, setShowAddDoc] = useState(false);
+    const [showAddInvoice, setShowAddInvoice] = useState(false);
+    const [newRecord, setNewRecord] = useState({description:'',category:'',amount:0,record_type:'expense',payment_method:''});
+    const [newDoc, setNewDoc] = useState({title:'',document_type:'contract',status:'draft',valid_until:'',content:''});
+    const [newInvoice, setNewInvoice] = useState({patient_name:'',patient_email:'',items:[{description:'',amount:0}],due_date:'',notes:''});
 
-    const typeColor = (type) => {
-        if(type==='Contract') return 'badge-blue';
-        if(type==='NDA') return 'badge-gold';
-        if(type==='Policy') return 'badge-gray';
-        return 'badge-green';
+    const loadData = () => {
+        setLoading(true);
+        Promise.all([
+            apiFetch('/finance/dashboard').catch(()=>null),
+            apiFetch('/finance/records').catch(()=>[]),
+            apiFetch('/finance/invoices').catch(()=>[]),
+            apiFetch('/legal/documents').catch(()=>[])
+        ]).then(([fd, recs, invs, docs]) => {
+            setFinanceDash(fd);
+            setRecords(recs.records||recs||[]);
+            setInvoices(invs.invoices||invs||[]);
+            setDocuments(docs.documents||docs||[]);
+            setLoading(false);
+        });
+    };
+    useEffect(loadData, []);
+
+    const addRecord = async () => {
+        try { await apiFetch('/finance/records', { method:'POST', body:newRecord }); setShowAddRecord(false); setNewRecord({description:'',category:'',amount:0,record_type:'expense',payment_method:''}); loadData(); } catch(e) { alert(e.message); }
     };
 
-    const filtered = filterType==='all' ? records : records.filter(r => r.type === filterType);
+    const addDocument = async () => {
+        try { await apiFetch('/legal/documents', { method:'POST', body:newDoc }); setShowAddDoc(false); setNewDoc({title:'',document_type:'contract',status:'draft',valid_until:'',content:''}); loadData(); } catch(e) { alert(e.message); }
+    };
+
+    const createInvoice = async () => {
+        try { await apiFetch('/finance/invoices', { method:'POST', body:newInvoice }); setShowAddInvoice(false); setNewInvoice({patient_name:'',patient_email:'',items:[{description:'',amount:0}],due_date:'',notes:''}); loadData(); } catch(e) { alert(e.message); }
+    };
+
+    const markPaid = async (id) => {
+        try { await apiFetch(`/finance/invoices/${id}/mark-paid`, { method:'PUT' }); loadData(); } catch(e) { alert(e.message); }
+    };
+
+    const fd = financeDash || {};
+    const filtered = filterType==='all' ? records : records.filter(r => r.record_type === filterType);
+    const typeColor = (t) => t==='contract'?'badge-blue':t==='nda'?'badge-gold':t==='policy'?'badge-gray':'badge-green';
 
     return (
         <div className="fade-in">
             <h1 className="page-title" style={{fontSize:24,fontWeight:700,marginBottom:20}}>Legal & Finance</h1>
             <div style={{display:'flex',gap:8,marginBottom:16}}>
-                {['finance','legal'].map(t => (
-                    <button key={t} onClick={()=>setTab(t)} className={tab===t?'btn btn-gold':'btn btn-ghost'} style={{fontSize:13,textTransform:'capitalize'}}>
-                        {t}
-                    </button>
+                {['finance','invoices','legal'].map(t => (
+                    <button key={t} onClick={()=>setTab(t)} className={tab===t?'btn btn-gold':'btn btn-ghost'} style={{fontSize:13,textTransform:'capitalize'}}>{t}</button>
                 ))}
             </div>
             <div className="glass" style={{borderRadius:12,padding:20}}>
+                {loading ? <div style={{textAlign:'center',padding:40,color:'var(--text-muted)'}}>Loading...</div> : <>
                 {tab==='finance' && (
                     <>
                         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:20}}>
-                            {[{label:'Monthly Revenue',value:'$20,700'},{label:'Monthly Expenses',value:'$8,500'},{label:'Net Profit',value:'$12,200'},{label:'Outstanding',value:'$4,250'}].map(s => (
+                            {[{label:'Total Revenue',value:'$'+(fd.total_revenue||0).toLocaleString()},{label:'Total Expenses',value:'$'+(fd.total_expenses||0).toLocaleString()},{label:'Net Profit',value:'$'+(fd.net_profit||(fd.total_revenue||0)-(fd.total_expenses||0)).toLocaleString()},{label:'Outstanding',value:'$'+(fd.outstanding_amount||0).toLocaleString()}].map(s => (
                                 <div key={s.label} style={{padding:12,background:'rgba(255,255,255,0.02)',borderRadius:8}}>
                                     <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:6}}>{s.label}</div>
                                     <div style={{fontSize:18,fontWeight:700,color:'var(--gold)'}}>{s.value}</div>
@@ -3129,12 +3608,11 @@ const LegalFinancePage = () => {
                         </div>
                         <div style={{display:'flex',gap:8,marginBottom:16}}>
                             {['all','income','expense'].map(f => (
-                                <button key={f} onClick={()=>setFilterType(f)} className={filterType===f?'btn btn-ghost':'btn btn-ghost'} style={{fontSize:12,textTransform:'capitalize'}}>
-                                    {f}
-                                </button>
+                                <button key={f} onClick={()=>setFilterType(f)} className={filterType===f?'btn btn-gold':'btn btn-ghost'} style={{fontSize:12,textTransform:'capitalize'}}>{f}</button>
                             ))}
                         </div>
-                        <button className="btn btn-gold" style={{marginBottom:12,fontSize:12}}>+ Add Record</button>
+                        <button className="btn btn-gold" onClick={()=>setShowAddRecord(true)} style={{marginBottom:12,fontSize:12}}>+ Add Record</button>
+                        {filtered.length===0 ? <div style={{textAlign:'center',padding:20,color:'var(--text-muted)',fontSize:13}}>No financial records yet</div> :
                         <table style={{width:'100%',fontSize:12}}>
                             <thead><tr style={{borderBottom:'1px solid var(--border)'}}>
                                 <th style={{textAlign:'left',padding:10,fontWeight:600,color:'var(--text-secondary)'}}>Date</th>
@@ -3146,35 +3624,94 @@ const LegalFinancePage = () => {
                             <tbody>
                                 {filtered.map(r => (
                                     <tr key={r.id} style={{borderBottom:'1px solid var(--border)'}}>
-                                        <td style={{padding:10,color:'var(--text-muted)',fontSize:11}}>{r.date}</td>
-                                        <td style={{padding:10,fontWeight:600}}>{r.desc}</td>
-                                        <td style={{padding:10}}><span className="badge badge-gray" style={{fontSize:10}}>{r.category}</span></td>
-                                        <td style={{padding:10,fontWeight:700,color:r.type==='income'?'var(--success)':'var(--danger)'}}>{r.type==='income'?'+':'-'}${Math.abs(r.amount)}</td>
-                                        <td style={{padding:10,color:'var(--text-secondary)',fontSize:11}}>{r.method}</td>
+                                        <td style={{padding:10,color:'var(--text-muted)',fontSize:11}}>{r.created_at ? new Date(r.created_at).toLocaleDateString() : r.date||''}</td>
+                                        <td style={{padding:10,fontWeight:600}}>{r.description}</td>
+                                        <td style={{padding:10}}><span className="badge badge-gray" style={{fontSize:10}}>{r.category||''}</span></td>
+                                        <td style={{padding:10,fontWeight:700,color:r.record_type==='income'?'var(--success)':'var(--danger)'}}>{r.record_type==='income'?'+':'-'}${Math.abs(r.amount||0)}</td>
+                                        <td style={{padding:10,color:'var(--text-secondary)',fontSize:11}}>{r.payment_method||''}</td>
                                     </tr>
                                 ))}
                             </tbody>
-                        </table>
+                        </table>}
+                    </>
+                )}
+                {tab==='invoices' && (
+                    <>
+                        <button className="btn btn-gold" onClick={()=>setShowAddInvoice(true)} style={{marginBottom:12,fontSize:12}}>+ Create Invoice</button>
+                        {invoices.length===0 ? <div style={{textAlign:'center',padding:20,color:'var(--text-muted)',fontSize:13}}>No invoices yet</div> :
+                        <table style={{width:'100%',fontSize:12}}>
+                            <thead><tr style={{borderBottom:'1px solid var(--border)'}}>
+                                <th style={{textAlign:'left',padding:10,fontWeight:600,color:'var(--text-secondary)'}}>Invoice #</th>
+                                <th style={{textAlign:'left',padding:10,fontWeight:600,color:'var(--text-secondary)'}}>Patient</th>
+                                <th style={{textAlign:'left',padding:10,fontWeight:600,color:'var(--text-secondary)'}}>Amount</th>
+                                <th style={{textAlign:'left',padding:10,fontWeight:600,color:'var(--text-secondary)'}}>Status</th>
+                                <th style={{textAlign:'left',padding:10,fontWeight:600,color:'var(--text-secondary)'}}>Due Date</th>
+                                <th style={{textAlign:'left',padding:10,fontWeight:600,color:'var(--text-secondary)'}}>Actions</th>
+                            </tr></thead>
+                            <tbody>
+                                {invoices.map(inv => (
+                                    <tr key={inv.id} style={{borderBottom:'1px solid var(--border)'}}>
+                                        <td style={{padding:10,fontWeight:600}}>{inv.invoice_number||'INV-'+inv.id}</td>
+                                        <td style={{padding:10}}>{inv.patient_name||''}</td>
+                                        <td style={{padding:10,fontWeight:600,color:'var(--gold)'}}>${inv.total_amount||inv.amount||0}</td>
+                                        <td style={{padding:10}}><span className={inv.status==='paid'?'badge badge-green':inv.status==='overdue'?'badge badge-red':'badge badge-yellow'} style={{fontSize:10}}>{inv.status}</span></td>
+                                        <td style={{padding:10,color:'var(--text-muted)',fontSize:11}}>{inv.due_date ? new Date(inv.due_date).toLocaleDateString() : ''}</td>
+                                        <td style={{padding:10}}>{inv.status!=='paid' && <button className="btn btn-ghost" onClick={()=>markPaid(inv.id)} style={{fontSize:11}}>Mark Paid</button>}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>}
                     </>
                 )}
                 {tab==='legal' && (
                     <>
-                        <button className="btn btn-gold" style={{marginBottom:16,fontSize:12}}>+ Upload Document</button>
+                        <button className="btn btn-gold" onClick={()=>setShowAddDoc(true)} style={{marginBottom:16,fontSize:12}}>+ Add Document</button>
+                        {documents.length===0 ? <div style={{textAlign:'center',padding:20,color:'var(--text-muted)',fontSize:13}}>No legal documents yet</div> :
                         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:12}}>
                             {documents.map(d => (
                                 <div key={d.id} style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
                                     <div style={{fontWeight:600,fontSize:13,marginBottom:12}}>{d.title}</div>
                                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-                                        <span className={`badge ${typeColor(d.type)}`} style={{fontSize:10}}>{d.type}</span>
-                                        <span className={d.status==='Active'?'badge badge-green':d.status==='Expired'?'badge badge-red':'badge badge-yellow'} style={{fontSize:10}}>{d.status}</span>
+                                        <span className={`badge ${typeColor(d.document_type||d.type)}`} style={{fontSize:10}}>{d.document_type||d.type||''}</span>
+                                        <span className={d.status==='active'?'badge badge-green':d.status==='expired'?'badge badge-red':'badge badge-yellow'} style={{fontSize:10}}>{d.status}</span>
                                     </div>
-                                    <div style={{fontSize:11,color:'var(--text-muted)'}}>Valid until: {d.validUntil}</div>
+                                    <div style={{fontSize:11,color:'var(--text-muted)'}}>Valid until: {d.valid_until ? new Date(d.valid_until).toLocaleDateString() : d.valid_until||'Ongoing'}</div>
                                 </div>
                             ))}
-                        </div>
+                        </div>}
                     </>
                 )}
+                </>}
             </div>
+            {showAddRecord && <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}} onClick={()=>setShowAddRecord(false)}>
+                <div className="glass" style={{padding:24,borderRadius:12,width:400}} onClick={e=>e.stopPropagation()}>
+                    <h3 style={{fontSize:16,fontWeight:700,marginBottom:16}}>Add Financial Record</h3>
+                    <div style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Type</label><select className="input" value={newRecord.record_type} onChange={e=>setNewRecord({...newRecord,record_type:e.target.value})} style={{fontSize:13,width:'100%'}}><option value="income">Income</option><option value="expense">Expense</option></select></div>
+                    {['description','category','payment_method'].map(f=><div key={f} style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>{f.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</label><input className="input" value={newRecord[f]} onChange={e=>setNewRecord({...newRecord,[f]:e.target.value})} style={{fontSize:13,width:'100%'}}/></div>)}
+                    <div style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Amount</label><input className="input" type="number" value={newRecord.amount} onChange={e=>setNewRecord({...newRecord,amount:parseFloat(e.target.value)||0})} style={{fontSize:13,width:'100%'}}/></div>
+                    <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}><button className="btn btn-ghost" onClick={()=>setShowAddRecord(false)}>Cancel</button><button className="btn btn-gold" onClick={addRecord}>Add</button></div>
+                </div>
+            </div>}
+            {showAddDoc && <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}} onClick={()=>setShowAddDoc(false)}>
+                <div className="glass" style={{padding:24,borderRadius:12,width:400}} onClick={e=>e.stopPropagation()}>
+                    <h3 style={{fontSize:16,fontWeight:700,marginBottom:16}}>Add Legal Document</h3>
+                    <div style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Title</label><input className="input" value={newDoc.title} onChange={e=>setNewDoc({...newDoc,title:e.target.value})} style={{fontSize:13,width:'100%'}}/></div>
+                    <div style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Type</label><select className="input" value={newDoc.document_type} onChange={e=>setNewDoc({...newDoc,document_type:e.target.value})} style={{fontSize:13,width:'100%'}}>{['contract','nda','policy','agreement','license'].map(t=><option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}</select></div>
+                    <div style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Status</label><select className="input" value={newDoc.status} onChange={e=>setNewDoc({...newDoc,status:e.target.value})} style={{fontSize:13,width:'100%'}}>{['draft','active','expired','terminated'].map(s=><option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>)}</select></div>
+                    <div style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Valid Until</label><input className="input" type="date" value={newDoc.valid_until} onChange={e=>setNewDoc({...newDoc,valid_until:e.target.value})} style={{fontSize:13,width:'100%'}}/></div>
+                    <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}><button className="btn btn-ghost" onClick={()=>setShowAddDoc(false)}>Cancel</button><button className="btn btn-gold" onClick={addDocument}>Add</button></div>
+                </div>
+            </div>}
+            {showAddInvoice && <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}} onClick={()=>setShowAddInvoice(false)}>
+                <div className="glass" style={{padding:24,borderRadius:12,width:420}} onClick={e=>e.stopPropagation()}>
+                    <h3 style={{fontSize:16,fontWeight:700,marginBottom:16}}>Create Invoice</h3>
+                    {['patient_name','patient_email'].map(f=><div key={f} style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>{f.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</label><input className="input" value={newInvoice[f]} onChange={e=>setNewInvoice({...newInvoice,[f]:e.target.value})} style={{fontSize:13,width:'100%'}}/></div>)}
+                    <div style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Item Description</label><input className="input" value={newInvoice.items[0].description} onChange={e=>setNewInvoice({...newInvoice,items:[{...newInvoice.items[0],description:e.target.value}]})} style={{fontSize:13,width:'100%'}}/></div>
+                    <div style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Amount</label><input className="input" type="number" value={newInvoice.items[0].amount} onChange={e=>setNewInvoice({...newInvoice,items:[{...newInvoice.items[0],amount:parseFloat(e.target.value)||0}]})} style={{fontSize:13,width:'100%'}}/></div>
+                    <div style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Due Date</label><input className="input" type="date" value={newInvoice.due_date} onChange={e=>setNewInvoice({...newInvoice,due_date:e.target.value})} style={{fontSize:13,width:'100%'}}/></div>
+                    <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}><button className="btn btn-ghost" onClick={()=>setShowAddInvoice(false)}>Cancel</button><button className="btn btn-gold" onClick={createInvoice}>Create</button></div>
+                </div>
+            </div>}
         </div>
     );
 };
