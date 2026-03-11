@@ -40,26 +40,31 @@
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
         /* Glass morphism */
-        .glass { background: var(--bg-card); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--border); }
-        .glass:hover { border-color: var(--border-hover); }
+        .glass { background: var(--bg-card); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--border); transition: border-color 0.3s, box-shadow 0.3s, transform 0.2s; }
+        .glass:hover { border-color: var(--border-hover); box-shadow: 0 4px 24px rgba(0,0,0,0.15); }
         .glass-solid { background: var(--bg-secondary); border: 1px solid var(--border); }
 
         /* Buttons */
-        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; border: none; font-family: inherit; }
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 10px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94); border: none; font-family: inherit; position: relative; overflow: hidden; }
+        .btn::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), rgba(255,255,255,0.15), transparent 60%); opacity: 0; transition: opacity 0.4s; }
+        .btn:active::after { opacity: 1; }
+        .btn:active { transform: scale(0.97); }
         .btn-gold { background: linear-gradient(135deg, var(--gold), var(--gold-light)); color: #000; }
-        .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(192, 196, 203, 0.3); }
+        .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(192, 196, 203, 0.25); }
+        .btn-gold:active { transform: translateY(0) scale(0.97); }
         .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
-        .btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+        .btn-ghost:hover { border-color: var(--gold); color: var(--gold); background: rgba(192,196,203,0.04); }
         .btn-danger { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #EF4444; }
-        .btn-danger:hover { background: rgba(239, 68, 68, 0.25); }
+        .btn-danger:hover { background: rgba(239, 68, 68, 0.25); transform: translateY(-1px); }
         .btn-sm { padding: 6px 14px; font-size: 13px; }
         .btn-xs { padding: 4px 10px; font-size: 12px; border-radius: 6px; }
+        .btn[disabled] { opacity: 0.5; cursor: not-allowed; transform: none !important; }
 
         /* Inputs */
-        .input { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-family: inherit; font-size: 14px; outline: none; transition: border-color 0.2s; }
-        .input:focus { border-color: var(--gold); }
+        .input { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-family: inherit; font-size: 14px; outline: none; transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+        .input:focus { border-color: var(--gold); background: rgba(255,255,255,0.06); box-shadow: 0 0 0 3px rgba(192,196,203,0.08); }
         .input::placeholder { color: var(--text-muted); }
-        select.input { cursor: pointer; }
+        select.input { cursor: pointer; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394A3B8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
         textarea.input { resize: vertical; min-height: 80px; }
 
         /* Score Ring */
@@ -78,15 +83,30 @@
 
         /* Animations */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInScale { from { opacity: 0; transform: scale(0.95) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
         @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideInLeft { from { transform: translateX(-20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes recPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.7); } 70% { box-shadow: 0 0 0 15px rgba(239,68,68,0); } }
         @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes pageEnter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        @keyframes toastSlide { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes toastOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+        @keyframes countUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes subtleFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+        @keyframes glowPulse { 0%, 100% { box-shadow: 0 0 8px rgba(192,196,203,0.1); } 50% { box-shadow: 0 0 20px rgba(192,196,203,0.2); } }
+        .fade-in { animation: pageEnter 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
         .recording-pulse { animation: recPulse 1s infinite; }
         .pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .tip-card { animation: slideIn 0.3s ease-out; }
+        .pop-in { animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        .stagger-1 { animation-delay: 0.05s; opacity: 0; }
+        .stagger-2 { animation-delay: 0.1s; opacity: 0; }
+        .stagger-3 { animation-delay: 0.15s; opacity: 0; }
+        .stagger-4 { animation-delay: 0.2s; opacity: 0; }
 
         /* Stage columns for pipeline */
         .stage-col { min-width: 280px; }
@@ -95,9 +115,16 @@
         .text-gradient { background: linear-gradient(135deg, #C0C4CB, #F5F6F8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 
         /* Sidebar */
-        .sidebar-link { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 8px; color: var(--text-secondary); font-weight: 500; font-size: 14px; transition: all 0.2s; cursor: pointer; text-decoration: none; }
+        .sidebar-link { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-radius: 9px; color: var(--text-secondary); font-weight: 500; font-size: 13px; transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94); cursor: pointer; text-decoration: none; border: 1px solid transparent; position: relative; }
         .sidebar-link:hover { color: var(--text-primary); background: rgba(192, 196, 203, 0.06); }
-        .sidebar-link.active { color: var(--gold); background: rgba(192, 196, 203, 0.1); border: 1px solid rgba(192, 196, 203, 0.15); }
+        .sidebar-link.active { color: var(--gold-light); background: rgba(192, 196, 203, 0.1); border-color: rgba(192, 196, 203, 0.12); }
+        .sidebar-link.active::before { content: ''; position: absolute; left: -12px; top: 50%; transform: translateY(-50%); width: 3px; height: 18px; background: var(--gold); border-radius: 0 3px 3px 0; }
+        .nav-group-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 16px 14px 6px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; transition: color 0.2s; }
+        .nav-group-label:hover { color: var(--text-secondary); }
+        .nav-group-label .chevron { transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94); font-size: 10px; }
+        .nav-group-label .chevron.collapsed { transform: rotate(-90deg); }
+        .nav-group-items { overflow: hidden; transition: max-height 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.25s; }
+        .nav-group-items.collapsed { max-height: 0 !important; opacity: 0; }
 
         /* Table */
         .table-row { transition: background 0.15s; }
@@ -136,22 +163,47 @@
         @keyframes typingBounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
 
         /* Tab nav */
-        .detail-tab { padding: 10px 20px; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; color: var(--text-muted); background: transparent; border: none; border-bottom: 2px solid transparent; }
-        .detail-tab:hover { color: var(--text-secondary); }
+        .detail-tab { padding: 10px 20px; border-radius: 10px 10px 0 0; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94); color: var(--text-muted); background: transparent; border: none; border-bottom: 2px solid transparent; position: relative; }
+        .detail-tab:hover { color: var(--text-secondary); background: rgba(192,196,203,0.03); }
         .detail-tab.active { color: var(--gold); border-bottom-color: var(--gold); background: rgba(192,196,203,0.06); }
+        .detail-tab:active { transform: scale(0.97); }
+
+        /* Toast notifications */
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+        .toast { pointer-events: auto; padding: 12px 18px; border-radius: 12px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 10px; animation: toastSlide 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); backdrop-filter: blur(20px); border: 1px solid var(--border); min-width: 280px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+        .toast.exit { animation: toastOut 0.25s ease-in forwards; }
+        .toast-success { background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.3); color: #22C55E; }
+        .toast-error { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.3); color: #EF4444; }
+        .toast-info { background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.3); color: #3B82F6; }
+
+        /* Stat card hover */
+        .stat-card-hover { transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+        .stat-card-hover:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0,0,0,0.2); border-color: var(--border-hover); }
 
         /* Mobile hamburger */
-        .mobile-header { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 60; background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 12px 16px; align-items: center; justify-content: space-between; }
-        .hamburger { background: none; border: none; color: var(--text-primary); cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; }
-        .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 55; }
-        .mobile-overlay.show { display: block; }
+        .mobile-header { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 60; background: rgba(13,17,23,0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); padding: 10px 16px; align-items: center; justify-content: space-between; }
+        .hamburger { background: none; border: none; color: var(--text-primary); cursor: pointer; padding: 6px; display: flex; align-items: center; justify-content: center; border-radius: 8px; transition: background 0.2s; -webkit-tap-highlight-color: transparent; }
+        .hamburger:active { background: rgba(192,196,203,0.1); }
+        .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 55; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.3s; }
+        .mobile-overlay.show { display: block; opacity: 1; }
+
+        /* Bottom tab bar (mobile) */
+        .bottom-tab-bar { display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 60; background: rgba(13,17,23,0.95); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-top: 1px solid var(--border); padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); }
+        .bottom-tab-bar-inner { display: flex; justify-content: space-around; align-items: center; }
+        .bottom-tab { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 8px; border-radius: 10px; background: none; border: none; color: var(--text-muted); font-size: 9px; font-weight: 600; cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent; min-width: 56px; }
+        .bottom-tab:active { transform: scale(0.9); }
+        .bottom-tab.active { color: var(--gold-light); }
+        .bottom-tab.active svg { filter: drop-shadow(0 0 4px rgba(192,196,203,0.3)); }
+        .bottom-tab svg { width: 20px; height: 20px; transition: all 0.2s; }
+        .bottom-tab-more { position: relative; }
 
         /* Responsive */
         @media (max-width: 768px) {
             .mobile-header { display: flex; }
-            .desktop-sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
+            .bottom-tab-bar { display: block; }
+            .desktop-sidebar { transform: translateX(-100%); transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
             .desktop-sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0 !important; padding: 72px 16px 24px 16px !important; max-width: 100% !important; }
+            .main-content { margin-left: 0 !important; padding: 60px 16px 80px 16px !important; max-width: 100% !important; }
             .stat-card-row { gap: 10px !important; }
             .stat-card-row > div { min-width: calc(50% - 8px) !important; flex: 0 0 calc(50% - 8px) !important; }
             .resp-grid-2 { grid-template-columns: 1fr !important; }
@@ -166,16 +218,26 @@
             .btn-sm { padding: 6px 10px; font-size: 12px; }
             h1 { font-size: 20px !important; }
             .resp-header { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
+            .toast-container { top: auto; bottom: 80px; right: 12px; left: 12px; }
+            .toast { min-width: auto; }
         }
 
         @media (max-width: 480px) {
-            .main-content { padding: 64px 12px 20px 12px !important; }
+            .main-content { padding: 56px 12px 78px 12px !important; }
             .stat-card-row > div { min-width: 100% !important; flex: 0 0 100% !important; }
             .resp-grid-3 { grid-template-columns: 1fr !important; }
             .resp-grid-4 { grid-template-columns: 1fr !important; }
             .btn { padding: 8px 12px; font-size: 12px; gap: 6px; }
             .badge { font-size: 10px; padding: 2px 8px; }
             .glass { padding: 14px !important; }
+        }
+
+        /* Touch optimizations */
+        @media (hover: none) {
+            .btn:hover { transform: none; box-shadow: none; }
+            .btn-gold:hover { transform: none; }
+            .glass:hover { border-color: var(--border); box-shadow: none; }
+            .sidebar-link:hover { background: transparent; color: var(--text-secondary); }
         }
     </style>
 </head>
@@ -312,12 +374,40 @@ const ScoreRing = ({ score, size = 56, strokeWidth = 4 }) => {
 
 // ============ STAT CARD ============
 const StatCard = ({ label, value, sub, accent }) => (
-    <div className="glass fade-in" style={{padding:'20px 24px',borderRadius:12,flex:1,minWidth:180}}>
-        <div style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>{label}</div>
-        <div style={{fontSize:28,fontWeight:700,color: accent || 'var(--text-primary)',letterSpacing:'-0.02em'}}>{value}</div>
+    <div className="glass stat-card-hover fade-in" style={{padding:'20px 24px',borderRadius:14,flex:1,minWidth:180}}>
+        <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>{label}</div>
+        <div style={{fontSize:28,fontWeight:700,color: accent || 'var(--text-primary)',letterSpacing:'-0.02em',animation:'countUp 0.4s ease-out'}}>{value}</div>
         {sub && <div style={{fontSize:12,color:'var(--text-secondary)',marginTop:4}}>{sub}</div>}
     </div>
 );
+
+// ============ TOAST SYSTEM ============
+const ToastContext = React.createContext({});
+const ToastProvider = ({ children }) => {
+    const [toasts, setToasts] = useState([]);
+    const addToast = useCallback((message, type='info') => {
+        const id = Date.now();
+        setToasts(prev => [...prev, {id, message, type}]);
+        setTimeout(() => setToasts(prev => prev.map(t => t.id===id ? {...t, exit:true} : t)), 3000);
+        setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3400);
+    }, []);
+    return (
+        <ToastContext.Provider value={{addToast}}>
+            {children}
+            <div className="toast-container">
+                {toasts.map(t => (
+                    <div key={t.id} className={`toast toast-${t.type} ${t.exit?'exit':''}`}>
+                        {t.type==='success' && <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>}
+                        {t.type==='error' && <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>}
+                        {t.type==='info' && <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>}
+                        <span>{t.message}</span>
+                    </div>
+                ))}
+            </div>
+        </ToastContext.Provider>
+    );
+};
+const useToast = () => React.useContext(ToastContext);
 
 // ============ LOGIN PAGE ============
 const ForgotPasswordModal = ({ onClose }) => {
@@ -5169,29 +5259,57 @@ const App = () => {
 
     if (!authed) return <LoginPage onLogin={()=>setAuthed(true)}/>;
 
-    const navItems = [
-        {id:'dashboard',label:'Dashboard',icon:Icons.dashboard},
-        {id:'calls',label:'Calls',icon:Icons.calls},
-        {id:'pipeline',label:'Pipeline',icon:Icons.pipeline},
-        {id:'leads',label:'Leads',icon:Icons.leads},
-        {id:'contacts',label:'Contacts',icon:Icons.contacts},
-        {id:'unified-inbox',label:'Conversations',icon:Icons.unified},
-        {id:'inbox',label:'WhatsApp',icon:Icons.whatsapp},
-        {id:'ai-employee',label:'AI Employee',icon:Icons.robot},
-        {id:'nurture',label:'Nurture',icon:Icons.nurture},
-        {id:'marketing-hub',label:'Marketing',icon:Icons.marketing},
-        {id:'meta-ads',label:'Meta Ads',icon:Icons.target},
-        {id:'google-ads',label:'Google Ads',icon:Icons.target},
-        {id:'social-schedule',label:'Social Scheduling',icon:Icons.calendar},
-        {id:'hiring',label:'Hiring',icon:Icons.hiring},
-        {id:'operations',label:'Operations',icon:Icons.operations},
-        {id:'legal-finance',label:'Legal & Finance',icon:Icons.legal},
-        {id:'coaching',label:'Coaching',icon:Icons.coaching},
-        {id:'reports',label:'Reports',icon:Icons.target},
-        {id:'academy',label:'Academy',icon:Icons.academy},
-        {id:'seo',label:'SEO & GMB',icon:Icons.search},
-        {id:'settings',label:'Settings',icon:Icons.settings},
+    const navGroups = [
+        { label: null, items: [
+            {id:'dashboard',label:'Dashboard',icon:Icons.dashboard},
+        ]},
+        { label: 'CRM', items: [
+            {id:'calls',label:'Calls',icon:Icons.calls},
+            {id:'pipeline',label:'Pipeline',icon:Icons.pipeline},
+            {id:'leads',label:'Leads',icon:Icons.leads},
+            {id:'contacts',label:'Contacts',icon:Icons.contacts},
+        ]},
+        { label: 'Messaging', items: [
+            {id:'unified-inbox',label:'Conversations',icon:Icons.unified},
+            {id:'inbox',label:'WhatsApp',icon:Icons.whatsapp},
+            {id:'ai-employee',label:'AI Employee',icon:Icons.robot},
+            {id:'nurture',label:'Nurture',icon:Icons.nurture},
+        ]},
+        { label: 'Marketing', items: [
+            {id:'marketing-hub',label:'Marketing Hub',icon:Icons.marketing},
+            {id:'meta-ads',label:'Meta Ads',icon:Icons.target},
+            {id:'google-ads',label:'Google Ads',icon:Icons.target},
+            {id:'seo',label:'SEO & GMB',icon:Icons.search},
+            {id:'social-schedule',label:'Social',icon:Icons.calendar},
+        ]},
+        { label: 'Operations', items: [
+            {id:'hiring',label:'Hiring',icon:Icons.hiring},
+            {id:'operations',label:'Operations',icon:Icons.operations},
+            {id:'legal-finance',label:'Legal & Finance',icon:Icons.legal},
+        ]},
+        { label: 'Intelligence', items: [
+            {id:'coaching',label:'Coaching',icon:Icons.coaching},
+            {id:'reports',label:'Reports',icon:Icons.target},
+            {id:'academy',label:'Academy',icon:Icons.academy},
+        ]},
+        { label: null, items: [
+            {id:'settings',label:'Settings',icon:Icons.settings},
+        ]},
     ];
+
+    const navItems = navGroups.flatMap(g => g.items);
+
+    // Bottom tab bar items (5 most used)
+    const bottomTabs = [
+        {id:'dashboard',label:'Home',icon:Icons.dashboard},
+        {id:'leads',label:'Leads',icon:Icons.leads},
+        {id:'unified-inbox',label:'Inbox',icon:Icons.unified},
+        {id:'meta-ads',label:'Ads',icon:Icons.target},
+        {id:'_more',label:'More',icon:<svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"/><circle cx="5" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>},
+    ];
+
+    const [collapsedGroups, setCollapsedGroups] = useState({});
+    const toggleGroup = (label) => setCollapsedGroups(prev => ({...prev, [label]: !prev[label]}));
 
 
 // ============ HR MANAGEMENT ============
@@ -5449,33 +5567,57 @@ const MISPage = () => {
 
     const navTo = (id) => { setPage(id); setSelectedCall(null); setSidebarOpen(false); };
 
+    // Find which group the current page belongs to (for auto-expanding)
+    const activeGroup = navGroups.find(g => g.items.some(i => i.id === page));
+
     return (
         <div style={{display:'flex',minHeight:'100vh',background:'var(--bg-primary)'}}>
             {/* Mobile Header */}
             <div className="mobile-header">
                 <button className="hamburger" onClick={()=>setSidebarOpen(!sidebarOpen)}>
-                    <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+                    {sidebarOpen
+                        ? <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                        : <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+                    }
                 </button>
                 <span style={{fontSize:15,fontWeight:900,fontFamily:"'Playfair Display',serif"}} className="text-gradient">CallCoach</span>
-                <div style={{width:24}}/>
+                <div style={{width:28,height:28,borderRadius:7,background:'rgba(192,196,203,0.1)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="var(--text-muted)" strokeWidth="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+                </div>
             </div>
             {/* Mobile Overlay */}
             <div className={`mobile-overlay ${sidebarOpen?'show':''}`} onClick={()=>setSidebarOpen(false)}/>
             {/* Sidebar */}
-            <aside className={`glass-solid desktop-sidebar ${sidebarOpen?'open':''}`} style={{width:240,padding:'20px 12px',display:'flex',flexDirection:'column',position:'fixed',top:0,left:0,bottom:0,zIndex:60}}>
-                <div style={{padding:'0 8px',marginBottom:32}}><Logo/></div>
-                <nav style={{display:'flex',flexDirection:'column',gap:4,flex:1}}>
-                    {navItems.map(item => (
-                        <a key={item.id} className={`sidebar-link ${page===item.id && !selectedCall ? 'active':''}`} onClick={()=>navTo(item.id)}>
-                            {item.icon}<span>{item.label}</span>
-                        </a>
-                    ))}
+            <aside className={`glass-solid desktop-sidebar ${sidebarOpen?'open':''}`} style={{width:240,padding:'16px 10px',display:'flex',flexDirection:'column',position:'fixed',top:0,left:0,bottom:0,zIndex:60,overflowY:'auto'}}>
+                <div style={{padding:'4px 8px 24px'}}><Logo/></div>
+                <nav style={{display:'flex',flexDirection:'column',flex:1}}>
+                    {navGroups.map((group, gi) => {
+                        const isCollapsed = group.label && collapsedGroups[group.label];
+                        const hasActive = group.items.some(i => i.id === page && !selectedCall);
+                        return (
+                            <div key={gi}>
+                                {group.label && (
+                                    <div className="nav-group-label" onClick={()=>toggleGroup(group.label)}>
+                                        <span>{group.label}</span>
+                                        <span className={`chevron ${isCollapsed?'collapsed':''}`}>&#9660;</span>
+                                    </div>
+                                )}
+                                <div className={`nav-group-items ${isCollapsed && !hasActive?'collapsed':''}`} style={{maxHeight: isCollapsed && !hasActive ? 0 : group.items.length * 42 + 8, display:'flex',flexDirection:'column',gap:2}}>
+                                    {group.items.map(item => (
+                                        <a key={item.id} className={`sidebar-link ${page===item.id && !selectedCall ? 'active':''}`} onClick={()=>navTo(item.id)}>
+                                            {item.icon}<span>{item.label}</span>
+                                        </a>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
                 </nav>
-                <div style={{padding:'16px 8px',borderTop:'1px solid var(--border)'}}>
+                <div style={{padding:'12px 8px',borderTop:'1px solid var(--border)',marginTop:8}}>
                     {user && <div style={{fontSize:13,fontWeight:600,marginBottom:2}}>{user.full_name}</div>}
-                    {user && <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:12}}>{user.role}</div>}
-                    <a className="sidebar-link" onClick={logout} style={{color:'var(--danger)'}}>{Icons.logout}<span>Sign Out</span></a>
-                    <div style={{fontSize:9,color:'var(--text-muted)',textAlign:'center',marginTop:12,letterSpacing:'0.08em',textTransform:'uppercase'}}>Powered by SBA</div>
+                    {user && <div style={{fontSize:10,color:'var(--text-muted)',marginBottom:10}}>{user.role}</div>}
+                    <a className="sidebar-link" onClick={logout} style={{color:'var(--danger)',fontSize:12}}>{Icons.logout}<span>Sign Out</span></a>
+                    <div style={{fontSize:8,color:'var(--text-muted)',textAlign:'center',marginTop:10,letterSpacing:'0.1em',textTransform:'uppercase'}}>Powered by SBA</div>
                 </div>
             </aside>
             {/* Main */}
@@ -5484,11 +5626,26 @@ const MISPage = () => {
                     {renderPage()}
                 </ErrorBoundary>
             </main>
+            {/* Bottom Tab Bar (mobile) */}
+            <div className="bottom-tab-bar">
+                <div className="bottom-tab-bar-inner">
+                    {bottomTabs.map(tab => (
+                        <button key={tab.id} className={`bottom-tab ${tab.id==='_more' ? '' : page===tab.id && !selectedCall ? 'active' : ''}`}
+                            onClick={()=>{
+                                if(tab.id==='_more') { setSidebarOpen(true); }
+                                else { navTo(tab.id); }
+                            }}>
+                            {tab.icon}
+                            <span>{tab.label}</span>
+                        </button>
+                    ))}
+                </div>
+            </div>
         </div>
     );
 };
 
-ReactDOM.render(<App/>, document.getElementById('root'));
+ReactDOM.render(<ToastProvider><App/></ToastProvider>, document.getElementById('root'));
 </script>
 </body>
 </html>
