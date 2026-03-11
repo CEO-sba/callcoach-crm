@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CallCoach | AI Sales Training & CRM | Skin Business Accelerator</title>
+    <title>SBA CRM | Clinic Growth Operating System | Skin Business Accelerator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
@@ -15,11 +15,11 @@
             --bg-secondary: #0D1117;
             --bg-card: rgba(15, 20, 30, 0.7);
             --bg-card-hover: rgba(20, 28, 42, 0.8);
-            --border: rgba(192, 196, 203, 0.12);
-            --border-hover: rgba(192, 196, 203, 0.3);
-            --gold: #C0C4CB;
-            --gold-light: #E8EAED;
-            --gold-dark: #8A9099;
+            --border: rgba(232, 135, 37, 0.12);
+            --border-hover: rgba(232, 135, 37, 0.3);
+            --gold: #E88725;
+            --gold-light: #F5A623;
+            --gold-dark: #C4650A;
             --text-primary: #F1F5F9;
             --text-secondary: #94A3B8;
             --text-muted: #64748B;
@@ -34,8 +34,8 @@
         /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(192, 196, 203, 0.2); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(192, 196, 203, 0.4); }
+        ::-webkit-scrollbar-thumb { background: rgba(232, 135, 37, 0.2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(232, 135, 37, 0.4); }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -49,11 +49,11 @@
         .btn::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), rgba(255,255,255,0.15), transparent 60%); opacity: 0; transition: opacity 0.4s; }
         .btn:active::after { opacity: 1; }
         .btn:active { transform: scale(0.97); }
-        .btn-gold { background: linear-gradient(135deg, var(--gold), var(--gold-light)); color: #000; }
-        .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(192, 196, 203, 0.25); }
+        .btn-gold { background: linear-gradient(135deg, #E88725, #F5A623); color: #000; font-weight: 700; }
+        .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(232, 135, 37, 0.3); }
         .btn-gold:active { transform: translateY(0) scale(0.97); }
         .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
-        .btn-ghost:hover { border-color: var(--gold); color: var(--gold); background: rgba(192,196,203,0.04); }
+        .btn-ghost:hover { border-color: var(--gold); color: var(--gold); background: rgba(232,135,37,0.04); }
         .btn-danger { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #EF4444; }
         .btn-danger:hover { background: rgba(239, 68, 68, 0.25); transform: translateY(-1px); }
         .btn-sm { padding: 6px 14px; font-size: 13px; }
@@ -62,7 +62,7 @@
 
         /* Inputs */
         .input { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-family: inherit; font-size: 14px; outline: none; transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
-        .input:focus { border-color: var(--gold); background: rgba(255,255,255,0.06); box-shadow: 0 0 0 3px rgba(192,196,203,0.08); }
+        .input:focus { border-color: var(--gold); background: rgba(255,255,255,0.06); box-shadow: 0 0 0 3px rgba(232,135,37,0.08); }
         .input::placeholder { color: var(--text-muted); }
         select.input { cursor: pointer; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394A3B8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
         textarea.input { resize: vertical; min-height: 80px; }
@@ -74,7 +74,7 @@
 
         /* Badge */
         .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-        .badge-gold { background: rgba(192, 196, 203, 0.15); color: var(--gold); }
+        .badge-gold { background: rgba(232, 135, 37, 0.15); color: var(--gold); }
         .badge-green { background: rgba(34, 197, 94, 0.15); color: #22C55E; }
         .badge-red { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
         .badge-blue { background: rgba(59, 130, 246, 0.15); color: #3B82F6; }
@@ -96,7 +96,7 @@
         @keyframes toastOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
         @keyframes countUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes subtleFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
-        @keyframes glowPulse { 0%, 100% { box-shadow: 0 0 8px rgba(192,196,203,0.1); } 50% { box-shadow: 0 0 20px rgba(192,196,203,0.2); } }
+        @keyframes glowPulse { 0%, 100% { box-shadow: 0 0 8px rgba(232,135,37,0.1); } 50% { box-shadow: 0 0 20px rgba(232,135,37,0.2); } }
         .fade-in { animation: pageEnter 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
         .recording-pulse { animation: recPulse 1s infinite; }
         .pulse { animation: pulse 2s infinite; }
@@ -112,12 +112,12 @@
         .stage-col { min-width: 280px; }
 
         /* Gradient text */
-        .text-gradient { background: linear-gradient(135deg, #C0C4CB, #F5F6F8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .text-gradient { background: linear-gradient(135deg, #E88725, #F5A623); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 
         /* Sidebar */
         .sidebar-link { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-radius: 9px; color: var(--text-secondary); font-weight: 500; font-size: 13px; transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94); cursor: pointer; text-decoration: none; border: 1px solid transparent; position: relative; }
-        .sidebar-link:hover { color: var(--text-primary); background: rgba(192, 196, 203, 0.06); }
-        .sidebar-link.active { color: var(--gold-light); background: rgba(192, 196, 203, 0.1); border-color: rgba(192, 196, 203, 0.12); }
+        .sidebar-link:hover { color: var(--text-primary); background: rgba(232, 135, 37, 0.06); }
+        .sidebar-link.active { color: var(--gold-light); background: rgba(232, 135, 37, 0.1); border-color: rgba(232, 135, 37, 0.12); }
         .sidebar-link.active::before { content: ''; position: absolute; left: -12px; top: 50%; transform: translateY(-50%); width: 3px; height: 18px; background: var(--gold); border-radius: 0 3px 3px 0; }
         .nav-group-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 16px 14px 6px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; transition: color 0.2s; }
         .nav-group-label:hover { color: var(--text-secondary); }
@@ -128,33 +128,33 @@
 
         /* Table */
         .table-row { transition: background 0.15s; }
-        .table-row:hover { background: rgba(192, 196, 203, 0.04); }
+        .table-row:hover { background: rgba(232, 135, 37, 0.04); }
 
         /* Loading spinner */
         .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.6s linear infinite; }
 
         /* Glow effect */
-        .glow-gold { box-shadow: 0 0 30px rgba(192, 196, 203, 0.08); }
+        .glow-gold { box-shadow: 0 0 30px rgba(232, 135, 37, 0.08); }
 
         /* Audio Player */
         .audio-player { width: 100%; border-radius: 8px; background: rgba(255,255,255,0.03); }
         .audio-player::-webkit-media-controls-panel { background: rgba(15,20,30,0.9); }
 
         /* AI Coach Chat */
-        .coach-chat-bubble { background: rgba(192,196,203,0.06); border: 1px solid rgba(192,196,203,0.15); border-radius: 12px; padding: 16px; font-size: 13px; line-height: 1.7; color: var(--text-secondary); white-space: pre-wrap; animation: fadeIn 0.4s ease-out; }
+        .coach-chat-bubble { background: rgba(232,135,37,0.06); border: 1px solid rgba(232,135,37,0.15); border-radius: 12px; padding: 16px; font-size: 13px; line-height: 1.7; color: var(--text-secondary); white-space: pre-wrap; animation: fadeIn 0.4s ease-out; }
         .coach-prompt-btn { padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border); background: rgba(255,255,255,0.02); color: var(--text-secondary); font-size: 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-        .coach-prompt-btn:hover { border-color: var(--gold); color: var(--gold); background: rgba(192,196,203,0.06); }
+        .coach-prompt-btn:hover { border-color: var(--gold); color: var(--gold); background: rgba(232,135,37,0.06); }
 
         /* Drag and Drop Pipeline */
         .pipeline-card { transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s; cursor: grab; user-select: none; }
         .pipeline-card:active { cursor: grabbing; }
         .pipeline-card.dragging { opacity: 0.5; transform: scale(0.95); }
         .stage-drop-zone { min-height: 120px; border-radius: 10px; transition: background 0.2s, border-color 0.2s; border: 2px dashed transparent; }
-        .stage-drop-zone.drag-over { background: rgba(192,196,203,0.04); border-color: rgba(192,196,203,0.3); }
+        .stage-drop-zone.drag-over { background: rgba(232,135,37,0.04); border-color: rgba(232,135,37,0.3); }
 
         /* Learning card */
         .learning-card { padding: 14px 18px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); transition: all 0.2s; cursor: default; }
-        .learning-card:hover { border-color: rgba(192,196,203,0.2); background: rgba(192,196,203,0.03); }
+        .learning-card:hover { border-color: rgba(232,135,37,0.2); background: rgba(232,135,37,0.03); }
 
         /* Typing indicator */
         .typing-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); animation: typingBounce 1.4s infinite; display: inline-block; margin: 0 2px; }
@@ -164,8 +164,8 @@
 
         /* Tab nav */
         .detail-tab { padding: 10px 20px; border-radius: 10px 10px 0 0; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94); color: var(--text-muted); background: transparent; border: none; border-bottom: 2px solid transparent; position: relative; }
-        .detail-tab:hover { color: var(--text-secondary); background: rgba(192,196,203,0.03); }
-        .detail-tab.active { color: var(--gold); border-bottom-color: var(--gold); background: rgba(192,196,203,0.06); }
+        .detail-tab:hover { color: var(--text-secondary); background: rgba(232,135,37,0.03); }
+        .detail-tab.active { color: var(--gold); border-bottom-color: var(--gold); background: rgba(232,135,37,0.06); }
         .detail-tab:active { transform: scale(0.97); }
 
         /* Toast notifications */
@@ -183,7 +183,7 @@
         /* Mobile hamburger */
         .mobile-header { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 60; background: rgba(13,17,23,0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); padding: 10px 16px; align-items: center; justify-content: space-between; }
         .hamburger { background: none; border: none; color: var(--text-primary); cursor: pointer; padding: 6px; display: flex; align-items: center; justify-content: center; border-radius: 8px; transition: background 0.2s; -webkit-tap-highlight-color: transparent; }
-        .hamburger:active { background: rgba(192,196,203,0.1); }
+        .hamburger:active { background: rgba(232,135,37,0.1); }
         .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 55; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.3s; }
         .mobile-overlay.show { display: block; opacity: 1; }
 
@@ -193,7 +193,7 @@
         .bottom-tab { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 8px; border-radius: 10px; background: none; border: none; color: var(--text-muted); font-size: 9px; font-weight: 600; cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent; min-width: 56px; }
         .bottom-tab:active { transform: scale(0.9); }
         .bottom-tab.active { color: var(--gold-light); }
-        .bottom-tab.active svg { filter: drop-shadow(0 0 4px rgba(192,196,203,0.3)); }
+        .bottom-tab.active svg { filter: drop-shadow(0 0 4px rgba(232,135,37,0.3)); }
         .bottom-tab svg { width: 20px; height: 20px; transition: all 0.2s; }
         .bottom-tab-more { position: relative; }
 
@@ -345,12 +345,38 @@ class ErrorBoundary extends React.Component {
 }
 
 // ============ LOGO ============
+const SBARocket = ({size=32}) => (
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none">
+        <defs>
+            <linearGradient id="rocketGrad" x1="32" y1="4" x2="32" y2="60" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stopColor="#F5A623"/>
+                <stop offset="0.5" stopColor="#E88725"/>
+                <stop offset="1" stopColor="#C4650A"/>
+            </linearGradient>
+            <linearGradient id="flameGrad" x1="32" y1="48" x2="32" y2="62" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stopColor="#F5A623"/>
+                <stop offset="0.6" stopColor="#E88725"/>
+                <stop offset="1" stopColor="#C4650A" stopOpacity="0.4"/>
+            </linearGradient>
+        </defs>
+        <path d="M32 4C32 4 22 16 22 32C22 40 24 46 26 50L32 48L38 50C40 46 42 40 42 32C42 16 32 4 32 4Z" fill="url(#rocketGrad)" stroke="none"/>
+        <circle cx="32" cy="26" r="5" fill="#06080F" stroke="url(#rocketGrad)" strokeWidth="1.5"/>
+        <path d="M22 32C22 32 14 34 12 40L22 38Z" fill="url(#rocketGrad)" opacity="0.8"/>
+        <path d="M42 32C42 32 50 34 52 40L42 38Z" fill="url(#rocketGrad)" opacity="0.8"/>
+        <path d="M28 50L32 62L36 50C34 51 30 51 28 50Z" fill="url(#flameGrad)"/>
+        <path d="M30 50L32 58L34 50" fill="#F5A623" opacity="0.6"/>
+    </svg>
+);
+
 const Logo = () => (
     <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'8px 0'}}>
-        <img src="/static/logo.svg" alt="CallCoach" style={{width:48,height:48}} onError={(e)=>{e.target.style.display='none'}}/>
+        <SBARocket size={36}/>
         <div>
-            <div style={{fontSize:18,fontWeight:900,letterSpacing:'-0.02em',fontFamily:"'Playfair Display',serif"}} className="text-gradient">CallCoach</div>
-            <div style={{fontSize:9,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.15em'}}>SKIN BUSINESS ACCELERATOR</div>
+            <div style={{display:'flex',alignItems:'baseline',gap:6}}>
+                <span style={{fontSize:20,fontWeight:900,letterSpacing:'-0.02em',fontFamily:"'Inter',sans-serif",color:'#FFFFFF'}}>SBA</span>
+                <span style={{fontSize:14,fontWeight:700,letterSpacing:'0.02em',fontFamily:"'Inter',sans-serif"}} className="text-gradient">CRM</span>
+            </div>
+            <div style={{fontSize:8,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.12em'}}>SKIN BUSINESS ACCELERATOR</div>
         </div>
     </div>
 );
@@ -472,10 +498,19 @@ const LoginPage = ({ onLogin }) => {
     };
 
     return (
-        <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'radial-gradient(ellipse at 50% 0%, rgba(192,196,203,0.08) 0%, transparent 60%), var(--bg-primary)'}}>
+        <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'radial-gradient(ellipse at 50% 0%, rgba(232,135,37,0.08) 0%, transparent 60%), var(--bg-primary)'}}>
             <div className="fade-in" style={{width:'100%',maxWidth:420,padding:'40px 20px'}}>
                 <div style={{textAlign:'center',marginBottom:32,display:'flex',flexDirection:'column',alignItems:'center'}}>
-                    <img src="/static/logo-full.svg" alt="CallCoach - Skin Business Accelerator" style={{width:320,maxWidth:'90%',marginBottom:8}} onError={(e)=>{e.target.style.display='none'}}/>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12,marginBottom:8}}>
+                        <SBARocket size={48}/>
+                        <div>
+                            <div style={{display:'flex',alignItems:'baseline',gap:8}}>
+                                <span style={{fontSize:32,fontWeight:900,letterSpacing:'-0.02em',fontFamily:"'Inter',sans-serif",color:'#FFFFFF'}}>SBA</span>
+                                <span style={{fontSize:22,fontWeight:700,letterSpacing:'0.02em',fontFamily:"'Inter',sans-serif"}} className="text-gradient">CRM</span>
+                            </div>
+                            <div style={{fontSize:10,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.12em'}}>SKIN BUSINESS ACCELERATOR</div>
+                        </div>
+                    </div>
                 </div>
                 <form onSubmit={handleSubmit} className="glass" style={{padding:32,borderRadius:16}}>
                     <h2 style={{fontSize:18,fontWeight:600,marginBottom:24,color:'var(--text-primary)'}}>{isRegister ? 'Create Account' : 'Sign In'}</h2>
@@ -524,7 +559,7 @@ const DashboardPage = () => {
                     <h3 style={{fontSize:15,fontWeight:600,marginBottom:16}}>Pipeline Distribution</h3>
                     <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
                         {Object.entries(stats.deals_by_stage).map(([stage,count]) => (
-                            <div key={stage} style={{padding:'8px 16px',borderRadius:8,background:'rgba(192,196,203,0.06)',border:'1px solid var(--border)',fontSize:13}}>
+                            <div key={stage} style={{padding:'8px 16px',borderRadius:8,background:'rgba(232,135,37,0.06)',border:'1px solid var(--border)',fontSize:13}}>
                                 <span style={{color:'var(--text-muted)',marginRight:8}}>{stage.replace(/_/g,' ')}</span>
                                 <span style={{fontWeight:700,color:'var(--gold)'}}>{count}</span>
                             </div>
@@ -538,7 +573,7 @@ const DashboardPage = () => {
                     <div style={{display:'flex',flexDirection:'column',gap:12}}>
                         {stats.top_agent_scores.map((a,i) => (
                             <div key={i} style={{display:'flex',alignItems:'center',gap:16,padding:'12px 16px',borderRadius:8,background:'rgba(255,255,255,0.02)'}}>
-                                <div style={{width:32,height:32,borderRadius:8,background: i===0 ? 'linear-gradient(135deg,#C0C4CB,#E8EAED)' : 'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color: i===0 ? '#000' : 'var(--text-muted)'}}>{i+1}</div>
+                                <div style={{width:32,height:32,borderRadius:8,background: i===0 ? 'linear-gradient(135deg,#E88725,#E8EAED)' : 'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color: i===0 ? '#000' : 'var(--text-muted)'}}>{i+1}</div>
                                 <div style={{flex:1}}><div style={{fontWeight:600,fontSize:14}}>{a.agent_name}</div><div style={{fontSize:12,color:'var(--text-muted)'}}>{a.total_calls} calls</div></div>
                                 <ScoreRing score={a.avg_score} size={44} strokeWidth={3}/>
                             </div>
@@ -817,7 +852,7 @@ const CallDetailPage = ({ callId, onBack }) => {
             {call.recording_path && (
                 <div className="glass" style={{padding:20,borderRadius:12,marginBottom:20}}>
                     <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}>
-                        <div style={{width:36,height:36,borderRadius:8,background:'linear-gradient(135deg,#C0C4CB,#E8EAED)',display:'flex',alignItems:'center',justifyContent:'center',color:'#000'}}>{Icons.play}</div>
+                        <div style={{width:36,height:36,borderRadius:8,background:'linear-gradient(135deg,#E88725,#E8EAED)',display:'flex',alignItems:'center',justifyContent:'center',color:'#000'}}>{Icons.play}</div>
                         <div>
                             <div style={{fontWeight:600,fontSize:14}}>Call Recording</div>
                             <div style={{fontSize:12,color:'var(--text-muted)'}}>{call.duration_seconds ? `${Math.floor(call.duration_seconds/60)}m ${call.duration_seconds%60}s` : 'Audio available'}</div>
@@ -985,7 +1020,7 @@ const CallDetailPage = ({ callId, onBack }) => {
                     {/* Coach Chat */}
                     <div className="glass" style={{padding:24,borderRadius:12}}>
                         <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:20}}>
-                            <div style={{width:32,height:32,borderRadius:8,background:'linear-gradient(135deg,#C0C4CB,#E8EAED)',display:'flex',alignItems:'center',justifyContent:'center',color:'#000'}}>{Icons.chat}</div>
+                            <div style={{width:32,height:32,borderRadius:8,background:'linear-gradient(135deg,#E88725,#E8EAED)',display:'flex',alignItems:'center',justifyContent:'center',color:'#000'}}>{Icons.chat}</div>
                             <div>
                                 <div style={{fontWeight:600,fontSize:14}}>AI Sales Coach</div>
                                 <div style={{fontSize:11,color:'var(--text-muted)'}}>Ask anything about this call</div>
@@ -1002,7 +1037,7 @@ const CallDetailPage = ({ callId, onBack }) => {
                             {coachMessages.map((msg,i) => (
                                 <div key={i} style={{alignSelf: msg.role==='user' ? 'flex-end' : 'flex-start', maxWidth:'85%'}}>
                                     {msg.role === 'user' ? (
-                                        <div style={{background:'rgba(192,196,203,0.15)',border:'1px solid rgba(192,196,203,0.2)',borderRadius:12,padding:'10px 16px',fontSize:13,color:'var(--text-primary)'}}>{msg.text}</div>
+                                        <div style={{background:'rgba(232,135,37,0.15)',border:'1px solid rgba(232,135,37,0.2)',borderRadius:12,padding:'10px 16px',fontSize:13,color:'var(--text-primary)'}}>{msg.text}</div>
                                     ) : (
                                         <div className="coach-chat-bubble">{msg.text}</div>
                                     )}
@@ -1207,7 +1242,7 @@ const PipelinePage = () => {
                                     </div>
                                 )}
                                 {isOver && (
-                                    <div style={{padding:'16px',textAlign:'center',color:'var(--gold)',fontSize:12,borderRadius:8,border:'1px dashed rgba(192,196,203,0.3)',background:'rgba(192,196,203,0.04)'}}>
+                                    <div style={{padding:'16px',textAlign:'center',color:'var(--gold)',fontSize:12,borderRadius:8,border:'1px dashed rgba(232,135,37,0.3)',background:'rgba(232,135,37,0.04)'}}>
                                         Move to {stageLabels[stage]}
                                     </div>
                                 )}
@@ -1395,7 +1430,7 @@ const CoachingPage = () => {
                                     {leaderboard.map((r,i) => (
                                         <tr key={r.user_id} className="table-row" style={{borderBottom:'1px solid var(--border)'}}>
                                             <td style={{padding:'12px 16px'}}>
-                                                <div style={{width:28,height:28,borderRadius:8,background: i===0 ? 'linear-gradient(135deg,#C0C4CB,#E8EAED)' : 'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,color: i===0 ? '#000' : 'var(--text-muted)'}}>{r.rank}</div>
+                                                <div style={{width:28,height:28,borderRadius:8,background: i===0 ? 'linear-gradient(135deg,#E88725,#E8EAED)' : 'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,color: i===0 ? '#000' : 'var(--text-muted)'}}>{r.rank}</div>
                                             </td>
                                             <td style={{padding:'12px 16px',fontWeight:600,fontSize:14}}>{r.name}</td>
                                             <td style={{padding:'12px 16px',textAlign:'center'}}><ScoreRing score={r.avg_score} size={40} strokeWidth={3}/></td>
@@ -1508,7 +1543,7 @@ const CoachingPage = () => {
                                     </div>
 
                                     {execSummary && (
-                                        <div style={{background:'rgba(192,196,203,0.04)',border:'1px solid rgba(192,196,203,0.15)',borderRadius:12,padding:20,marginBottom:16}}>
+                                        <div style={{background:'rgba(232,135,37,0.04)',border:'1px solid rgba(232,135,37,0.15)',borderRadius:12,padding:20,marginBottom:16}}>
                                             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
                                                 <div style={{fontSize:13,fontWeight:600,color:'var(--gold)'}}>AI Executive Summary</div>
                                                 {trend && <span className={`badge ${trend==='improving'?'badge-green':trend==='declining'?'badge-red':'badge-gold'}`} style={{fontSize:11}}>{trend}</span>}
@@ -1518,13 +1553,13 @@ const CoachingPage = () => {
                                     )}
 
                                     {hasSB && (
-                                        <div style={{background:'rgba(192,196,203,0.04)',border:'1px solid rgba(192,196,203,0.15)',borderRadius:12,padding:20,marginBottom:16}}>
+                                        <div style={{background:'rgba(232,135,37,0.04)',border:'1px solid rgba(232,135,37,0.15)',borderRadius:12,padding:20,marginBottom:16}}>
                                             <div style={{fontSize:13,fontWeight:600,marginBottom:14}}>Score Breakdown</div>
                                             <div style={{display:'flex',flexDirection:'column',gap:10}}>
                                                 {Object.entries(sb).map(([dim,val]) => (
                                                     <div key={dim} style={{display:'flex',alignItems:'center',gap:12}}>
                                                         <span style={{fontSize:12,color:'var(--text-muted)',width:110,textTransform:'capitalize'}}>{dim.replace(/_/g,' ')}</span>
-                                                        <div style={{flex:1,height:8,background:'rgba(192,196,203,0.1)',borderRadius:4,overflow:'hidden'}}>
+                                                        <div style={{flex:1,height:8,background:'rgba(232,135,37,0.1)',borderRadius:4,overflow:'hidden'}}>
                                                             <div style={{height:'100%',width:`${val}%`,background:val>=70?'var(--success)':val>=50?'var(--gold)':'var(--danger)',borderRadius:4,transition:'width 0.5s'}}/>
                                                         </div>
                                                         <span style={{fontSize:12,fontWeight:600,color:val>=70?'var(--success)':val>=50?'var(--gold)':'var(--danger)',width:32,textAlign:'right'}}>{val}</span>
@@ -1555,7 +1590,7 @@ const CoachingPage = () => {
                                     )}
 
                                     {agentInsights.length > 0 && (
-                                        <div style={{background:'rgba(192,196,203,0.04)',border:'1px solid rgba(192,196,203,0.15)',borderRadius:12,padding:20,marginBottom:16}}>
+                                        <div style={{background:'rgba(232,135,37,0.04)',border:'1px solid rgba(232,135,37,0.15)',borderRadius:12,padding:20,marginBottom:16}}>
                                             <div style={{fontSize:13,fontWeight:600,marginBottom:14}}>Individual Agent Insights</div>
                                             <div style={{display:'flex',flexDirection:'column',gap:12}}>
                                                 {agentInsights.map((a,i) => (
@@ -1574,7 +1609,7 @@ const CoachingPage = () => {
                                     )}
 
                                     {recs.length > 0 && (
-                                        <div style={{background:'rgba(192,196,203,0.04)',border:'1px solid rgba(192,196,203,0.15)',borderRadius:12,padding:20,marginBottom:16}}>
+                                        <div style={{background:'rgba(232,135,37,0.04)',border:'1px solid rgba(232,135,37,0.15)',borderRadius:12,padding:20,marginBottom:16}}>
                                             <div style={{fontSize:13,fontWeight:600,color:'var(--gold)',marginBottom:14}}>Top Recommendations</div>
                                             <div style={{display:'flex',flexDirection:'column',gap:14}}>
                                                 {recs.map((rec,i) => (
@@ -1590,7 +1625,7 @@ const CoachingPage = () => {
                                     )}
 
                                     {Object.keys(revImpact).length > 0 && (
-                                        <div style={{background:'rgba(192,196,203,0.04)',border:'1px solid rgba(192,196,203,0.15)',borderRadius:12,padding:20}}>
+                                        <div style={{background:'rgba(232,135,37,0.04)',border:'1px solid rgba(232,135,37,0.15)',borderRadius:12,padding:20}}>
                                             <div style={{fontSize:13,fontWeight:600,color:'var(--gold)',marginBottom:10}}>Revenue Impact</div>
                                             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
                                                 {revImpact.estimated_weekly_impact && <div style={{padding:12,background:'rgba(0,0,0,0.15)',borderRadius:8}}><div style={{fontSize:11,color:'var(--text-muted)',marginBottom:4}}>Current Weekly</div><div style={{fontSize:14,fontWeight:700,color:'var(--gold)'}}>{revImpact.estimated_weekly_impact}</div></div>}
@@ -1835,7 +1870,7 @@ const LearningPage = () => {
                                         {q.options.map((opt, oi) => (
                                             <div key={oi} onClick={()=>setQuizAnswers({...quizAnswers,[String(qi)]:oi})}
                                                  style={{padding:'10px 14px',borderRadius:8,marginBottom:6,fontSize:13,cursor:'pointer',
-                                                     background: quizAnswers[String(qi)]===oi ? 'rgba(192,196,203,0.15)' : 'rgba(255,255,255,0.03)',
+                                                     background: quizAnswers[String(qi)]===oi ? 'rgba(232,135,37,0.15)' : 'rgba(255,255,255,0.03)',
                                                      border: `1px solid ${quizAnswers[String(qi)]===oi ? 'var(--gold)' : 'var(--border)'}`,
                                                      color: quizAnswers[String(qi)]===oi ? 'var(--gold)' : 'var(--text-secondary)'}}>
                                                 {opt}
@@ -1861,7 +1896,7 @@ const LearningPage = () => {
                                 <p style={{fontSize:14,color:'var(--text-secondary)',marginBottom:16,lineHeight:1.6}}>{ex.instruction}</p>
                                 <details style={{cursor:'pointer'}}>
                                     <summary style={{fontSize:13,color:'var(--gold)',fontWeight:600}}>View Sample Answer</summary>
-                                    <div style={{fontSize:13,color:'var(--text-secondary)',marginTop:8,padding:12,background:'rgba(192,196,203,0.05)',borderRadius:8,lineHeight:1.6}}>{ex.sample_answer}</div>
+                                    <div style={{fontSize:13,color:'var(--text-secondary)',marginTop:8,padding:12,background:'rgba(232,135,37,0.05)',borderRadius:8,lineHeight:1.6}}>{ex.sample_answer}</div>
                                 </details>
                             </div>
                         ))}
@@ -2228,7 +2263,7 @@ const WhatsAppInboxPage = () => {
                     </div>
                     <div style={{flex:1,overflowY:'auto'}} className="scrollbar-hide">
                         {loading ? <div style={{padding:24,textAlign:'center'}}><span className="spinner"></span></div> : filtered.length === 0 ? <div style={{padding:24,textAlign:'center',color:'var(--text-muted)',fontSize:13}}>No conversations yet</div> : filtered.map(c => (
-                            <div key={c.id} onClick={()=>selectConvo(c)} style={{padding:'12px 16px',borderBottom:'1px solid var(--border)',cursor:'pointer',background:selected?.id===c.id?'rgba(192,196,203,0.08)':'transparent',transition:'background 0.15s'}}>
+                            <div key={c.id} onClick={()=>selectConvo(c)} style={{padding:'12px 16px',borderBottom:'1px solid var(--border)',cursor:'pointer',background:selected?.id===c.id?'rgba(232,135,37,0.08)':'transparent',transition:'background 0.15s'}}>
                                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
                                     <span style={{fontWeight:600,fontSize:14,color:'var(--text-primary)'}}>{c.contact_name || c.wa_phone}</span>
                                     <span style={{fontSize:11,color:'var(--text-muted)'}}>{timeAgo(c.last_message_at)}</span>
@@ -3053,7 +3088,7 @@ const SettingsPage = () => {
             {/* API Key for Webhooks */}
             <div className="glass" style={{padding:24,borderRadius:12}}>
                 <h3 style={{fontSize:16,fontWeight:600,color:'var(--gold)',marginBottom:12}}>Lead Webhook API Key</h3>
-                <p style={{fontSize:13,color:'var(--text-secondary)',marginBottom:12}}>Use this key in your landing page form action URL to send leads directly to CallCoach.</p>
+                <p style={{fontSize:13,color:'var(--text-secondary)',marginBottom:12}}>Use this key in your landing page form action URL to send leads directly to SBA CRM.</p>
                 {apiKey ? (
                     <div style={{display:'flex',gap:8,alignItems:'center'}}>
                         <code style={{padding:'8px 12px',background:'rgba(255,255,255,0.03)',border:'1px solid var(--border)',borderRadius:8,fontSize:12,color:'var(--gold)',flex:1,overflow:'hidden',textOverflow:'ellipsis'}}>{apiKey}</code>
@@ -3143,7 +3178,7 @@ const SettingsPage = () => {
                             </div>
                             <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
                                 <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>5. Configure Webhook</div>
-                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>In the WhatsApp Configuration page of your Meta App, set the Callback URL and Verify Token shown in your CallCoach Settings page. Subscribe to the "messages" webhook field.</p>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>In the WhatsApp Configuration page of your Meta App, set the Callback URL and Verify Token shown in your SBA CRM Settings page. Subscribe to the "messages" webhook field.</p>
                                 <a href="https://developers.facebook.com/docs/whatsapp/cloud-api/guides/set-up-webhooks" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>WhatsApp Webhook Setup Guide</a>
                             </div>
                             <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
@@ -3175,7 +3210,7 @@ const SettingsPage = () => {
                             </div>
                             <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
                                 <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>4. Set Up Lead Form Webhooks</div>
-                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>In your Meta App &gt; Webhooks section, subscribe to "leadgen" events. Use the webhook URL from your CallCoach Settings.</p>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>In your Meta App &gt; Webhooks section, subscribe to "leadgen" events. Use the webhook URL from your SBA CRM Settings.</p>
                                 <a href="https://developers.facebook.com/docs/marketing-api/guides/lead-ads/" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>Meta Lead Ads API Docs</a>
                             </div>
                         </div>
@@ -3211,12 +3246,12 @@ const SettingsPage = () => {
                         <div style={{display:'flex',flexDirection:'column',gap:14}}>
                             <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
                                 <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>How LinkedIn Lead Sync Works</div>
-                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>LinkedIn Lead Gen Forms can be synced to CallCoach via the webhook endpoint. When a lead fills out your LinkedIn ad form, use a tool like Zapier or Make to POST the lead data to your CallCoach webhook URL.</p>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>LinkedIn Lead Gen Forms can be synced to SBA CRM via the webhook endpoint. When a lead fills out your LinkedIn ad form, use a tool like Zapier or Make to POST the lead data to your SBA CRM webhook URL.</p>
                                 <a href="https://business.linkedin.com/marketing-solutions/cx/lead-gen-forms" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>LinkedIn Lead Gen Forms</a>
                             </div>
                             <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
                                 <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>Set Up with Zapier</div>
-                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>Create a Zap: Trigger = LinkedIn Lead Gen Forms (new lead). Action = Webhook POST to your CallCoach lead webhook URL with fields: name, phone, email, campaign_name, utm_source=linkedin.</p>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>Create a Zap: Trigger = LinkedIn Lead Gen Forms (new lead). Action = Webhook POST to your SBA CRM lead webhook URL with fields: name, phone, email, campaign_name, utm_source=linkedin.</p>
                                 <a href="https://zapier.com/apps/linkedin-lead-gen-forms/integrations/webhooks" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>Zapier LinkedIn Lead Gen Integration</a>
                             </div>
                             <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
@@ -3329,7 +3364,7 @@ const UnifiedInboxPage = () => {
                     </div>
                     <div style={{flex:1,overflowY:'auto',overflowX:'hidden'}} className="scrollbar-hide">
                         {loading ? <div style={{padding:20,textAlign:'center',color:'var(--text-muted)',fontSize:13}}>Loading...</div> : filtered.length===0 ? <div style={{padding:20,textAlign:'center',color:'var(--text-muted)',fontSize:13}}>No conversations</div> : filtered.map(c => (
-                            <div key={c.id} onClick={()=>selectConvo(c)} style={{padding:12,borderBottom:'1px solid var(--border)',cursor:'pointer',background:selected?.id===c.id?'rgba(192,196,203,0.08)':'transparent',transition:'all 0.2s'}}>
+                            <div key={c.id} onClick={()=>selectConvo(c)} style={{padding:12,borderBottom:'1px solid var(--border)',cursor:'pointer',background:selected?.id===c.id?'rgba(232,135,37,0.08)':'transparent',transition:'all 0.2s'}}>
                                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',marginBottom:6}}>
                                     <div style={{display:'flex',alignItems:'center',gap:8}}>
                                         <span style={{fontSize:16}}>{platformIcons[c.platform]||'\uD83D\uDCAC'}</span>
@@ -3639,7 +3674,7 @@ const ConsultationsPage = () => {
                     <div style={{fontWeight:600,fontSize:14,marginBottom:12}}>Consultations</div>
                     <div style={{flex:1,overflowY:'auto',display:'flex',flexDirection:'column',gap:8}} className="scrollbar-hide">
                         {loading ? <div style={{padding:20,textAlign:'center',color:'var(--text-muted)'}}>Loading...</div> : consultations.length===0 ? <div style={{padding:20,textAlign:'center',color:'var(--text-muted)',fontSize:13}}>No consultations yet</div> : consultations.map(c => (
-                            <div key={c.id} onClick={()=>selectConsult(c)} style={{padding:12,border:'1px solid var(--border)',borderRadius:8,cursor:'pointer',background:selected?.id===c.id?'rgba(192,196,203,0.08)':'transparent',transition:'all 0.2s'}}>
+                            <div key={c.id} onClick={()=>selectConsult(c)} style={{padding:12,border:'1px solid var(--border)',borderRadius:8,cursor:'pointer',background:selected?.id===c.id?'rgba(232,135,37,0.08)':'transparent',transition:'all 0.2s'}}>
                                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',marginBottom:6}}>
                                     <span style={{fontWeight:600,fontSize:13}}>{c.patient_name}</span>
                                     <span className={c.status==='completed'?'badge badge-green':c.status==='scheduled'?'badge badge-blue':'badge badge-yellow'} style={{fontSize:10}}>{c.status}</span>
@@ -4563,12 +4598,12 @@ const MetaAdsPage = () => {
                             {title:'Step 2: Set Up Meta Ads Manager',desc:'Inside Business Manager, go to Ad Accounts and create a new ad account (or claim an existing one). Set your timezone to IST and currency to INR. Add your payment method (credit card or UPI). Request a higher spending limit if needed by contacting Meta support.',link:'https://adsmanager.facebook.com/',tips:['Set daily spending limit initially to avoid runaway spend','Add a backup payment method','Enable notifications for ad rejections']},
                             {title:'Step 3: Install Meta Pixel on Your Website',desc:'Go to Events Manager > Data Sources > Pixels. Create a new pixel named "[Clinic Name] Pixel". Install the base code in the <head> section of every page on your website. For WordPress, use the official Meta Pixel plugin. Set up standard events: ViewContent (on procedure pages), Lead (on form submission), Schedule (on booking confirmation). For landing pages, add the pixel code provided by your landing page builder.',link:'https://business.facebook.com/events_manager2',tips:['Use Google Tag Manager for easier installation','Test pixel fires using Facebook Pixel Helper Chrome extension','Set up custom events for PricingPageView and DoctorProfileView']},
                             {title:'Step 4: Create Custom Conversions',desc:'In Events Manager, create custom conversions for each key action: Procedure Page View (URL contains /procedure/), Contact Form Submit, WhatsApp Click, Booking Confirmation. These allow Meta to optimize ad delivery to people most likely to take these actions. Name each conversion clearly (e.g. "Hair Transplant - Lead Form Submit").',link:'https://business.facebook.com/events_manager2/custom_conversions',tips:['Create one custom conversion per procedure for better optimization','Use URL rules + event parameters for precise tracking','Allow 48 hours for custom conversions to start firing']},
-                            {title:'Step 5: Set Up WhatsApp Business API',desc:'For WhatsApp click-to-chat ads (SBA recommended primary funnel): Connect your WhatsApp Business account to Meta Business Manager. Go to Business Settings > Accounts > WhatsApp Accounts > Add. You need a verified WhatsApp Business API number. If using a BSP like Interakt, Wati, or AiSensy, they will provide the WABA ID and phone number ID. If self-hosted, set up via Meta Cloud API.',link:'https://business.facebook.com/settings/whatsapp-accounts',tips:['Use a dedicated number for ads (not your personal WhatsApp)','Set up auto-reply messages for off-hours','Connect to CallCoach CRM for lead tracking']},
-                            {title:'Step 6: Create System User and Access Token',desc:'Go to Business Settings > Users > System Users. Create a new system user (name it "CallCoach CRM"). Assign it the "Admin" role. Generate a token with these permissions: ads_management, ads_read, leads_retrieval, pages_read_engagement, pages_manage_metadata, whatsapp_business_management. Copy the token immediately as it will not be shown again.',link:'https://business.facebook.com/settings/system-users',tips:['Never share system user tokens in plain text','Set token expiry to "Never" for CRM integration','If token expires, regenerate and update in Settings']},
+                            {title:'Step 5: Set Up WhatsApp Business API',desc:'For WhatsApp click-to-chat ads (SBA recommended primary funnel): Connect your WhatsApp Business account to Meta Business Manager. Go to Business Settings > Accounts > WhatsApp Accounts > Add. You need a verified WhatsApp Business API number. If using a BSP like Interakt, Wati, or AiSensy, they will provide the WABA ID and phone number ID. If self-hosted, set up via Meta Cloud API.',link:'https://business.facebook.com/settings/whatsapp-accounts',tips:['Use a dedicated number for ads (not your personal WhatsApp)','Set up auto-reply messages for off-hours','Connect to SBA CRM for lead tracking']},
+                            {title:'Step 6: Create System User and Access Token',desc:'Go to Business Settings > Users > System Users. Create a new system user (name it "SBA CRM"). Assign it the "Admin" role. Generate a token with these permissions: ads_management, ads_read, leads_retrieval, pages_read_engagement, pages_manage_metadata, whatsapp_business_management. Copy the token immediately as it will not be shown again.',link:'https://business.facebook.com/settings/system-users',tips:['Never share system user tokens in plain text','Set token expiry to "Never" for CRM integration','If token expires, regenerate and update in Settings']},
                             {title:'Step 7: Get Your Page ID',desc:'Go to your Facebook Page > About > Page Transparency. Your Page ID is the numeric ID shown there. Alternatively, go to Business Settings > Accounts > Pages and copy the ID from there. You need this to connect lead forms and run page-level ads.',link:'https://www.facebook.com/business/help/1199464373557428',tips:['Store your Page ID in a safe place','Each page has a unique numeric ID','Page ID is different from page username']},
-                            {title:'Step 8: Set Up Lead Form Webhooks',desc:'For progressive lead forms: In Meta App Dashboard > Webhooks, subscribe to the "leadgen" webhook event. Use your CallCoach CRM webhook URL from Settings > Integrations. This ensures every lead form submission is instantly sent to your CRM for immediate follow-up and nurture sequence enrollment.',link:'https://developers.facebook.com/docs/marketing-api/guides/lead-ads/',tips:['Test webhook with Meta lead ad testing tool','Set up instant notification alerts for new leads','Auto-enroll leads in nurture sequences via CRM']},
+                            {title:'Step 8: Set Up Lead Form Webhooks',desc:'For progressive lead forms: In Meta App Dashboard > Webhooks, subscribe to the "leadgen" webhook event. Use your SBA CRM webhook URL from Settings > Integrations. This ensures every lead form submission is instantly sent to your CRM for immediate follow-up and nurture sequence enrollment.',link:'https://developers.facebook.com/docs/marketing-api/guides/lead-ads/',tips:['Test webhook with Meta lead ad testing tool','Set up instant notification alerts for new leads','Auto-enroll leads in nurture sequences via CRM']},
                             {title:'Step 9: Configure Audiences',desc:'Before launching ads, create these audiences in Ads Manager > Audiences: (1) Custom Audience from website visitors (last 30 days), (2) Custom Audience from video viewers (50% watched, last 30 days), (3) Custom Audience from page engagers (last 90 days), (4) Custom Audience from lead form openers who did not submit. Then create Lookalike audiences (1%) from your converted leads list once you have 50+ conversions.',link:'https://adsmanager.facebook.com/adsmanager/audiences',tips:['Start with broad targeting, add interests only for low budgets','Exclude existing patients from prospecting campaigns','Refresh lookalike audiences monthly with new data']},
-                            {title:'Step 10: Enter Credentials in CallCoach CRM',desc:'Go to Settings > Meta Ads section in CallCoach CRM. Enter: Page ID, Page Name, Access Token (system user token from Step 6), and WABA Phone Number ID (from Step 5). Click "Test Connection" to verify. Once connected, all lead form submissions and WhatsApp conversations will auto-sync to your CRM.'},
+                            {title:'Step 10: Enter Credentials in SBA CRM',desc:'Go to Settings > Meta Ads section in SBA CRM. Enter: Page ID, Page Name, Access Token (system user token from Step 6), and WABA Phone Number ID (from Step 5). Click "Test Connection" to verify. Once connected, all lead form submissions and WhatsApp conversations will auto-sync to your CRM.'},
                             {title:'Step 11: Launch Your First Campaign',desc:'Use the Campaign Strategy Generator tab above to get a complete SBA-methodology campaign plan. Follow the WhatsApp click-to-chat funnel as your primary strategy. Start with 50% of your planned budget for the first 3 days. Monitor CPL and adjust. Use the 72-Hour Report feature to track performance and make data-driven optimizations.',tips:['Never edit ads in the first 24 hours (let Meta learn)','Check ad rejections within 2 hours of launch','Use the Retargeting tab to set up warm audience campaigns after Day 7']}
                         ].map((s,i) => (
                             <div key={i} style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
@@ -4698,15 +4733,15 @@ const GoogleAdsPage = () => {
                     <div style={{display:'flex',flexDirection:'column',gap:16}}>
                         {[
                             {title:'Step 1: Create Google Ads Account',desc:'Go to ads.google.com and create a new Google Ads account. Use your clinic business email. Select "Expert Mode" (not Smart Mode) for full control over campaigns. Set your billing to INR and timezone to IST. Add a payment method (credit card, debit card, or UPI).',link:'https://ads.google.com/',tips:['Always use Expert Mode for full campaign control','Set a conservative daily budget initially (Rs. 500-1000)','Enable auto-tagging for proper conversion tracking']},
-                            {title:'Step 2: Get Your Customer ID',desc:'Your Google Ads Customer ID is the 10-digit number shown in the top-right corner of your Google Ads dashboard (format: XXX-XXX-XXXX). Copy this number. You will need it to connect Google Ads to CallCoach CRM.',link:'https://ads.google.com/',tips:['Customer ID is account-specific, not user-specific','If you manage multiple accounts, use the MCC (Manager) account ID','Store the Customer ID securely']},
+                            {title:'Step 2: Get Your Customer ID',desc:'Your Google Ads Customer ID is the 10-digit number shown in the top-right corner of your Google Ads dashboard (format: XXX-XXX-XXXX). Copy this number. You will need it to connect Google Ads to SBA CRM.',link:'https://ads.google.com/',tips:['Customer ID is account-specific, not user-specific','If you manage multiple accounts, use the MCC (Manager) account ID','Store the Customer ID securely']},
                             {title:'Step 3: Set Up Conversion Tracking',desc:'Go to Tools & Settings > Measurement > Conversions. Create conversion actions for: (1) Phone Calls from ads (call extensions), (2) Website Form Submissions (use Google Tag or GTM), (3) WhatsApp Click (track as custom conversion), (4) Booking Confirmation (if you have online booking). For each conversion, set the category to "Lead" and count "One" per interaction. Set the conversion window to 30 days.',link:'https://ads.google.com/aw/conversions',tips:['Install Google Tag (gtag.js) on all website pages','Use Google Tag Manager for easier event management','Test each conversion action before launching ads']},
                             {title:'Step 4: Install Google Tag on Website',desc:'Go to Tools & Settings > Setup > Google Tag. Copy the tag code and install it on every page of your clinic website in the <head> section. For WordPress, use the "Site Kit by Google" plugin or "Google Tag Manager for WordPress" plugin. This enables conversion tracking, remarketing audiences, and proper attribution.',link:'https://tagmanager.google.com/',tips:['Use Google Tag Assistant Chrome extension to verify installation','Set up enhanced conversions for better attribution','Install on landing pages as well, not just your main website']},
-                            {title:'Step 5: Create Developer Token (for API access)',desc:'To connect Google Ads to CallCoach CRM via API: Go to Google Ads > Tools & Settings > Setup > API Center. Apply for a developer token. For basic access (read-only reporting), approval is usually fast. For standard access (campaign management), you need to fill out an application form. The token format is a long alphanumeric string.',link:'https://developers.google.com/google-ads/api/docs/first-call/dev-token',tips:['Basic access is sufficient for reporting integration','Standard access takes 3-5 business days for approval','Keep your developer token confidential']},
+                            {title:'Step 5: Create Developer Token (for API access)',desc:'To connect Google Ads to SBA CRM via API: Go to Google Ads > Tools & Settings > Setup > API Center. Apply for a developer token. For basic access (read-only reporting), approval is usually fast. For standard access (campaign management), you need to fill out an application form. The token format is a long alphanumeric string.',link:'https://developers.google.com/google-ads/api/docs/first-call/dev-token',tips:['Basic access is sufficient for reporting integration','Standard access takes 3-5 business days for approval','Keep your developer token confidential']},
                             {title:'Step 6: Set Up OAuth 2.0 Credentials',desc:'Go to Google Cloud Console > APIs & Services > Credentials. Create a new OAuth 2.0 Client ID (type: Web Application). Add your redirect URI. Generate a refresh token using the OAuth Playground or the google-ads-api authentication flow. You need: Client ID, Client Secret, and Refresh Token.',link:'https://console.cloud.google.com/apis/credentials',tips:['Enable the Google Ads API in your Google Cloud project first','Use OAuth Playground for easy refresh token generation','Refresh tokens do not expire unless you revoke them']},
                             {title:'Step 7: Configure Landing Pages',desc:'For each procedure you advertise, create a dedicated landing page with: (1) Hero section with procedure name and CTA, (2) Doctor credentials and clinic trust signals, (3) Before/After concepts (no real patient photos without consent), (4) FAQ section addressing top 5 patient concerns, (5) WhatsApp click-to-chat button (SBA primary CTA), (6) Phone call button, (7) Simple lead form (name + phone only). Install Google Tag on each landing page. Use the Landing Page Copy Generator tab to get AI-generated copy.',tips:['One landing page per procedure for better Quality Score','Mobile-first design (80%+ traffic is mobile)','Page load speed under 3 seconds','Include the city/location name for local SEO']},
-                            {title:'Step 8: Set Up Form Webhook (Lead Capture)',desc:'Point your landing page form to the CallCoach CRM webhook URL. Go to Settings > Integrations in CallCoach to get your unique webhook URL. Add hidden fields for utm_source, utm_medium, utm_campaign to track which ad brought the lead. Form submissions will auto-create leads in CRM with campaign tagging and trigger nurture sequences.',tips:['Test the webhook with a dummy submission first','Include UTM parameters in your Google Ads final URLs','Set up instant WhatsApp notification for new leads']},
+                            {title:'Step 8: Set Up Form Webhook (Lead Capture)',desc:'Point your landing page form to the SBA CRM webhook URL. Go to Settings > Integrations in SBA CRM to get your unique webhook URL. Add hidden fields for utm_source, utm_medium, utm_campaign to track which ad brought the lead. Form submissions will auto-create leads in CRM with campaign tagging and trigger nurture sequences.',tips:['Test the webhook with a dummy submission first','Include UTM parameters in your Google Ads final URLs','Set up instant WhatsApp notification for new leads']},
                             {title:'Step 9: Create Remarketing Audiences',desc:'Go to Tools & Settings > Shared Library > Audience Manager. Create these audiences: (1) All website visitors (last 30 days), (2) Procedure page visitors (last 14 days), (3) Form page visitors who did not submit (last 7 days), (4) Past converters (for exclusion). These audiences power your remarketing campaigns on both Google Display and YouTube.',link:'https://ads.google.com/aw/audiences',tips:['Minimum audience size for remarketing is 1,000 users','Create separate audiences per procedure page','Use audience insights to understand your visitor demographics']},
-                            {title:'Step 10: Enter Credentials in CallCoach CRM',desc:'Go to Settings > Google Ads section in CallCoach CRM. Enter: Customer ID (from Step 2), Developer Token (from Step 5), Client ID, Client Secret, and Refresh Token (from Step 6). Click "Test Connection" to verify. Once connected, campaign performance data will sync to your dashboard automatically.'},
+                            {title:'Step 10: Enter Credentials in SBA CRM',desc:'Go to Settings > Google Ads section in SBA CRM. Enter: Customer ID (from Step 2), Developer Token (from Step 5), Client ID, Client Secret, and Refresh Token (from Step 6). Click "Test Connection" to verify. Once connected, campaign performance data will sync to your dashboard automatically.'},
                             {title:'Step 11: Launch Your First Campaign',desc:'Use the Campaign Structure Generator tab above to get a complete campaign plan. Start with Search campaigns only (not Display or Performance Max). Target exact-match and phrase-match keywords for your top 2-3 procedures. Set location targeting to your city + 25km radius. Start with Rs. 500-1000/day and optimize after 7 days of data. Use the keyword research tool to find the best keywords for your procedures.',tips:['Never launch Display campaigns first (Search only)','Use negative keywords from Day 1 (list provided in keyword research)','Check Search Terms report daily for the first week','Complement with Meta Ads WhatsApp campaigns for full-funnel coverage']}
                         ].map((s,i) => (
                             <div key={i} style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
@@ -5226,7 +5261,7 @@ const SEOPage = () => {
                             </div>
                         )}
                         {coachHistory.map((msg,i) => (
-                            <div key={i} style={{marginBottom:12,padding:12,borderRadius:10,background:msg.role==='user'?'rgba(192,196,203,0.08)':'rgba(192,196,203,0.03)',borderLeft:msg.role==='assistant'?'3px solid var(--gold)':'none'}}>
+                            <div key={i} style={{marginBottom:12,padding:12,borderRadius:10,background:msg.role==='user'?'rgba(232,135,37,0.08)':'rgba(232,135,37,0.03)',borderLeft:msg.role==='assistant'?'3px solid var(--gold)':'none'}}>
                                 <div style={{fontSize:11,fontWeight:600,color:msg.role==='user'?'var(--text-muted)':'var(--gold)',marginBottom:4,textTransform:'uppercase'}}>{msg.role==='user'?'You':'SEO Coach'}</div>
                                 <pre style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{msg.text}</pre>
                             </div>
@@ -5580,8 +5615,12 @@ const MISPage = () => {
                         : <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
                     }
                 </button>
-                <span style={{fontSize:15,fontWeight:900,fontFamily:"'Playfair Display',serif"}} className="text-gradient">CallCoach</span>
-                <div style={{width:28,height:28,borderRadius:7,background:'rgba(192,196,203,0.1)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <SBARocket size={22}/>
+                    <span style={{fontSize:15,fontWeight:900,fontFamily:"'Inter',sans-serif",color:'#FFF'}}>SBA</span>
+                    <span style={{fontSize:12,fontWeight:700}} className="text-gradient">CRM</span>
+                </div>
+                <div style={{width:28,height:28,borderRadius:7,background:'rgba(232,135,37,0.1)',display:'flex',alignItems:'center',justifyContent:'center'}}>
                     <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="var(--text-muted)" strokeWidth="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
                 </div>
             </div>
