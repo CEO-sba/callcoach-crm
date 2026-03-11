@@ -22,6 +22,7 @@ from app.routers import admin_router
 from app.routers import whatsapp_router, leads_router, nurture_router, meta_router, social_router
 from app.routers import inbox_router, hiring_router, consultations_router, operations_router, marketing_router, legal_finance_router
 from app.routers import feedback_router
+from app.routers import google_ads_router, seo_router
 
 # Logging
 logging.basicConfig(level=logging.INFO)
@@ -80,6 +81,10 @@ app.include_router(operations_router.router)
 app.include_router(marketing_router.router)
 app.include_router(legal_finance_router.router)
 app.include_router(feedback_router.router)
+
+# v2.2 - Google Ads, SEO & GMB
+app.include_router(google_ads_router.router)
+app.include_router(seo_router.router)
 
 # Static files (frontend)
 static_dir = Path(__file__).parent / "static"

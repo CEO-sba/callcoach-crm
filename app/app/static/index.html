@@ -1147,13 +1147,13 @@ const CoachingPage = () => {
     const [compareLoading, setCompareLoading] = useState(false);
 
     useEffect(()=>{
-        apiFetch('/coaching/insights').then(setInsights).catch(()=>{});
-        apiFetch('/coaching/performance').then(setPerf).catch(()=>{});
+        apiFetch('/coaching/insights').then(d => setInsights(Array.isArray(d) ? d : [])).catch(()=>{});
+        apiFetch('/coaching/performance').then(d => setPerf(d && typeof d === 'object' && !d.detail ? d : null)).catch(()=>{});
         apiFetch('/coaching/leaderboard').then(data => {
-            if (data && data.leaderboard) { setLeaderboard(data.leaderboard); setLbVisible(data.visible !== false); setLbMessage(data.message || ''); }
+            if (data && data.leaderboard) { setLeaderboard(Array.isArray(data.leaderboard) ? data.leaderboard : []); setLbVisible(data.visible !== false); setLbMessage(data.message || ''); }
             else if (Array.isArray(data)) { setLeaderboard(data); }
         }).catch(()=>{});
-        apiFetch('/reports/weekly').then(setWeeklyReport).catch(()=>{});
+        apiFetch('/reports/weekly').then(d => setWeeklyReport(d && typeof d === 'object' && !d.detail ? d : null)).catch(()=>{});
     },[]);
 
     const runCompare = async () => {
@@ -2506,6 +2506,10 @@ const SettingsPage = () => {
     const [showSocialModal, setShowSocialModal] = useState(false);
     const [socialForm, setSocialForm] = useState({platform:'instagram',access_token:'',account_name:'',account_id:'',profile_url:''});
     const [savingSocial, setSavingSocial] = useState(false);
+    const [gadsConfig, setGadsConfig] = useState(null);
+    const [gadsForm, setGadsForm] = useState({customer_id:'',developer_token:'',client_id:'',client_secret:'',refresh_token:'',login_customer_id:''});
+    const [savingGads, setSavingGads] = useState(false);
+    const [settingsTab, setSettingsTab] = useState('connections');
 
     useEffect(() => { loadSettings(); }, []);
 
@@ -2525,9 +2529,25 @@ const SettingsPage = () => {
         } catch(e) {}
         try {
             const accts = await apiFetch('/social/accounts');
-            if (accts) setSocialAccounts(accts);
+            if (accts) setSocialAccounts(Array.isArray(accts) ? accts : []);
+        } catch(e) {}
+        try {
+            const gc = await apiFetch('/google-ads/config');
+            if (gc && !gc.detail) { setGadsConfig(gc); setGadsForm({customer_id:gc.customer_id||'',developer_token:'',client_id:'',client_secret:'',refresh_token:'',login_customer_id:gc.login_customer_id||''}); }
         } catch(e) {}
         setLoading(false);
+    };
+
+    const saveGoogleAds = async () => {
+        setSavingGads(true);
+        try {
+            const body = {...gadsForm};
+            Object.keys(body).forEach(k => { if(!body[k]) delete body[k]; });
+            const res = await apiFetch('/google-ads/config', {method:'POST', body});
+            setGadsConfig(res);
+            alert('Google Ads config saved!');
+        } catch(e) { alert('Error saving'); }
+        setSavingGads(false);
     };
 
     const saveWhatsApp = async () => {
@@ -2596,9 +2616,16 @@ const SettingsPage = () => {
 
     if (loading) return <div style={{padding:40,textAlign:'center'}}><span className="spinner"></span></div>;
 
+    const settingsTabs = [{id:'connections',label:'Connections'},{id:'google-ads',label:'Google Ads'},{id:'setup-guides',label:'Setup Guides'}];
+
     return (
         <div className="fade-in">
-            <h1 className="page-title" style={{fontSize:24,fontWeight:700,marginBottom:24}}>Settings</h1>
+            <h1 className="page-title" style={{fontSize:24,fontWeight:700,marginBottom:16}}>Settings</h1>
+            <div style={{display:'flex',gap:4,marginBottom:24,overflowX:'auto',paddingBottom:2}}>
+                {settingsTabs.map(t => <button key={t.id} className={`detail-tab ${settingsTab===t.id?'active':''}`} onClick={()=>setSettingsTab(t.id)}>{t.label}</button>)}
+            </div>
+
+            {settingsTab === 'connections' && <>
             {/* WhatsApp Connection */}
             <div className="glass" style={{padding:24,borderRadius:12,marginBottom:20}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
@@ -2714,6 +2741,170 @@ const SettingsPage = () => {
                     </div>
                 </div>
             </div>}
+            </>}
+
+            {settingsTab === 'google-ads' && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                        <h3 style={{fontSize:16,fontWeight:600,color:'var(--gold)'}}>Google Ads API</h3>
+                        {gadsConfig?.connected && <span className="badge badge-green">Connected</span>}
+                    </div>
+                    <p style={{fontSize:13,color:'var(--text-secondary)',marginBottom:14}}>Connect your Google Ads account to track campaign performance, sync leads, and get AI optimization recommendations.</p>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}} className="resp-grid-2">
+                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Customer ID (XXX-XXX-XXXX)</label><input className="input" value={gadsForm.customer_id} onChange={e=>setGadsForm({...gadsForm,customer_id:e.target.value})} placeholder="123-456-7890"/></div>
+                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Login Customer ID (MCC)</label><input className="input" value={gadsForm.login_customer_id} onChange={e=>setGadsForm({...gadsForm,login_customer_id:e.target.value})} placeholder="MCC account ID (optional)"/></div>
+                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Developer Token</label><input className="input" type="password" value={gadsForm.developer_token} onChange={e=>setGadsForm({...gadsForm,developer_token:e.target.value})} placeholder="From Google Ads API Center"/></div>
+                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>OAuth Client ID</label><input className="input" value={gadsForm.client_id} onChange={e=>setGadsForm({...gadsForm,client_id:e.target.value})} placeholder="From Google Cloud Console"/></div>
+                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>OAuth Client Secret</label><input className="input" type="password" value={gadsForm.client_secret} onChange={e=>setGadsForm({...gadsForm,client_secret:e.target.value})} placeholder="OAuth client secret"/></div>
+                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Refresh Token</label><input className="input" type="password" value={gadsForm.refresh_token} onChange={e=>setGadsForm({...gadsForm,refresh_token:e.target.value})} placeholder="OAuth refresh token"/></div>
+                    </div>
+                    <div style={{display:'flex',gap:8,marginTop:16}}>
+                        <button className="btn btn-gold" onClick={saveGoogleAds} disabled={savingGads}>{savingGads?<span className="spinner"></span>:'Save Google Ads Config'}</button>
+                    </div>
+                    <div style={{marginTop:16,padding:14,borderRadius:8,background:'rgba(255,255,255,0.02)',border:'1px solid var(--border)'}}>
+                        <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Lead Webhook URL:</div>
+                        <code style={{fontSize:12,color:'var(--gold)'}}>POST https://callcoachsba.com/api/google-ads/leads/webhook/{apiKey||'{your-api-key}'}</code>
+                        <div style={{fontSize:11,color:'var(--text-muted)',marginTop:6}}>Point your Google Ads lead form extensions or landing page forms to this URL.</div>
+                    </div>
+                </div>
+            )}
+
+            {settingsTab === 'setup-guides' && (
+                <div style={{display:'flex',flexDirection:'column',gap:20}}>
+                    {/* WhatsApp Setup Guide */}
+                    <div className="glass" style={{padding:24,borderRadius:12}}>
+                        <h3 style={{fontSize:16,fontWeight:600,color:'var(--gold)',marginBottom:16}}>WhatsApp Cloud API Setup</h3>
+                        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>1. Create a Meta Developer Account</div>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>Go to developers.facebook.com and create a developer account. You need a personal Facebook account to do this.</p>
+                                <a href="https://developers.facebook.com/" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>Meta for Developers</a>
+                            </div>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>2. Create a Meta App with WhatsApp Product</div>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>Create a new app (type: Business). Add the WhatsApp product. This gives you a test phone number and WABA ID.</p>
+                                <a href="https://developers.facebook.com/docs/whatsapp/cloud-api/get-started" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>WhatsApp Cloud API Getting Started Guide</a>
+                            </div>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>3. Get Phone Number ID and WABA ID</div>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>In the WhatsApp product dashboard, find your Phone Number ID and WhatsApp Business Account ID. Copy these to the Settings page.</p>
+                                <a href="https://developers.facebook.com/docs/whatsapp/cloud-api/reference/phone-numbers" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>WhatsApp Phone Numbers API Reference</a>
+                            </div>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>4. Generate a Permanent Access Token</div>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>Create a System User in Business Settings. Assign whatsapp_business_messaging and whatsapp_business_management permissions. Generate a permanent token (temporary tokens expire in 24 hours).</p>
+                                <a href="https://developers.facebook.com/docs/whatsapp/business-management-api/get-started#system-user-access-tokens" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>System User Access Tokens Guide</a>
+                            </div>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>5. Configure Webhook</div>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>In the WhatsApp Configuration page of your Meta App, set the Callback URL and Verify Token shown in your CallCoach Settings page. Subscribe to the "messages" webhook field.</p>
+                                <a href="https://developers.facebook.com/docs/whatsapp/cloud-api/guides/set-up-webhooks" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>WhatsApp Webhook Setup Guide</a>
+                            </div>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>6. Add a Real Phone Number (Production)</div>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>To go live, add your clinic's real phone number in the WhatsApp Manager. You will need to verify it via SMS or voice call. The test number works only with registered test numbers.</p>
+                                <a href="https://business.facebook.com/wa/manage/phone-numbers/" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>WhatsApp Business Phone Numbers Manager</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Meta Ads Setup Guide */}
+                    <div className="glass" style={{padding:24,borderRadius:12}}>
+                        <h3 style={{fontSize:16,fontWeight:600,color:'var(--gold)',marginBottom:16}}>Meta Ads (Facebook/Instagram) Setup</h3>
+                        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>1. Create a Meta Business Account</div>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>Set up at business.facebook.com. Link your Facebook Page and Instagram account.</p>
+                                <a href="https://business.facebook.com/" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>Meta Business Suite</a>
+                            </div>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>2. Get a System User Token with Lead Retrieval Permission</div>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>Business Settings &gt; System Users &gt; Create system user &gt; Assign ads_management + leads_retrieval permissions &gt; Generate token.</p>
+                                <a href="https://business.facebook.com/settings/system-users" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>Meta System Users</a>
+                            </div>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>3. Find Your Page ID</div>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>Facebook Page &gt; About &gt; Page Transparency section has your Page ID. Or use the Pages API.</p>
+                                <a href="https://www.facebook.com/business/help/1199464373557428" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>How to Find Page ID</a>
+                            </div>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>4. Set Up Lead Form Webhooks</div>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>In your Meta App &gt; Webhooks section, subscribe to "leadgen" events. Use the webhook URL from your CallCoach Settings.</p>
+                                <a href="https://developers.facebook.com/docs/marketing-api/guides/lead-ads/" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>Meta Lead Ads API Docs</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Google Ads Setup Guide */}
+                    <div className="glass" style={{padding:24,borderRadius:12}}>
+                        <h3 style={{fontSize:16,fontWeight:600,color:'var(--gold)',marginBottom:16}}>Google Ads API Setup</h3>
+                        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>1. Get Your Google Ads Customer ID</div>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>Log in to ads.google.com. Customer ID is the 10-digit number in the top-right corner (format: XXX-XXX-XXXX).</p>
+                                <a href="https://ads.google.com/" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>Google Ads Dashboard</a>
+                            </div>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>2. Apply for a Developer Token</div>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>Google Ads &gt; Tools &gt; API Center. Apply for a developer token. Basic access is usually approved quickly.</p>
+                                <a href="https://developers.google.com/google-ads/api/docs/first-call/dev-token" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>Developer Token Guide</a>
+                            </div>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>3. Create OAuth 2.0 Credentials</div>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>In Google Cloud Console, enable Google Ads API, create OAuth credentials (Client ID + Secret), and generate a refresh token.</p>
+                                <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>Google Cloud Console</a>
+                                <span style={{margin:'0 6px',color:'var(--text-muted)'}}>|</span>
+                                <a href="https://developers.google.com/google-ads/api/docs/oauth/overview" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>OAuth Guide</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* LinkedIn Ads Setup Guide */}
+                    <div className="glass" style={{padding:24,borderRadius:12}}>
+                        <h3 style={{fontSize:16,fontWeight:600,color:'var(--gold)',marginBottom:16}}>LinkedIn Ads Lead Sync</h3>
+                        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>How LinkedIn Lead Sync Works</div>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>LinkedIn Lead Gen Forms can be synced to CallCoach via the webhook endpoint. When a lead fills out your LinkedIn ad form, use a tool like Zapier or Make to POST the lead data to your CallCoach webhook URL.</p>
+                                <a href="https://business.linkedin.com/marketing-solutions/cx/lead-gen-forms" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>LinkedIn Lead Gen Forms</a>
+                            </div>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>Set Up with Zapier</div>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>Create a Zap: Trigger = LinkedIn Lead Gen Forms (new lead). Action = Webhook POST to your CallCoach lead webhook URL with fields: name, phone, email, campaign_name, utm_source=linkedin.</p>
+                                <a href="https://zapier.com/apps/linkedin-lead-gen-forms/integrations/webhooks" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>Zapier LinkedIn Lead Gen Integration</a>
+                            </div>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>Your Lead Webhook URL</div>
+                                {apiKey ? <code style={{fontSize:12,color:'var(--gold)',display:'block',padding:8,background:'rgba(0,0,0,0.2)',borderRadius:6}}>POST https://callcoachsba.com/api/leads/webhook/{apiKey}</code>
+                                : <p style={{fontSize:12,color:'var(--text-muted)'}}>Generate an API key in the Connections tab first.</p>}
+                                <p style={{fontSize:11,color:'var(--text-muted)',marginTop:6}}>Send JSON body: {"{"} "name": "...", "phone": "...", "email": "...", "campaign_name": "...", "campaign_source": "linkedin" {"}"}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Social Media Accounts Guide */}
+                    <div className="glass" style={{padding:24,borderRadius:12}}>
+                        <h3 style={{fontSize:16,fontWeight:600,color:'var(--gold)',marginBottom:16}}>Social Media Account Connections</h3>
+                        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>Instagram</div>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>Requires a Business or Creator account connected to a Facebook Page. Get a long-lived token from the Instagram Graph API.</p>
+                                <a href="https://developers.facebook.com/docs/instagram-api/getting-started" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>Instagram API Getting Started</a>
+                            </div>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>YouTube</div>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>Use the YouTube Data API v3. Create OAuth credentials in Google Cloud Console and authorize your channel.</p>
+                                <a href="https://developers.google.com/youtube/v3/getting-started" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>YouTube Data API Guide</a>
+                            </div>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>LinkedIn</div>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>Use the LinkedIn Marketing API. Create an app at developer.linkedin.com, request the r_organization_social and w_organization_social permissions.</p>
+                                <a href="https://developer.linkedin.com/" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>LinkedIn Developer Portal</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -3750,6 +3941,786 @@ const LegalFinancePage = () => {
     );
 };
 
+// ============ META ADS MANAGEMENT ============
+const MetaAdsPage = () => {
+    const [config, setConfig] = useState(null);
+    const [leads, setLeads] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('overview');
+
+    useEffect(() => {
+        setLoading(true);
+        Promise.all([
+            apiFetch('/meta/config').catch(() => null),
+            apiFetch('/leads?source=meta').catch(() => ({leads:[]}))
+        ]).then(([cfg, ld]) => {
+            if (cfg && !cfg.detail) setConfig(cfg);
+            const ldArr = Array.isArray(ld?.leads) ? ld.leads : Array.isArray(ld) ? ld : [];
+            setLeads(ldArr);
+            setLoading(false);
+        });
+    }, []);
+
+    const tabs = [{id:'overview',label:'Overview'},{id:'leads',label:'Leads'},{id:'setup',label:'Setup Guide'}];
+
+    if (loading) return <div style={{padding:40,textAlign:'center'}}><span className="spinner"></span></div>;
+
+    return (
+        <div className="fade-in">
+            <h1 style={{fontSize:24,fontWeight:900,fontFamily:"'Playfair Display',serif",marginBottom:8}}>Meta Ads Manager</h1>
+            <p style={{color:'var(--text-muted)',fontSize:14,marginBottom:24}}>Manage Facebook and Instagram ad leads, track performance, and monitor campaigns</p>
+
+            <div className="stat-card-row" style={{display:'flex',gap:16,marginBottom:24,flexWrap:'wrap'}}>
+                <StatCard label="Connection" value={config?.is_active ? 'Active' : 'Not Connected'} accent={config?.is_active ? 'var(--success)' : 'var(--danger)'}/>
+                <StatCard label="Total Leads" value={leads.length}/>
+                <StatCard label="Page" value={config?.page_name || 'N/A'}/>
+            </div>
+
+            <div style={{display:'flex',gap:4,marginBottom:24,overflowX:'auto',paddingBottom:2}}>
+                {tabs.map(t => <button key={t.id} className={`detail-tab ${activeTab===t.id?'active':''}`} onClick={()=>setActiveTab(t.id)}>{t.label}</button>)}
+            </div>
+
+            {activeTab === 'overview' && (
+                <div>
+                    {!config?.is_active ? (
+                        <div className="glass" style={{padding:40,borderRadius:12,textAlign:'center'}}>
+                            <h3 style={{fontSize:18,fontWeight:700,marginBottom:12}}>Connect Meta Ads</h3>
+                            <p style={{fontSize:14,color:'var(--text-secondary)',marginBottom:20,maxWidth:500,margin:'0 auto 20px'}}>
+                                Go to Settings to connect your Meta (Facebook/Instagram) ad account and start auto-importing leads from your ad campaigns.
+                            </p>
+                            <button className="btn btn-gold" onClick={()=>window.dispatchEvent(new CustomEvent('navigate',{detail:'settings'}))}>Go to Settings</button>
+                        </div>
+                    ) : (
+                        <div className="glass" style={{padding:24,borderRadius:12}}>
+                            <h3 style={{fontSize:16,fontWeight:600,marginBottom:16}}>Connected Account</h3>
+                            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+                                <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
+                                    <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Page Name</div>
+                                    <div style={{fontSize:15,fontWeight:600}}>{config.page_name || 'N/A'}</div>
+                                </div>
+                                <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
+                                    <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Page ID</div>
+                                    <div style={{fontSize:15,fontWeight:600,fontFamily:'monospace'}}>{config.page_id || 'N/A'}</div>
+                                </div>
+                                <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
+                                    <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Webhook URL</div>
+                                    <code style={{fontSize:12,color:'var(--gold)'}}>https://callcoachsba.com/api/meta/webhook</code>
+                                </div>
+                                <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
+                                    <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Auto-Import</div>
+                                    <span className="badge badge-green">Active</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {activeTab === 'leads' && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <h3 style={{fontSize:16,fontWeight:600,marginBottom:16}}>Meta Ad Leads</h3>
+                    {leads.length === 0 ? (
+                        <p style={{textAlign:'center',padding:20,color:'var(--text-muted)',fontSize:13}}>No leads from Meta Ads yet. Leads will appear here when they submit your ad forms.</p>
+                    ) : (
+                        <div style={{overflowX:'auto'}}>
+                            <table style={{width:'100%',borderCollapse:'collapse'}}>
+                                <thead><tr style={{borderBottom:'1px solid var(--border)'}}>
+                                    {['Name','Phone','Email','Campaign','Status','Date'].map(h => <th key={h} style={{padding:'10px 14px',textAlign:'left',fontSize:12,fontWeight:600,color:'var(--text-muted)'}}>{h}</th>)}
+                                </tr></thead>
+                                <tbody>{leads.slice(0,50).map(l => (
+                                    <tr key={l.id} style={{borderBottom:'1px solid var(--border)'}}>
+                                        <td style={{padding:'10px 14px',fontSize:13,fontWeight:600}}>{l.name||'Unknown'}</td>
+                                        <td style={{padding:'10px 14px',fontSize:13}}>{l.phone||'-'}</td>
+                                        <td style={{padding:'10px 14px',fontSize:13}}>{l.email||'-'}</td>
+                                        <td style={{padding:'10px 14px',fontSize:13}}>{l.campaign_name||'-'}</td>
+                                        <td style={{padding:'10px 14px'}}><span className={`badge ${l.status==='converted'?'badge-green':l.status==='new'?'badge-blue':'badge-gold'}`} style={{fontSize:10}}>{l.status||'new'}</span></td>
+                                        <td style={{padding:'10px 14px',fontSize:12,color:'var(--text-muted)'}}>{l.created_at ? new Date(l.created_at).toLocaleDateString() : '-'}</td>
+                                    </tr>
+                                ))}</tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {activeTab === 'setup' && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <h3 style={{fontSize:16,fontWeight:600,marginBottom:16,color:'var(--gold)'}}>Meta Ads Setup Guide</h3>
+                    <div style={{display:'flex',flexDirection:'column',gap:16}}>
+                        <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
+                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Step 1: Create a Meta Business Account</div>
+                            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:8}}>If you do not have one, create a Meta Business account at business.facebook.com. This is required to manage ads and access the API.</p>
+                            <a href="https://business.facebook.com/" target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline'}}>Go to Meta Business Suite</a>
+                        </div>
+                        <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
+                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Step 2: Create a System User and Generate Token</div>
+                            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:8}}>Go to Business Settings &gt; Users &gt; System Users. Create a system user, assign the "ads_management" and "leads_retrieval" permissions. Then generate a permanent token.</p>
+                            <a href="https://business.facebook.com/settings/system-users" target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline'}}>Meta System Users Settings</a>
+                        </div>
+                        <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
+                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Step 3: Get Your Page ID</div>
+                            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:8}}>Go to your Facebook Page &gt; About &gt; Page Transparency &gt; Page ID. Or use the Meta Business Suite to find it under Page Settings.</p>
+                            <a href="https://www.facebook.com/business/help/1199464373557428" target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline'}}>How to Find Page ID (Meta Help)</a>
+                        </div>
+                        <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
+                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Step 4: Configure Lead Form Webhook</div>
+                            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:8}}>In Meta App Dashboard &gt; Webhooks, subscribe to the "leadgen" event. Use the webhook URL and verify token shown in your Settings page.</p>
+                            <a href="https://developers.facebook.com/docs/marketing-api/guides/lead-ads/" target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline'}}>Meta Lead Ads API Documentation</a>
+                        </div>
+                        <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
+                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Step 5: Enter Credentials in Settings</div>
+                            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6}}>Go to Settings &gt; Meta Ads section. Enter your Page ID, Page Name, and Access Token. Click "Connect Meta" to activate lead syncing.</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ============ GOOGLE ADS MANAGEMENT ============
+const GoogleAdsPage = () => {
+    const [config, setConfig] = useState(null);
+    const [perf, setPerf] = useState(null);
+    const [leads, setLeads] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('overview');
+    const [recommendations, setRecommendations] = useState('');
+    const [recsLoading, setRecsLoading] = useState(false);
+
+    useEffect(() => {
+        setLoading(true);
+        Promise.all([
+            apiFetch('/google-ads/config').catch(() => null),
+            apiFetch('/google-ads/performance').catch(() => null),
+            apiFetch('/google-ads/leads').catch(() => ({leads:[]}))
+        ]).then(([cfg, p, ld]) => {
+            if (cfg && !cfg.detail) setConfig(cfg);
+            if (p && !p.detail) setPerf(p);
+            const ldArr = Array.isArray(ld?.leads) ? ld.leads : [];
+            setLeads(ldArr);
+            setLoading(false);
+        });
+    }, []);
+
+    const getAIRecs = async () => {
+        setRecsLoading(true);
+        try {
+            const res = await apiFetch('/google-ads/ai-recommendations', {method:'POST'});
+            setRecommendations(res.recommendations || '');
+        } catch(e) {} finally { setRecsLoading(false); }
+    };
+
+    const tabs = [{id:'overview',label:'Overview'},{id:'leads',label:'Leads'},{id:'ai',label:'AI Optimization'},{id:'setup',label:'Setup Guide'}];
+
+    if (loading) return <div style={{padding:40,textAlign:'center'}}><span className="spinner"></span></div>;
+
+    return (
+        <div className="fade-in">
+            <h1 style={{fontSize:24,fontWeight:900,fontFamily:"'Playfair Display',serif",marginBottom:8}}>Google Ads Manager</h1>
+            <p style={{color:'var(--text-muted)',fontSize:14,marginBottom:24}}>Track Google Ads performance, manage leads, and get AI optimization tips</p>
+
+            {perf && (
+                <div className="stat-card-row" style={{display:'flex',gap:16,marginBottom:24,flexWrap:'wrap'}}>
+                    <StatCard label="Spend" value={`Rs.${(perf.spend||0).toLocaleString('en-IN')}`} accent="var(--gold)"/>
+                    <StatCard label="Clicks" value={perf.clicks||0}/>
+                    <StatCard label="Conversions" value={perf.conversions||0} accent="var(--success)"/>
+                    <StatCard label="CPA" value={`Rs.${(perf.cpa||0).toFixed(0)}`}/>
+                    <StatCard label="CTR" value={`${(perf.ctr||0).toFixed(2)}%`}/>
+                </div>
+            )}
+
+            <div style={{display:'flex',gap:4,marginBottom:24,overflowX:'auto',paddingBottom:2}}>
+                {tabs.map(t => <button key={t.id} className={`detail-tab ${activeTab===t.id?'active':''}`} onClick={()=>setActiveTab(t.id)}>{t.label}</button>)}
+            </div>
+
+            {activeTab === 'overview' && (
+                <div>
+                    {!config?.connected ? (
+                        <div className="glass" style={{padding:40,borderRadius:12,textAlign:'center'}}>
+                            <h3 style={{fontSize:18,fontWeight:700,marginBottom:12}}>Connect Google Ads</h3>
+                            <p style={{fontSize:14,color:'var(--text-secondary)',marginBottom:20,maxWidth:500,margin:'0 auto 20px'}}>
+                                Configure your Google Ads API credentials in Settings to start tracking campaigns and syncing leads.
+                            </p>
+                            <button className="btn btn-gold" onClick={()=>window.dispatchEvent(new CustomEvent('navigate',{detail:'settings'}))}>Go to Settings</button>
+                        </div>
+                    ) : (
+                        <div className="glass" style={{padding:24,borderRadius:12}}>
+                            <h3 style={{fontSize:16,fontWeight:600,marginBottom:16}}>Connection Status</h3>
+                            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+                                <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
+                                    <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Customer ID</div>
+                                    <div style={{fontSize:15,fontWeight:600,fontFamily:'monospace'}}>{config.customer_id}</div>
+                                </div>
+                                <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
+                                    <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Status</div>
+                                    <span className="badge badge-green">Connected</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {activeTab === 'leads' && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <h3 style={{fontSize:16,fontWeight:600,marginBottom:16}}>Google Ads Leads</h3>
+                    {leads.length === 0 ? (
+                        <p style={{textAlign:'center',padding:20,color:'var(--text-muted)',fontSize:13}}>No leads from Google Ads yet. Set up lead form extensions or configure the webhook to capture form submissions.</p>
+                    ) : (
+                        <div style={{overflowX:'auto'}}>
+                            <table style={{width:'100%',borderCollapse:'collapse'}}>
+                                <thead><tr style={{borderBottom:'1px solid var(--border)'}}>
+                                    {['Name','Phone','Email','Campaign','Status','Score','Date'].map(h => <th key={h} style={{padding:'10px 14px',textAlign:'left',fontSize:12,fontWeight:600,color:'var(--text-muted)'}}>{h}</th>)}
+                                </tr></thead>
+                                <tbody>{leads.slice(0,50).map(l => (
+                                    <tr key={l.id} style={{borderBottom:'1px solid var(--border)'}}>
+                                        <td style={{padding:'10px 14px',fontSize:13,fontWeight:600}}>{l.name||'Unknown'}</td>
+                                        <td style={{padding:'10px 14px',fontSize:13}}>{l.phone||'-'}</td>
+                                        <td style={{padding:'10px 14px',fontSize:13}}>{l.email||'-'}</td>
+                                        <td style={{padding:'10px 14px',fontSize:13}}>{l.campaign_name||'-'}</td>
+                                        <td style={{padding:'10px 14px'}}><span className={`badge ${l.status==='converted'?'badge-green':l.status==='new'?'badge-blue':'badge-gold'}`} style={{fontSize:10}}>{l.status||'new'}</span></td>
+                                        <td style={{padding:'10px 14px',fontSize:13,fontWeight:600,color:l.lead_score>=70?'var(--success)':l.lead_score>=40?'var(--gold)':'var(--text-muted)'}}>{l.lead_score||0}</td>
+                                        <td style={{padding:'10px 14px',fontSize:12,color:'var(--text-muted)'}}>{l.created_at ? new Date(l.created_at).toLocaleDateString() : '-'}</td>
+                                    </tr>
+                                ))}</tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {activeTab === 'ai' && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                        <h3 style={{fontSize:16,fontWeight:600}}>AI Optimization Recommendations</h3>
+                        <button className="btn btn-gold btn-sm" onClick={getAIRecs} disabled={recsLoading}>
+                            {recsLoading ? <span className="spinner"></span> : null}
+                            <span>{recsLoading ? 'Analyzing...' : 'Get AI Recommendations'}</span>
+                        </button>
+                    </div>
+                    {recommendations ? (
+                        <div style={{padding:16,background:'rgba(255,255,255,0.02)',border:'1px solid var(--border)',borderRadius:10}}>
+                            <pre style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{recommendations}</pre>
+                        </div>
+                    ) : (
+                        <p style={{textAlign:'center',padding:30,color:'var(--text-muted)',fontSize:13}}>Click "Get AI Recommendations" to receive optimization suggestions based on your campaign data.</p>
+                    )}
+                </div>
+            )}
+
+            {activeTab === 'setup' && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <h3 style={{fontSize:16,fontWeight:600,marginBottom:16,color:'var(--gold)'}}>Google Ads Setup Guide</h3>
+                    <div style={{display:'flex',flexDirection:'column',gap:16}}>
+                        <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
+                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Step 1: Get Your Google Ads Customer ID</div>
+                            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:8}}>Log in to Google Ads. Your Customer ID is the 10-digit number shown in the top-right corner (format: XXX-XXX-XXXX).</p>
+                            <a href="https://ads.google.com/" target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline'}}>Open Google Ads Dashboard</a>
+                        </div>
+                        <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
+                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Step 2: Create a Google Ads API Developer Token</div>
+                            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:8}}>Go to Google Ads &gt; Tools &gt; API Center. Apply for a developer token. For basic access, approval is usually fast.</p>
+                            <a href="https://developers.google.com/google-ads/api/docs/first-call/dev-token" target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline'}}>Google Ads API Developer Token Guide</a>
+                        </div>
+                        <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
+                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Step 3: Set Up OAuth Credentials</div>
+                            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:8}}>In Google Cloud Console, create OAuth 2.0 credentials (Client ID and Client Secret). Set the redirect URI. Then generate a refresh token using the OAuth playground.</p>
+                            <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline'}}>Google Cloud Console - Credentials</a>
+                            <span style={{margin:'0 8px',color:'var(--text-muted)'}}>|</span>
+                            <a href="https://developers.google.com/google-ads/api/docs/oauth/overview" target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline'}}>OAuth Setup Guide</a>
+                        </div>
+                        <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
+                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Step 4: Set Up Lead Form Webhook (Optional)</div>
+                            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:8}}>For landing page form submissions, point your form action to the webhook URL shown in your Settings page. Include hidden fields for utm_source, utm_campaign, etc.</p>
+                            <a href="https://developers.google.com/google-ads/api/docs/leads/overview" target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline'}}>Google Ads Lead Forms API</a>
+                        </div>
+                        <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
+                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Step 5: Enter Credentials in Settings</div>
+                            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6}}>Go to Settings &gt; Google Ads section. Enter your Customer ID, Developer Token, Client ID, Client Secret, and Refresh Token. Click Save.</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ============ SOCIAL MEDIA SCHEDULING ============
+const SocialSchedulingPage = () => {
+    const [posts, setPosts] = useState([]);
+    const [accounts, setAccounts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('calendar');
+    const [showCompose, setShowCompose] = useState(false);
+    const [newPost, setNewPost] = useState({content:'',platforms:[],scheduled_at:'',media_urls:[]});
+    const [aiIdeas, setAiIdeas] = useState('');
+    const [aiLoading, setAiLoading] = useState(false);
+
+    useEffect(() => {
+        setLoading(true);
+        Promise.all([
+            apiFetch('/social/posts').catch(() => []),
+            apiFetch('/social/accounts').catch(() => [])
+        ]).then(([p, a]) => {
+            setPosts(Array.isArray(p) ? p : []);
+            setAccounts(Array.isArray(a) ? a : []);
+            setLoading(false);
+        });
+    }, []);
+
+    const createPost = async () => {
+        if (!newPost.content) { alert('Content required'); return; }
+        try {
+            const res = await apiFetch('/social/posts', {method:'POST', body:newPost});
+            setPosts(prev => [res, ...prev]);
+            setShowCompose(false);
+            setNewPost({content:'',platforms:[],scheduled_at:'',media_urls:[]});
+        } catch(e) { alert('Error creating post'); }
+    };
+
+    const deletePost = async (id) => {
+        if (!confirm('Delete this post?')) return;
+        try { await apiFetch(`/social/posts/${id}`, {method:'DELETE'}); setPosts(prev => prev.filter(p => p.id !== id)); } catch(e) {}
+    };
+
+    const generateIdeas = async () => {
+        setAiLoading(true);
+        try {
+            const res = await apiFetch('/social/generate-content', {method:'POST', body:{content_type:'post',platform:'instagram',num_ideas:5}});
+            setAiIdeas(res.ideas || '');
+        } catch(e) {} finally { setAiLoading(false); }
+    };
+
+    const togglePlatform = (p) => {
+        setNewPost(prev => ({...prev, platforms: prev.platforms.includes(p) ? prev.platforms.filter(x=>x!==p) : [...prev.platforms, p]}));
+    };
+
+    const tabs = [{id:'calendar',label:'Calendar'},{id:'compose',label:'Compose'},{id:'ai',label:'AI Ideas'},{id:'accounts',label:'Accounts'}];
+    const statusColors = {draft:'badge-gray',scheduled:'badge-blue',published:'badge-green',failed:'badge-red'};
+
+    if (loading) return <div style={{padding:40,textAlign:'center'}}><span className="spinner"></span></div>;
+
+    return (
+        <div className="fade-in">
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24}}>
+                <div>
+                    <h1 style={{fontSize:24,fontWeight:900,fontFamily:"'Playfair Display',serif"}}>Social Media Scheduling</h1>
+                    <p style={{color:'var(--text-muted)',fontSize:14,marginTop:4}}>Schedule, compose, and manage posts across all platforms</p>
+                </div>
+                <button className="btn btn-gold" onClick={()=>{setActiveTab('compose');setShowCompose(true);}}>+ New Post</button>
+            </div>
+
+            <div className="stat-card-row" style={{display:'flex',gap:16,marginBottom:24,flexWrap:'wrap'}}>
+                <StatCard label="Accounts" value={accounts.length}/>
+                <StatCard label="Scheduled" value={posts.filter(p=>p.status==='scheduled').length} accent="var(--gold)"/>
+                <StatCard label="Published" value={posts.filter(p=>p.status==='published').length} accent="var(--success)"/>
+                <StatCard label="Drafts" value={posts.filter(p=>p.status==='draft').length}/>
+            </div>
+
+            <div style={{display:'flex',gap:4,marginBottom:24,overflowX:'auto',paddingBottom:2}}>
+                {tabs.map(t => <button key={t.id} className={`detail-tab ${activeTab===t.id?'active':''}`} onClick={()=>setActiveTab(t.id)}>{t.label}</button>)}
+            </div>
+
+            {activeTab === 'calendar' && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <h3 style={{fontSize:16,fontWeight:600,marginBottom:16}}>Post Calendar</h3>
+                    {posts.length === 0 ? (
+                        <p style={{textAlign:'center',padding:30,color:'var(--text-muted)',fontSize:13}}>No posts yet. Create your first post to start scheduling.</p>
+                    ) : (
+                        <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                            {posts.map(p => (
+                                <div key={p.id} style={{padding:16,border:'1px solid var(--border)',borderRadius:10,display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+                                    <div style={{flex:1}}>
+                                        <div style={{display:'flex',gap:6,marginBottom:8,flexWrap:'wrap'}}>
+                                            <span className={`badge ${statusColors[p.status]||'badge-gray'}`} style={{fontSize:10}}>{p.status}</span>
+                                            {(p.platforms||[]).map(pl => <span key={pl} className="badge badge-gold" style={{fontSize:10,textTransform:'capitalize'}}>{pl}</span>)}
+                                        </div>
+                                        <div style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:6}}>{(p.content||'').slice(0,150)}{(p.content||'').length>150?'...':''}</div>
+                                        {p.scheduled_at && <div style={{fontSize:11,color:'var(--text-muted)'}}>Scheduled: {new Date(p.scheduled_at).toLocaleString()}</div>}
+                                    </div>
+                                    {p.status !== 'published' && <button className="btn btn-danger btn-sm" style={{marginLeft:12}} onClick={()=>deletePost(p.id)}>Delete</button>}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {activeTab === 'compose' && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <h3 style={{fontSize:16,fontWeight:600,marginBottom:16}}>Compose Post</h3>
+                    <div style={{marginBottom:14}}>
+                        <label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Content</label>
+                        <textarea className="input" value={newPost.content} onChange={e=>setNewPost({...newPost,content:e.target.value})} rows={5} style={{width:'100%',resize:'vertical'}} placeholder="Write your post content..."/>
+                    </div>
+                    <div style={{marginBottom:14}}>
+                        <label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Platforms</label>
+                        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                            {['instagram','facebook','youtube','linkedin','twitter','tiktok'].map(pl => (
+                                <button key={pl} className={`btn btn-xs ${newPost.platforms.includes(pl)?'btn-gold':'btn-ghost'}`} onClick={()=>togglePlatform(pl)} style={{textTransform:'capitalize'}}>{pl}</button>
+                            ))}
+                        </div>
+                    </div>
+                    <div style={{marginBottom:14}}>
+                        <label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Schedule Date/Time (optional)</label>
+                        <input className="input" type="datetime-local" value={newPost.scheduled_at} onChange={e=>setNewPost({...newPost,scheduled_at:e.target.value})} style={{maxWidth:300}}/>
+                    </div>
+                    <div style={{display:'flex',gap:8}}>
+                        <button className="btn btn-gold" onClick={createPost}>
+                            {newPost.scheduled_at ? 'Schedule Post' : 'Save as Draft'}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'ai' && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                        <h3 style={{fontSize:16,fontWeight:600}}>AI Content Ideas</h3>
+                        <button className="btn btn-gold btn-sm" onClick={generateIdeas} disabled={aiLoading}>
+                            {aiLoading ? <span className="spinner"></span> : null}
+                            <span>{aiLoading ? 'Generating...' : 'Generate Ideas'}</span>
+                        </button>
+                    </div>
+                    {aiIdeas ? (
+                        <div style={{padding:16,background:'rgba(255,255,255,0.02)',border:'1px solid var(--border)',borderRadius:10}}>
+                            <pre style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{aiIdeas}</pre>
+                        </div>
+                    ) : (
+                        <p style={{textAlign:'center',padding:30,color:'var(--text-muted)',fontSize:13}}>Generate AI-powered content ideas based on your clinic data and patient insights.</p>
+                    )}
+                </div>
+            )}
+
+            {activeTab === 'accounts' && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <h3 style={{fontSize:16,fontWeight:600,marginBottom:16}}>Connected Accounts</h3>
+                    {accounts.length === 0 ? (
+                        <div style={{textAlign:'center',padding:30}}>
+                            <p style={{color:'var(--text-muted)',fontSize:13,marginBottom:12}}>No accounts connected. Go to Settings to connect your social media accounts.</p>
+                            <button className="btn btn-gold btn-sm" onClick={()=>window.dispatchEvent(new CustomEvent('navigate',{detail:'settings'}))}>Go to Settings</button>
+                        </div>
+                    ) : (
+                        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:12}}>
+                            {accounts.map(a => (
+                                <div key={a.id} style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                    <div style={{fontWeight:600,fontSize:14,textTransform:'capitalize',marginBottom:4}}>{a.platform}</div>
+                                    <div style={{fontSize:12,color:'var(--text-secondary)'}}>@{a.account_name||'connected'}</div>
+                                    <span className="badge badge-green" style={{fontSize:10,marginTop:6,display:'inline-block'}}>Active</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ============ SEO & GMB PAGE ============
+const SEOPage = () => {
+    const [activeTab, setActiveTab] = useState('overview');
+    const [gmbConfig, setGmbConfig] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [auditResult, setAuditResult] = useState('');
+    const [auditLoading, setAuditLoading] = useState(false);
+    const [auditUrl, setAuditUrl] = useState('');
+    const [gmbPlan, setGmbPlan] = useState('');
+    const [gmbLoading, setGmbLoading] = useState(false);
+    const [gmbPosts, setGmbPosts] = useState('');
+    const [gmbPostsLoading, setGmbPostsLoading] = useState(false);
+    const [backlinks, setBacklinks] = useState([]);
+    const [blIdeas, setBlIdeas] = useState('');
+    const [blLoading, setBlLoading] = useState(false);
+    const [keywords, setKeywords] = useState('');
+    const [kwLoading, setKwLoading] = useState(false);
+    const [coachMsg, setCoachMsg] = useState('');
+    const [coachHistory, setCoachHistory] = useState([]);
+    const [coachLoading, setCoachLoading] = useState(false);
+    const [newBacklink, setNewBacklink] = useState({source_url:'',target_url:'',anchor_text:'',domain_authority:0,notes:''});
+
+    useEffect(() => {
+        setLoading(true);
+        Promise.all([
+            apiFetch('/seo/gmb/config').catch(() => null),
+            apiFetch('/seo/backlinks').catch(() => ({backlinks:[]}))
+        ]).then(([cfg, bl]) => {
+            if (cfg && !cfg.detail) setGmbConfig(cfg);
+            setBacklinks(Array.isArray(bl?.backlinks) ? bl.backlinks : []);
+            setLoading(false);
+        });
+    }, []);
+
+    const runAudit = async () => {
+        if (!auditUrl) { alert('Enter website URL'); return; }
+        setAuditLoading(true);
+        try {
+            const res = await apiFetch('/seo/audit', {method:'POST', body:{website_url:auditUrl}});
+            setAuditResult(res.audit || '');
+        } catch(e) {} finally { setAuditLoading(false); }
+    };
+
+    const optimizeGMB = async () => {
+        setGmbLoading(true);
+        try {
+            const res = await apiFetch('/seo/gmb/optimize', {method:'POST'});
+            setGmbPlan(res.optimization_plan || '');
+        } catch(e) {} finally { setGmbLoading(false); }
+    };
+
+    const generateGMBPosts = async () => {
+        setGmbPostsLoading(true);
+        try {
+            const res = await apiFetch('/seo/gmb/generate-posts', {method:'POST'});
+            setGmbPosts(res.posts || '');
+        } catch(e) {} finally { setGmbPostsLoading(false); }
+    };
+
+    const getBlIdeas = async () => {
+        setBlLoading(true);
+        try {
+            const res = await apiFetch('/seo/backlink-ideas', {method:'POST'});
+            setBlIdeas(res.ideas || '');
+        } catch(e) {} finally { setBlLoading(false); }
+    };
+
+    const addBacklink = async () => {
+        if (!newBacklink.source_url) return;
+        try {
+            await apiFetch('/seo/backlinks', {method:'POST', body:newBacklink});
+            setBacklinks(prev => [...prev, {...newBacklink, id:String(prev.length+1), added_at:new Date().toISOString()}]);
+            setNewBacklink({source_url:'',target_url:'',anchor_text:'',domain_authority:0,notes:''});
+        } catch(e) {}
+    };
+
+    const doKeywordResearch = async () => {
+        setKwLoading(true);
+        try {
+            const res = await apiFetch('/seo/keyword-research', {method:'POST', body:{procedures:[],location:''}});
+            setKeywords(res.keywords || '');
+        } catch(e) {} finally { setKwLoading(false); }
+    };
+
+    const sendCoachMsg = async () => {
+        if (!coachMsg.trim()) return;
+        const userMsg = coachMsg;
+        setCoachHistory(prev => [...prev, {role:'user',text:userMsg}]);
+        setCoachMsg('');
+        setCoachLoading(true);
+        try {
+            const res = await apiFetch('/seo/coach', {method:'POST', body:{message:userMsg}});
+            setCoachHistory(prev => [...prev, {role:'assistant',text:res.response || 'No response'}]);
+        } catch(e) {
+            setCoachHistory(prev => [...prev, {role:'assistant',text:'Error getting response. Check API configuration.'}]);
+        } finally { setCoachLoading(false); }
+    };
+
+    const tabs = [{id:'overview',label:'Dashboard'},{id:'audit',label:'SEO Audit'},{id:'gmb',label:'GMB Optimization'},{id:'keywords',label:'Keywords'},{id:'backlinks',label:'Backlinks'},{id:'coach',label:'SEO Coach'}];
+
+    if (loading) return <div style={{padding:40,textAlign:'center'}}><span className="spinner"></span></div>;
+
+    return (
+        <div className="fade-in">
+            <h1 style={{fontSize:24,fontWeight:900,fontFamily:"'Playfair Display',serif",marginBottom:8}}>SEO & GMB Hub</h1>
+            <p style={{color:'var(--text-muted)',fontSize:14,marginBottom:24}}>SEO audits, Google Business Profile optimization, keyword research, backlinks, and AI SEO coaching</p>
+
+            <div style={{display:'flex',gap:4,marginBottom:24,overflowX:'auto',paddingBottom:2}}>
+                {tabs.map(t => <button key={t.id} className={`detail-tab ${activeTab===t.id?'active':''}`} onClick={()=>setActiveTab(t.id)}>{t.label}</button>)}
+            </div>
+
+            {activeTab === 'overview' && (
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}} className="resp-grid-2">
+                    <div className="glass" style={{padding:20,borderRadius:12,cursor:'pointer'}} onClick={()=>setActiveTab('audit')}>
+                        <h3 style={{fontSize:15,fontWeight:600,marginBottom:8,color:'var(--gold)'}}>SEO Audit</h3>
+                        <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.5}}>Run an AI-powered technical and on-page SEO audit of your clinic website.</p>
+                    </div>
+                    <div className="glass" style={{padding:20,borderRadius:12,cursor:'pointer'}} onClick={()=>setActiveTab('gmb')}>
+                        <h3 style={{fontSize:15,fontWeight:600,marginBottom:8,color:'var(--gold)'}}>GMB Optimization</h3>
+                        <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.5}}>Optimize your Google Business Profile with AI-generated posts, Q&A, and review templates.</p>
+                    </div>
+                    <div className="glass" style={{padding:20,borderRadius:12,cursor:'pointer'}} onClick={()=>setActiveTab('keywords')}>
+                        <h3 style={{fontSize:15,fontWeight:600,marginBottom:8,color:'var(--gold)'}}>Keyword Research</h3>
+                        <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.5}}>AI keyword research for your procedures, location, and patient search intent.</p>
+                    </div>
+                    <div className="glass" style={{padding:20,borderRadius:12,cursor:'pointer'}} onClick={()=>setActiveTab('backlinks')}>
+                        <h3 style={{fontSize:15,fontWeight:600,marginBottom:8,color:'var(--gold)'}}>Backlink Builder</h3>
+                        <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.5}}>Track backlinks, get AI-powered link building strategies and directory submissions.</p>
+                    </div>
+                    <div className="glass" style={{padding:20,borderRadius:12,cursor:'pointer',gridColumn:'1/-1'}} onClick={()=>setActiveTab('coach')}>
+                        <h3 style={{fontSize:15,fontWeight:600,marginBottom:8,color:'var(--gold)'}}>AI SEO Coach</h3>
+                        <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.5}}>Chat with an AI SEO expert specialized in medical and aesthetic clinic websites. Get instant answers on technical SEO, local SEO, content strategy, schema markup, and more.</p>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'audit' && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <h3 style={{fontSize:16,fontWeight:600,marginBottom:16}}>AI SEO Audit</h3>
+                    <div style={{display:'flex',gap:8,marginBottom:16}}>
+                        <input className="input" value={auditUrl} onChange={e=>setAuditUrl(e.target.value)} placeholder="Enter your website URL (e.g. https://yourclinic.com)" style={{flex:1}}/>
+                        <button className="btn btn-gold" onClick={runAudit} disabled={auditLoading}>
+                            {auditLoading ? <span className="spinner"></span> : 'Run Audit'}
+                        </button>
+                    </div>
+                    {auditResult && (
+                        <div style={{padding:16,background:'rgba(255,255,255,0.02)',border:'1px solid var(--border)',borderRadius:10,marginTop:12}}>
+                            <pre style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{auditResult}</pre>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {activeTab === 'gmb' && (
+                <div style={{display:'flex',flexDirection:'column',gap:16}}>
+                    <div className="glass" style={{padding:24,borderRadius:12}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                            <h3 style={{fontSize:16,fontWeight:600}}>GMB Profile Optimization</h3>
+                            <button className="btn btn-gold btn-sm" onClick={optimizeGMB} disabled={gmbLoading}>
+                                {gmbLoading ? <span className="spinner"></span> : 'Get Optimization Plan'}
+                            </button>
+                        </div>
+                        {gmbPlan ? (
+                            <div style={{padding:16,background:'rgba(255,255,255,0.02)',border:'1px solid var(--border)',borderRadius:10}}>
+                                <pre style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{gmbPlan}</pre>
+                            </div>
+                        ) : (
+                            <p style={{color:'var(--text-muted)',fontSize:13}}>Click to get a comprehensive AI optimization plan for your Google Business Profile.</p>
+                        )}
+                    </div>
+                    <div className="glass" style={{padding:24,borderRadius:12}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                            <h3 style={{fontSize:16,fontWeight:600}}>Generate GMB Posts</h3>
+                            <button className="btn btn-gold btn-sm" onClick={generateGMBPosts} disabled={gmbPostsLoading}>
+                                {gmbPostsLoading ? <span className="spinner"></span> : 'Generate 4 Posts'}
+                            </button>
+                        </div>
+                        {gmbPosts ? (
+                            <div style={{padding:16,background:'rgba(255,255,255,0.02)',border:'1px solid var(--border)',borderRadius:10}}>
+                                <pre style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{gmbPosts}</pre>
+                            </div>
+                        ) : (
+                            <p style={{color:'var(--text-muted)',fontSize:13}}>Generate ready-to-publish Google Business Profile posts with AI.</p>
+                        )}
+                    </div>
+                    <div className="glass" style={{padding:24,borderRadius:12}}>
+                        <h3 style={{fontSize:16,fontWeight:600,marginBottom:16,color:'var(--gold)'}}>GMB Setup Guide</h3>
+                        <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>1. Claim or Create Your Google Business Profile</div>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>Go to Google Business Profile Manager and claim your listing. If it does not exist, create a new one with your clinic details.</p>
+                                <a href="https://business.google.com/" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>Google Business Profile Manager</a>
+                            </div>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>2. Complete All Profile Sections</div>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5}}>Fill in: business name, category, address, phone, website, hours, services, description, photos. Complete profiles rank higher in local search.</p>
+                            </div>
+                            <div style={{padding:14,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>3. Set Up Google Business Profile API (Optional)</div>
+                                <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:6}}>For automated posting, enable the Google Business Profile API in Google Cloud Console.</p>
+                                <a href="https://developers.google.com/my-business/content/overview" target="_blank" rel="noopener" style={{fontSize:11,color:'var(--gold)',textDecoration:'underline'}}>GMB API Documentation</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'keywords' && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                        <h3 style={{fontSize:16,fontWeight:600}}>AI Keyword Research</h3>
+                        <button className="btn btn-gold btn-sm" onClick={doKeywordResearch} disabled={kwLoading}>
+                            {kwLoading ? <span className="spinner"></span> : 'Research Keywords'}
+                        </button>
+                    </div>
+                    {keywords ? (
+                        <div style={{padding:16,background:'rgba(255,255,255,0.02)',border:'1px solid var(--border)',borderRadius:10}}>
+                            <pre style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{keywords}</pre>
+                        </div>
+                    ) : (
+                        <p style={{textAlign:'center',padding:30,color:'var(--text-muted)',fontSize:13}}>Click "Research Keywords" to get AI-powered keyword research for your clinic's procedures and location.</p>
+                    )}
+                </div>
+            )}
+
+            {activeTab === 'backlinks' && (
+                <div style={{display:'flex',flexDirection:'column',gap:16}}>
+                    <div className="glass" style={{padding:24,borderRadius:12}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                            <h3 style={{fontSize:16,fontWeight:600}}>Backlink Tracker</h3>
+                            <button className="btn btn-gold btn-sm" onClick={getBlIdeas} disabled={blLoading}>
+                                {blLoading ? <span className="spinner"></span> : 'Get Link Building Ideas'}
+                            </button>
+                        </div>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr auto',gap:8,marginBottom:16}} className="resp-grid-2">
+                            <input className="input" placeholder="Source URL" value={newBacklink.source_url} onChange={e=>setNewBacklink({...newBacklink,source_url:e.target.value})}/>
+                            <input className="input" placeholder="Target URL" value={newBacklink.target_url} onChange={e=>setNewBacklink({...newBacklink,target_url:e.target.value})}/>
+                            <input className="input" placeholder="Anchor Text" value={newBacklink.anchor_text} onChange={e=>setNewBacklink({...newBacklink,anchor_text:e.target.value})}/>
+                            <button className="btn btn-gold btn-sm" onClick={addBacklink}>Add</button>
+                        </div>
+                        {backlinks.length === 0 ? (
+                            <p style={{textAlign:'center',padding:20,color:'var(--text-muted)',fontSize:13}}>No backlinks tracked yet. Add backlinks manually or get AI link building ideas.</p>
+                        ) : (
+                            <div style={{overflowX:'auto'}}>
+                                <table style={{width:'100%',borderCollapse:'collapse'}}>
+                                    <thead><tr style={{borderBottom:'1px solid var(--border)'}}>
+                                        {['Source','Target','Anchor','DA','Date'].map(h => <th key={h} style={{padding:'8px 12px',textAlign:'left',fontSize:11,fontWeight:600,color:'var(--text-muted)'}}>{h}</th>)}
+                                    </tr></thead>
+                                    <tbody>{backlinks.map((bl,i) => (
+                                        <tr key={i} style={{borderBottom:'1px solid var(--border)'}}>
+                                            <td style={{padding:'8px 12px',fontSize:12,color:'var(--gold)',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis'}}>{bl.source_url}</td>
+                                            <td style={{padding:'8px 12px',fontSize:12,maxWidth:200,overflow:'hidden',textOverflow:'ellipsis'}}>{bl.target_url}</td>
+                                            <td style={{padding:'8px 12px',fontSize:12}}>{bl.anchor_text}</td>
+                                            <td style={{padding:'8px 12px',fontSize:12,fontWeight:600}}>{bl.domain_authority}</td>
+                                            <td style={{padding:'8px 12px',fontSize:11,color:'var(--text-muted)'}}>{bl.added_at ? new Date(bl.added_at).toLocaleDateString() : '-'}</td>
+                                        </tr>
+                                    ))}</tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                    {blIdeas && (
+                        <div className="glass" style={{padding:24,borderRadius:12}}>
+                            <h3 style={{fontSize:16,fontWeight:600,marginBottom:12}}>AI Link Building Ideas</h3>
+                            <pre style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{blIdeas}</pre>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {activeTab === 'coach' && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <h3 style={{fontSize:16,fontWeight:600,marginBottom:16,color:'var(--gold)'}}>AI SEO Coach</h3>
+                    <p style={{fontSize:13,color:'var(--text-secondary)',marginBottom:16}}>Ask anything about SEO for your clinic. Technical SEO, local SEO, content strategy, schema markup, generative AI SEO, and more.</p>
+                    <div style={{minHeight:300,maxHeight:500,overflowY:'auto',marginBottom:16,padding:12,background:'rgba(0,0,0,0.15)',borderRadius:10}}>
+                        {coachHistory.length === 0 && (
+                            <div style={{textAlign:'center',padding:40,color:'var(--text-muted)',fontSize:13}}>
+                                <p>Ask me anything about SEO. For example:</p>
+                                <div style={{display:'flex',flexDirection:'column',gap:6,marginTop:12}}>
+                                    {['How do I add schema markup for my clinic?','What keywords should I target for hair transplant in Mumbai?','How do I get cited in ChatGPT and Perplexity?','Write me a meta description for my botox service page'].map(q => (
+                                        <button key={q} className="btn btn-ghost btn-sm" style={{fontSize:12,justifyContent:'flex-start'}} onClick={()=>{setCoachMsg(q);}}>{q}</button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {coachHistory.map((msg,i) => (
+                            <div key={i} style={{marginBottom:12,padding:12,borderRadius:10,background:msg.role==='user'?'rgba(192,196,203,0.08)':'rgba(192,196,203,0.03)',borderLeft:msg.role==='assistant'?'3px solid var(--gold)':'none'}}>
+                                <div style={{fontSize:11,fontWeight:600,color:msg.role==='user'?'var(--text-muted)':'var(--gold)',marginBottom:4,textTransform:'uppercase'}}>{msg.role==='user'?'You':'SEO Coach'}</div>
+                                <pre style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{msg.text}</pre>
+                            </div>
+                        ))}
+                        {coachLoading && <div style={{padding:12,textAlign:'center'}}><span className="spinner"></span></div>}
+                    </div>
+                    <div style={{display:'flex',gap:8}}>
+                        <input className="input" value={coachMsg} onChange={e=>setCoachMsg(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendCoachMsg();}}} placeholder="Ask about SEO, GMB, keywords, backlinks, schema markup..." style={{flex:1}}/>
+                        <button className="btn btn-gold" onClick={sendCoachMsg} disabled={coachLoading||!coachMsg.trim()}>Send</button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 // ============ MAIN APP ============
 const App = () => {
     const [authed, setAuthed] = useState(!!getToken());
@@ -3777,13 +4748,16 @@ const App = () => {
         {id:'ai-employee',label:'AI Employee',icon:Icons.robot},
         {id:'nurture',label:'Nurture',icon:Icons.nurture},
         {id:'marketing-hub',label:'Marketing',icon:Icons.marketing},
+        {id:'meta-ads',label:'Meta Ads',icon:Icons.target},
+        {id:'google-ads',label:'Google Ads',icon:Icons.target},
+        {id:'social-schedule',label:'Social Scheduling',icon:Icons.calendar},
         {id:'hiring',label:'Hiring',icon:Icons.hiring},
-        {id:'consultations',label:'Consultations',icon:Icons.video},
         {id:'operations',label:'Operations',icon:Icons.operations},
         {id:'legal-finance',label:'Legal & Finance',icon:Icons.legal},
         {id:'coaching',label:'Coaching',icon:Icons.coaching},
         {id:'reports',label:'Reports',icon:Icons.target},
         {id:'academy',label:'Academy',icon:Icons.academy},
+        {id:'seo',label:'SEO & GMB',icon:Icons.search},
         {id:'settings',label:'Settings',icon:Icons.settings},
     ];
 
@@ -3801,13 +4775,16 @@ const App = () => {
             case 'ai-employee': return <AIEmployeePage/>;
             case 'nurture': return <NurturePage/>;
             case 'marketing-hub': return <MarketingHubPage/>;
+            case 'meta-ads': return <MetaAdsPage/>;
+            case 'google-ads': return <GoogleAdsPage/>;
+            case 'social-schedule': return <SocialSchedulingPage/>;
             case 'hiring': return <HiringPage/>;
-            case 'consultations': return <ConsultationsPage/>;
             case 'operations': return <OperationsPage/>;
             case 'legal-finance': return <LegalFinancePage/>;
             case 'coaching': return <CoachingPage/>;
             case 'reports': return <ReportsPage/>;
             case 'academy': return <LearningPage/>;
+            case 'seo': return <SEOPage/>;
             case 'settings': return <SettingsPage/>;
             default: return <DashboardPage/>;
         }
