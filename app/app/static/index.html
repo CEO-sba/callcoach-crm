@@ -4190,17 +4190,87 @@ const LegalFinancePage = () => {
     );
 };
 
+// ============ SHARED FORM INPUT (stable reference, prevents re-mount) ============
+const StableInput = ({label, value, onChange, type, placeholder, style:extraStyle}) => (
+    <div style={{flex:1,minWidth:180,...(extraStyle||{})}}>
+        <label style={{fontSize:11,color:'var(--text-muted)',display:'block',marginBottom:3}}>{label}</label>
+        <input className="input" type={type||'text'} value={value||''} onChange={onChange} placeholder={placeholder} style={{fontSize:12}}/>
+    </div>
+);
+const StableSelect = ({label, value, onChange, options, style:extraStyle}) => (
+    <div style={{flex:1,minWidth:180,...(extraStyle||{})}}>
+        <label style={{fontSize:11,color:'var(--text-muted)',display:'block',marginBottom:3}}>{label}</label>
+        <select className="input" value={value} onChange={onChange} style={{fontSize:12}}>{options.map(o=><option key={o.value||o} value={o.value||o}>{o.label||o}</option>)}</select>
+    </div>
+);
+
+// ============ SHARED DEEP RENDERER (replaces JSON.stringify everywhere) ============
+const DeepRender = ({data, depth=0}) => {
+    if (data === null || data === undefined) return null;
+    if (typeof data === 'boolean') return <span style={{fontSize:13,color:data?'var(--success)':'var(--text-muted)'}}>{data?'Yes':'No'}</span>;
+    if (typeof data === 'number') return <span style={{fontSize:13,color:'var(--text-secondary)'}}>{data.toLocaleString()}</span>;
+    if (typeof data === 'string') return <span style={{fontSize:13,color:'var(--text-secondary)',whiteSpace:'pre-wrap',lineHeight:1.7}}>{data}</span>;
+    if (Array.isArray(data)) {
+        if (data.length === 0) return <span style={{fontSize:12,color:'var(--text-muted)'}}>None</span>;
+        if (data.every(i => typeof i === 'string' || typeof i === 'number')) return <div style={{marginTop:2}}>{data.map((item,i) => <span key={i} style={{display:'inline-block',fontSize:11,background:'rgba(212,175,55,0.1)',border:'1px solid rgba(212,175,55,0.2)',borderRadius:4,padding:'2px 8px',margin:'2px 4px 2px 0',color:'var(--text-secondary)'}}>{item}</span>)}</div>;
+        return <div style={{marginTop:4,paddingLeft:depth>0?12:0}}>{data.map((item,i) => <div key={i} style={{padding:depth>1?8:12,border:'1px solid var(--border)',borderRadius:8,marginBottom:8,background:depth>0?'rgba(0,0,0,0.1)':'transparent'}}>{typeof item==='object'&&item!==null?Object.entries(item).map(([k,v])=><div key={k} style={{marginBottom:6}}><span style={{fontSize:11,color:'var(--gold)',fontWeight:600,textTransform:'uppercase'}}>{k.replace(/_/g,' ')}: </span><DeepRender data={v} depth={depth+1}/></div>):<DeepRender data={item} depth={depth+1}/>}</div>)}</div>;
+    }
+    if (typeof data === 'object') return <div style={{marginTop:4,paddingLeft:depth>0?12:0}}>{Object.entries(data).map(([k,v]) => <div key={k} style={{marginBottom:depth>0?6:14}}>{depth===0?<h4 style={{fontSize:13,fontWeight:700,color:'var(--gold)',marginBottom:6,textTransform:'uppercase'}}>{k.replace(/_/g,' ')}</h4>:<span style={{fontSize:11,color:'var(--gold)',fontWeight:600,textTransform:'uppercase'}}>{k.replace(/_/g,' ')}: </span>}<DeepRender data={v} depth={depth+1}/></div>)}</div>;
+    return null;
+};
+
+// ============ SHARED GENERATION HISTORY PANEL ============
+const GenerationHistory = ({endpoint, filterAction}) => {
+    const [history, setHistory] = useState([]);
+    const [showHistory, setShowHistory] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    const loadHistory = async () => {
+        if (history.length > 0) { setShowHistory(!showHistory); return; }
+        setLoading(true);
+        try {
+            const res = await apiFetch(`/${endpoint}/history${filterAction?'?action_filter='+filterAction:''}`);
+            setHistory(res.history || []);
+            setShowHistory(true);
+        } catch(e) {}
+        setLoading(false);
+    };
+
+    return (
+        <div style={{marginTop:16}}>
+            <button onClick={loadHistory} style={{background:'none',border:'1px solid var(--border)',borderRadius:8,padding:'6px 14px',color:'var(--text-muted)',fontSize:12,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
+                {loading?'Loading...':showHistory?'Hide History':'Show Generation History'} <span style={{fontSize:10}}>{showHistory?'▲':'▼'}</span>
+            </button>
+            {showHistory && history.length > 0 && (
+                <div style={{marginTop:10,maxHeight:300,overflowY:'auto',border:'1px solid var(--border)',borderRadius:10,padding:12}}>
+                    {history.map((h,i) => (
+                        <div key={i} style={{padding:'8px 0',borderBottom:i<history.length-1?'1px solid rgba(255,255,255,0.04)':'none',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                            <div>
+                                <span style={{fontSize:12,fontWeight:600,color:'var(--text-primary)'}}>{(h.action||'').replace(/_/g,' ').replace('meta ','').replace('google ','')}</span>
+                                {h.details?.procedure && <span style={{fontSize:11,color:'var(--text-muted)',marginLeft:8}}>({h.details.procedure})</span>}
+                                {h.details?.language && <span style={{fontSize:10,color:'var(--gold)',marginLeft:6,background:'rgba(212,175,55,0.1)',padding:'1px 6px',borderRadius:3}}>{h.details.language}</span>}
+                            </div>
+                            <span style={{fontSize:10,color:'var(--text-muted)',whiteSpace:'nowrap'}}>{h.timestamp ? new Date(h.timestamp).toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+            {showHistory && history.length === 0 && <p style={{fontSize:12,color:'var(--text-muted)',marginTop:8}}>No generation history yet. Generated content will appear here.</p>}
+        </div>
+    );
+};
+
 // ============ META ADS MANAGEMENT ============
 const MetaAdsPage = () => {
     const [activeTab, setActiveTab] = useState('scripts');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
-    const [form, setForm] = useState({procedure:'',target_audience:'women 25-45',tone:'conversational and warm',language:'Hinglish',num:4,script_type:'talking_head',usp:'',offer:'Free Consultation',doctor_name:'',campaign_objective:'lead_generation',pain_points:'',style:'professional and clean',image_type:'mixed',carousel_type:'educational',monthly_budget:'50000',location:'',procedures:''});
+    const [form, setForm] = useState({procedure:'',target_audience:'women 25-45',tone:'conversational and warm',language:'Hinglish',num:4,script_type:'talking_head',usp:'',offer:'Free Consultation',doctor_name:'',campaign_objective:'lead_generation',pain_points:'',style:'professional and clean',image_type:'mixed',carousel_type:'educational',monthly_budget:'50000',location:'',procedures:'',retarget_budget:'10000',current_campaigns:'Meta Ads prospecting',pixel_installed:'yes',website_traffic:'moderate'});
 
-    const updateForm = (k,v) => setForm(p=>({...p,[k]:v}));
+    const updateForm = useCallback((k,v) => setForm(p=>({...p,[k]:v})), []);
 
     const generate = async (endpoint, bodyOverride) => {
-        if (!form.procedure && !bodyOverride?.procedures) { alert('Enter a procedure name'); return; }
+        if (!form.procedure && !bodyOverride?.procedures && endpoint !== 'retargeting-plan') { alert('Enter a procedure name'); return; }
         setLoading(true); setResult(null);
         try {
             const body = bodyOverride || {procedure:form.procedure,target_audience:form.target_audience,tone:form.tone,language:form.language,num_scripts:form.num,script_type:form.script_type,usp:form.usp,offer:form.offer,doctor_name:form.doctor_name,campaign_objective:form.campaign_objective,pain_points:form.pain_points,num_variations:form.num,style:form.style,num_prompts:form.num,image_type:form.image_type,num_carousels:form.num > 5 ? 3 : form.num,carousel_type:form.carousel_type,monthly_budget:form.monthly_budget,location:form.location,procedures:form.procedures?form.procedures.split(',').map(s=>s.trim()):[form.procedure]};
@@ -4211,21 +4281,6 @@ const MetaAdsPage = () => {
     };
 
     const tabs = [{id:'scripts',label:'Video Scripts'},{id:'copy',label:'Ad Copy'},{id:'images',label:'Image Ads'},{id:'carousels',label:'Carousels'},{id:'strategy',label:'Campaign Strategy'},{id:'retargeting',label:'Retargeting'},{id:'setup',label:'Setup Guide'}];
-
-    const InputRow = ({label, field, type, placeholder, options}) => (
-        <div style={{flex:1,minWidth:180}}>
-            <label style={{fontSize:11,color:'var(--text-muted)',display:'block',marginBottom:3}}>{label}</label>
-            {options ? <select className="input" value={form[field]} onChange={e=>updateForm(field,e.target.value)} style={{fontSize:12}}>{options.map(o=><option key={o.value||o} value={o.value||o}>{o.label||o}</option>)}</select>
-            : <input className="input" type={type||'text'} value={form[field]||''} onChange={e=>updateForm(field,e.target.value)} placeholder={placeholder} style={{fontSize:12}}/>}
-        </div>
-    );
-
-    const renderResult = (data) => {
-        if (!data) return null;
-        if (typeof data === 'string') return <pre style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{data}</pre>;
-        if (Array.isArray(data)) return data.map((item, i) => <div key={i} style={{padding:16,border:'1px solid var(--border)',borderRadius:10,marginBottom:12}}>{Object.entries(item).map(([k,v]) => <div key={k} style={{marginBottom:8}}><span style={{fontSize:11,color:'var(--gold)',fontWeight:600,textTransform:'uppercase'}}>{k.replace(/_/g,' ')}: </span>{typeof v === 'string' ? <span style={{fontSize:13,color:'var(--text-secondary)',whiteSpace:'pre-wrap'}}>{v}</span> : Array.isArray(v) ? <div style={{marginTop:4}}>{v.map((vi,vi2)=><div key={vi2} style={{fontSize:12,color:'var(--text-secondary)',padding:'4px 0',borderBottom:'1px solid rgba(255,255,255,0.03)'}}>{typeof vi==='object'?JSON.stringify(vi,null,1):vi}</div>)}</div> : <span style={{fontSize:13,color:'var(--text-secondary)'}}>{JSON.stringify(v)}</span>}</div>)}</div>);
-        if (typeof data === 'object') return Object.entries(data).map(([k,v]) => <div key={k} style={{marginBottom:16}}><h4 style={{fontSize:13,fontWeight:700,color:'var(--gold)',marginBottom:8,textTransform:'uppercase'}}>{k.replace(/_/g,' ')}</h4>{typeof v === 'string' ? <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap'}}>{v}</p> : Array.isArray(v) ? v.map((vi,vi2)=><div key={vi2} style={{padding:12,border:'1px solid var(--border)',borderRadius:8,marginBottom:8,fontSize:12,color:'var(--text-secondary)'}}>{typeof vi==='object'?<div>{Object.entries(vi).map(([vk,vv])=><div key={vk}><strong style={{color:'var(--text-primary)'}}>{vk.replace(/_/g,' ')}:</strong> {typeof vv==='string'?vv:JSON.stringify(vv)}</div>)}</div>:vi}</div>) : <pre style={{fontSize:12,color:'var(--text-secondary)',whiteSpace:'pre-wrap'}}>{JSON.stringify(v,null,2)}</pre>}</div>);
-    };
 
     return (
         <div className="fade-in">
@@ -4241,23 +4296,24 @@ const MetaAdsPage = () => {
                     <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
                         <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>Video Ad Script Generator</h3>
                         <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
-                            <InputRow label="Procedure" field="procedure" placeholder="e.g. Hair Transplant"/>
-                            <InputRow label="Doctor Name" field="doctor_name" placeholder="Dr. Sharma"/>
-                            <InputRow label="Target Audience" field="target_audience" placeholder="men 25-45"/>
-                            <InputRow label="Language" field="language" options={['Hinglish','English','Hindi']}/>
+                            <StableInput label="Procedure" value={form.procedure} onChange={e=>updateForm('procedure',e.target.value)} placeholder="e.g. Hair Transplant"/>
+                            <StableInput label="Doctor Name" value={form.doctor_name} onChange={e=>updateForm('doctor_name',e.target.value)} placeholder="Dr. Sharma"/>
+                            <StableInput label="Target Audience" value={form.target_audience} onChange={e=>updateForm('target_audience',e.target.value)} placeholder="men 25-45"/>
+                            <StableSelect label="Language" value={form.language} onChange={e=>updateForm('language',e.target.value)} options={['Hinglish','English','Hindi']}/>
                         </div>
                         <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
-                            <InputRow label="Script Type" field="script_type" options={[{value:'talking_head',label:'Talking Head (Doctor)'},{value:'testimonial',label:'Patient Testimonial'},{value:'educational',label:'Educational'},{value:'before_after',label:'Before/After Story'}]}/>
-                            <InputRow label="Tone" field="tone" options={['conversational and warm','professional and authoritative','friendly and casual','luxury and premium']}/>
-                            <InputRow label="USP" field="usp" placeholder="What makes this clinic special"/>
-                            <InputRow label="Offer" field="offer" placeholder="Free Consultation"/>
+                            <StableSelect label="Script Type" value={form.script_type} onChange={e=>updateForm('script_type',e.target.value)} options={[{value:'talking_head',label:'Talking Head (Doctor)'},{value:'testimonial',label:'Patient Testimonial'},{value:'educational',label:'Educational'},{value:'before_after',label:'Before/After Story'}]}/>
+                            <StableSelect label="Tone" value={form.tone} onChange={e=>updateForm('tone',e.target.value)} options={['conversational and warm','professional and authoritative','friendly and casual','luxury and premium']}/>
+                            <StableInput label="USP" value={form.usp} onChange={e=>updateForm('usp',e.target.value)} placeholder="What makes this clinic special"/>
+                            <StableInput label="Offer" value={form.offer} onChange={e=>updateForm('offer',e.target.value)} placeholder="Free Consultation"/>
                         </div>
                         <div style={{display:'flex',gap:10,alignItems:'end'}}>
-                            <InputRow label="Number of Scripts" field="num" type="number" placeholder="4"/>
+                            <StableInput label="Number of Scripts" value={form.num} onChange={e=>updateForm('num',e.target.value)} type="number" placeholder="4"/>
                             <button className="btn btn-gold" onClick={()=>generate('video-scripts')} disabled={loading} style={{height:36,minWidth:160}}>{loading?'Generating...':'Generate Scripts'}</button>
                         </div>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Scripts</h3>{renderResult(result.scripts)}</div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Scripts</h3><DeepRender data={result.scripts}/></div>}
+                    <GenerationHistory endpoint="meta-content" filterAction="video_scripts"/>
                 </div>
             )}
 
@@ -4266,19 +4322,20 @@ const MetaAdsPage = () => {
                     <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
                         <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>Ad Copy Generator</h3>
                         <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
-                            <InputRow label="Procedure" field="procedure" placeholder="e.g. Botox"/>
-                            <InputRow label="Target Audience" field="target_audience" placeholder="women 30-50"/>
-                            <InputRow label="Language" field="language" options={['English','Hinglish','Hindi']}/>
-                            <InputRow label="Objective" field="campaign_objective" options={[{value:'lead_generation',label:'Lead Generation'},{value:'awareness',label:'Brand Awareness'},{value:'traffic',label:'Website Traffic'},{value:'engagement',label:'Engagement'}]}/>
+                            <StableInput label="Procedure" value={form.procedure} onChange={e=>updateForm('procedure',e.target.value)} placeholder="e.g. Botox"/>
+                            <StableInput label="Target Audience" value={form.target_audience} onChange={e=>updateForm('target_audience',e.target.value)} placeholder="women 30-50"/>
+                            <StableSelect label="Language" value={form.language} onChange={e=>updateForm('language',e.target.value)} options={['English','Hinglish','Hindi']}/>
+                            <StableSelect label="Objective" value={form.campaign_objective} onChange={e=>updateForm('campaign_objective',e.target.value)} options={[{value:'lead_generation',label:'Lead Generation'},{value:'awareness',label:'Brand Awareness'},{value:'traffic',label:'Website Traffic'},{value:'engagement',label:'Engagement'}]}/>
                         </div>
                         <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
-                            <InputRow label="Offer" field="offer" placeholder="20% off first visit"/>
-                            <InputRow label="Pain Points" field="pain_points" placeholder="aging skin, wrinkles, confidence"/>
-                            <InputRow label="Variations" field="num" type="number" placeholder="5"/>
+                            <StableInput label="Offer" value={form.offer} onChange={e=>updateForm('offer',e.target.value)} placeholder="20% off first visit"/>
+                            <StableInput label="Pain Points" value={form.pain_points} onChange={e=>updateForm('pain_points',e.target.value)} placeholder="aging skin, wrinkles, confidence"/>
+                            <StableInput label="Variations" value={form.num} onChange={e=>updateForm('num',e.target.value)} type="number" placeholder="5"/>
                             <div style={{display:'flex',alignItems:'end'}}><button className="btn btn-gold" onClick={()=>generate('ad-copy')} disabled={loading} style={{height:36,minWidth:140}}>{loading?'Generating...':'Generate Copy'}</button></div>
                         </div>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Ad Copy</h3>{renderResult(result.ad_copy)}</div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Ad Copy</h3><DeepRender data={result.ad_copy}/></div>}
+                    <GenerationHistory endpoint="meta-content" filterAction="ad_copy"/>
                 </div>
             )}
 
@@ -4286,15 +4343,17 @@ const MetaAdsPage = () => {
                 <div>
                     <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
                         <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>AI Image Ad Prompt Generator</h3>
+                        <p style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>Generates AI image prompts with step-by-step usage guides for Midjourney, DALL-E, Ideogram, Leonardo AI, and Canva AI.</p>
                         <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
-                            <InputRow label="Procedure" field="procedure" placeholder="e.g. Laser Hair Removal"/>
-                            <InputRow label="Visual Style" field="style" options={['professional and clean','luxury and premium','warm and welcoming','modern and minimalist','clinical and trustworthy','vibrant and energetic']}/>
-                            <InputRow label="Image Type" field="image_type" options={[{value:'mixed',label:'Mixed (All Types)'},{value:'lifestyle',label:'Lifestyle'},{value:'clinical',label:'Clinical'},{value:'infographic',label:'Infographic'},{value:'offer_announcement',label:'Offer Announcement'},{value:'doctor_authority',label:'Doctor Authority'}]}/>
-                            <InputRow label="Number of Prompts" field="num" type="number" placeholder="6"/>
+                            <StableInput label="Procedure" value={form.procedure} onChange={e=>updateForm('procedure',e.target.value)} placeholder="e.g. Laser Hair Removal"/>
+                            <StableSelect label="Visual Style" value={form.style} onChange={e=>updateForm('style',e.target.value)} options={['professional and clean','luxury and premium','warm and welcoming','modern and minimalist','clinical and trustworthy','vibrant and energetic']}/>
+                            <StableSelect label="Image Type" value={form.image_type} onChange={e=>updateForm('image_type',e.target.value)} options={[{value:'mixed',label:'Mixed (All Types)'},{value:'lifestyle',label:'Lifestyle'},{value:'clinical',label:'Clinical'},{value:'infographic',label:'Infographic'},{value:'offer_announcement',label:'Offer Announcement'},{value:'doctor_authority',label:'Doctor Authority'}]}/>
+                            <StableInput label="Number of Prompts" value={form.num} onChange={e=>updateForm('num',e.target.value)} type="number" placeholder="6"/>
                         </div>
                         <button className="btn btn-gold" onClick={()=>generate('image-prompts')} disabled={loading} style={{minWidth:160}}>{loading?'Generating...':'Generate Image Prompts'}</button>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Image Prompts</h3>{renderResult(result.prompts)}</div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Image Prompts (with Usage Guides)</h3><DeepRender data={result.prompts}/></div>}
+                    <GenerationHistory endpoint="meta-content" filterAction="image_prompts"/>
                 </div>
             )}
 
@@ -4302,30 +4361,34 @@ const MetaAdsPage = () => {
                 <div>
                     <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
                         <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>Carousel Ad Generator</h3>
+                        <p style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>Generates carousel concepts with AI image prompts per card and a complete design guide for assembly.</p>
                         <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
-                            <InputRow label="Procedure" field="procedure" placeholder="e.g. PRP Hair Treatment"/>
-                            <InputRow label="Language" field="language" options={['English','Hinglish','Hindi']}/>
-                            <InputRow label="Carousel Type" field="carousel_type" options={[{value:'educational',label:'Educational'},{value:'before_after_journey',label:'Before/After Journey'},{value:'faq',label:'FAQ'},{value:'process_steps',label:'Process Steps'},{value:'benefits',label:'Benefits'},{value:'social_proof',label:'Social Proof'},{value:'comparison',label:'Comparison'}]}/>
-                            <InputRow label="Number" field="num" type="number" placeholder="3"/>
+                            <StableInput label="Procedure" value={form.procedure} onChange={e=>updateForm('procedure',e.target.value)} placeholder="e.g. PRP Hair Treatment"/>
+                            <StableSelect label="Language" value={form.language} onChange={e=>updateForm('language',e.target.value)} options={['English','Hinglish','Hindi']}/>
+                            <StableSelect label="Carousel Type" value={form.carousel_type} onChange={e=>updateForm('carousel_type',e.target.value)} options={[{value:'educational',label:'Educational'},{value:'before_after_journey',label:'Before/After Journey'},{value:'faq',label:'FAQ'},{value:'process_steps',label:'Process Steps'},{value:'benefits',label:'Benefits'},{value:'social_proof',label:'Social Proof'},{value:'comparison',label:'Comparison'}]}/>
+                            <StableInput label="Number" value={form.num} onChange={e=>updateForm('num',e.target.value)} type="number" placeholder="3"/>
                         </div>
                         <button className="btn btn-gold" onClick={()=>generate('carousel-prompts')} disabled={loading} style={{minWidth:160}}>{loading?'Generating...':'Generate Carousels'}</button>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Carousels</h3>{renderResult(result.carousels)}</div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Carousels (with Design Guide)</h3><DeepRender data={result.carousels}/></div>}
+                    <GenerationHistory endpoint="meta-content" filterAction="carousel"/>
                 </div>
             )}
 
             {activeTab === 'strategy' && (
                 <div>
                     <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
-                        <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>Campaign Strategy Generator</h3>
+                        <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>Campaign Strategy Generator (SBA SOP)</h3>
+                        <p style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>Follows SBA methodology: WhatsApp click-to-chat as primary funnel, progressive forms as secondary, Google Ads complement strategy included.</p>
                         <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
-                            <InputRow label="Procedures (comma-separated)" field="procedures" placeholder="Hair Transplant, Botox, PRP"/>
-                            <InputRow label="Monthly Budget (INR)" field="monthly_budget" type="number" placeholder="50000"/>
-                            <InputRow label="Location" field="location" placeholder="Mumbai, Delhi, etc."/>
+                            <StableInput label="Procedures (comma-separated)" value={form.procedures} onChange={e=>updateForm('procedures',e.target.value)} placeholder="Hair Transplant, Botox, PRP"/>
+                            <StableInput label="Monthly Budget (INR)" value={form.monthly_budget} onChange={e=>updateForm('monthly_budget',e.target.value)} type="number" placeholder="50000"/>
+                            <StableInput label="Location" value={form.location} onChange={e=>updateForm('location',e.target.value)} placeholder="Mumbai, Delhi, etc."/>
                         </div>
                         <button className="btn btn-gold" onClick={()=>generate('campaign-strategy',{procedures:form.procedures?form.procedures.split(',').map(s=>s.trim()):[form.procedure||'aesthetic treatments'],monthly_budget:form.monthly_budget,location:form.location,goals:'lead generation and brand awareness'})} disabled={loading} style={{minWidth:180}}>{loading?'Generating...':'Generate Strategy'}</button>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Campaign Strategy</h3>{renderResult(result.strategy)}</div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Campaign Strategy</h3><DeepRender data={result.strategy}/></div>}
+                    <GenerationHistory endpoint="meta-content" filterAction="strategy"/>
                 </div>
             )}
 
@@ -4333,22 +4396,48 @@ const MetaAdsPage = () => {
                 <div>
                     <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
                         <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>Retargeting Plan Generator</h3>
-                        <p style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>Generate a complete retargeting strategy including custom audiences, ad sequences, scripts, and copy for warm leads.</p>
-                        <button className="btn btn-gold" onClick={()=>generate('retargeting-plan',{})} disabled={loading} style={{minWidth:180}}>{loading?'Generating...':'Generate Retargeting Plan'}</button>
+                        <p style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>Generate a complete retargeting strategy with custom audiences, ad sequences, scripts, copy, WhatsApp retargeting, and pixel event setup.</p>
+                        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
+                            <StableInput label="Primary Procedure" value={form.procedure} onChange={e=>updateForm('procedure',e.target.value)} placeholder="e.g. Hair Transplant"/>
+                            <StableInput label="Retargeting Budget (INR/month)" value={form.retarget_budget} onChange={e=>updateForm('retarget_budget',e.target.value)} type="number" placeholder="10000"/>
+                            <StableInput label="Location" value={form.location} onChange={e=>updateForm('location',e.target.value)} placeholder="Mumbai, Delhi"/>
+                        </div>
+                        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
+                            <StableSelect label="Language" value={form.language} onChange={e=>updateForm('language',e.target.value)} options={['Hinglish','English','Hindi']}/>
+                            <StableSelect label="Meta Pixel Installed?" value={form.pixel_installed} onChange={e=>updateForm('pixel_installed',e.target.value)} options={[{value:'yes',label:'Yes'},{value:'no',label:'No'},{value:'unsure',label:'Not Sure'}]}/>
+                            <StableSelect label="Website Traffic Level" value={form.website_traffic} onChange={e=>updateForm('website_traffic',e.target.value)} options={[{value:'low',label:'Low (under 500/month)'},{value:'moderate',label:'Moderate (500-2000/month)'},{value:'high',label:'High (2000+/month)'}]}/>
+                            <StableInput label="Current Active Campaigns" value={form.current_campaigns} onChange={e=>updateForm('current_campaigns',e.target.value)} placeholder="Meta Ads prospecting"/>
+                        </div>
+                        <button className="btn btn-gold" onClick={()=>generate('retargeting-plan',{procedure:form.procedure||'aesthetic treatments',monthly_budget:form.retarget_budget,location:form.location,language:form.language,pixel_installed:form.pixel_installed,website_traffic:form.website_traffic,current_campaigns:form.current_campaigns})} disabled={loading} style={{minWidth:180}}>{loading?'Generating...':'Generate Retargeting Plan'}</button>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Retargeting Plan</h3>{renderResult(result.plan)}</div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Retargeting Plan</h3><DeepRender data={result.plan}/></div>}
+                    <GenerationHistory endpoint="meta-content" filterAction="retargeting"/>
                 </div>
             )}
 
             {activeTab === 'setup' && (
                 <div className="glass" style={{padding:24,borderRadius:12}}>
-                    <h3 style={{fontSize:16,fontWeight:600,marginBottom:16,color:'var(--gold)'}}>Meta Ads Setup Guide</h3>
+                    <h3 style={{fontSize:16,fontWeight:600,marginBottom:16,color:'var(--gold)'}}>Meta Ads Complete Setup Guide</h3>
+                    <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20}}>Follow these steps to connect your Meta Ads account, set up tracking, configure WhatsApp ads, and start generating leads for your clinic.</p>
                     <div style={{display:'flex',flexDirection:'column',gap:16}}>
-                        {[{title:'Step 1: Create a Meta Business Account',desc:'Create a Meta Business account at business.facebook.com. This is required to manage ads and access the API.',link:'https://business.facebook.com/'},{title:'Step 2: Create System User and Token',desc:'Go to Business Settings > Users > System Users. Create a system user with ads_management and leads_retrieval permissions.',link:'https://business.facebook.com/settings/system-users'},{title:'Step 3: Get Your Page ID',desc:'Go to your Facebook Page > About > Page Transparency > Page ID.',link:'https://www.facebook.com/business/help/1199464373557428'},{title:'Step 4: Configure Webhook',desc:'In Meta App Dashboard > Webhooks, subscribe to "leadgen" event with your webhook URL.',link:'https://developers.facebook.com/docs/marketing-api/guides/lead-ads/'},{title:'Step 5: Enter Credentials',desc:'Go to Settings > Meta Ads section. Enter Page ID, Page Name, and Access Token.'}].map((s,i) => (
+                        {[
+                            {title:'Step 1: Create a Meta Business Account',desc:'Go to business.facebook.com and create a Business Account. This is the central hub for managing your ad accounts, pages, and pixels. Add your clinic name, address, and business details. Verify your business domain for higher trust scores. This step is mandatory before running any ads.',link:'https://business.facebook.com/',tips:['Use your clinic official email, not personal','Add 2-factor authentication for security','Complete business verification for higher ad limits']},
+                            {title:'Step 2: Set Up Meta Ads Manager',desc:'Inside Business Manager, go to Ad Accounts and create a new ad account (or claim an existing one). Set your timezone to IST and currency to INR. Add your payment method (credit card or UPI). Request a higher spending limit if needed by contacting Meta support.',link:'https://adsmanager.facebook.com/',tips:['Set daily spending limit initially to avoid runaway spend','Add a backup payment method','Enable notifications for ad rejections']},
+                            {title:'Step 3: Install Meta Pixel on Your Website',desc:'Go to Events Manager > Data Sources > Pixels. Create a new pixel named "[Clinic Name] Pixel". Install the base code in the <head> section of every page on your website. For WordPress, use the official Meta Pixel plugin. Set up standard events: ViewContent (on procedure pages), Lead (on form submission), Schedule (on booking confirmation). For landing pages, add the pixel code provided by your landing page builder.',link:'https://business.facebook.com/events_manager2',tips:['Use Google Tag Manager for easier installation','Test pixel fires using Facebook Pixel Helper Chrome extension','Set up custom events for PricingPageView and DoctorProfileView']},
+                            {title:'Step 4: Create Custom Conversions',desc:'In Events Manager, create custom conversions for each key action: Procedure Page View (URL contains /procedure/), Contact Form Submit, WhatsApp Click, Booking Confirmation. These allow Meta to optimize ad delivery to people most likely to take these actions. Name each conversion clearly (e.g. "Hair Transplant - Lead Form Submit").',link:'https://business.facebook.com/events_manager2/custom_conversions',tips:['Create one custom conversion per procedure for better optimization','Use URL rules + event parameters for precise tracking','Allow 48 hours for custom conversions to start firing']},
+                            {title:'Step 5: Set Up WhatsApp Business API',desc:'For WhatsApp click-to-chat ads (SBA recommended primary funnel): Connect your WhatsApp Business account to Meta Business Manager. Go to Business Settings > Accounts > WhatsApp Accounts > Add. You need a verified WhatsApp Business API number. If using a BSP like Interakt, Wati, or AiSensy, they will provide the WABA ID and phone number ID. If self-hosted, set up via Meta Cloud API.',link:'https://business.facebook.com/settings/whatsapp-accounts',tips:['Use a dedicated number for ads (not your personal WhatsApp)','Set up auto-reply messages for off-hours','Connect to CallCoach CRM for lead tracking']},
+                            {title:'Step 6: Create System User and Access Token',desc:'Go to Business Settings > Users > System Users. Create a new system user (name it "CallCoach CRM"). Assign it the "Admin" role. Generate a token with these permissions: ads_management, ads_read, leads_retrieval, pages_read_engagement, pages_manage_metadata, whatsapp_business_management. Copy the token immediately as it will not be shown again.',link:'https://business.facebook.com/settings/system-users',tips:['Never share system user tokens in plain text','Set token expiry to "Never" for CRM integration','If token expires, regenerate and update in Settings']},
+                            {title:'Step 7: Get Your Page ID',desc:'Go to your Facebook Page > About > Page Transparency. Your Page ID is the numeric ID shown there. Alternatively, go to Business Settings > Accounts > Pages and copy the ID from there. You need this to connect lead forms and run page-level ads.',link:'https://www.facebook.com/business/help/1199464373557428',tips:['Store your Page ID in a safe place','Each page has a unique numeric ID','Page ID is different from page username']},
+                            {title:'Step 8: Set Up Lead Form Webhooks',desc:'For progressive lead forms: In Meta App Dashboard > Webhooks, subscribe to the "leadgen" webhook event. Use your CallCoach CRM webhook URL from Settings > Integrations. This ensures every lead form submission is instantly sent to your CRM for immediate follow-up and nurture sequence enrollment.',link:'https://developers.facebook.com/docs/marketing-api/guides/lead-ads/',tips:['Test webhook with Meta lead ad testing tool','Set up instant notification alerts for new leads','Auto-enroll leads in nurture sequences via CRM']},
+                            {title:'Step 9: Configure Audiences',desc:'Before launching ads, create these audiences in Ads Manager > Audiences: (1) Custom Audience from website visitors (last 30 days), (2) Custom Audience from video viewers (50% watched, last 30 days), (3) Custom Audience from page engagers (last 90 days), (4) Custom Audience from lead form openers who did not submit. Then create Lookalike audiences (1%) from your converted leads list once you have 50+ conversions.',link:'https://adsmanager.facebook.com/adsmanager/audiences',tips:['Start with broad targeting, add interests only for low budgets','Exclude existing patients from prospecting campaigns','Refresh lookalike audiences monthly with new data']},
+                            {title:'Step 10: Enter Credentials in CallCoach CRM',desc:'Go to Settings > Meta Ads section in CallCoach CRM. Enter: Page ID, Page Name, Access Token (system user token from Step 6), and WABA Phone Number ID (from Step 5). Click "Test Connection" to verify. Once connected, all lead form submissions and WhatsApp conversations will auto-sync to your CRM.'},
+                            {title:'Step 11: Launch Your First Campaign',desc:'Use the Campaign Strategy Generator tab above to get a complete SBA-methodology campaign plan. Follow the WhatsApp click-to-chat funnel as your primary strategy. Start with 50% of your planned budget for the first 3 days. Monitor CPL and adjust. Use the 72-Hour Report feature to track performance and make data-driven optimizations.',tips:['Never edit ads in the first 24 hours (let Meta learn)','Check ad rejections within 2 hours of launch','Use the Retargeting tab to set up warm audience campaigns after Day 7']}
+                        ].map((s,i) => (
                             <div key={i} style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
                                 <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>{s.title}</div>
-                                <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6}}>{s.desc}</p>
-                                {s.link && <a href={s.link} target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline',marginTop:6,display:'inline-block'}}>Open Link</a>}
+                                <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7}}>{s.desc}</p>
+                                {s.tips && <div style={{marginTop:10,padding:10,background:'rgba(212,175,55,0.05)',borderRadius:8,border:'1px solid rgba(212,175,55,0.1)'}}><div style={{fontSize:11,fontWeight:600,color:'var(--gold)',marginBottom:4}}>PRO TIPS</div>{s.tips.map((t,ti)=><div key={ti} style={{fontSize:12,color:'var(--text-muted)',padding:'2px 0'}}>- {t}</div>)}</div>}
+                                {s.link && <a href={s.link} target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline',marginTop:8,display:'inline-block'}}>Open Link</a>}
                             </div>
                         ))}
                     </div>
@@ -4368,7 +4457,7 @@ const GoogleAdsPage = () => {
 
     useEffect(() => { apiFetch('/google-ads/performance').then(p => { if(p&&!p.detail) setPerf(p); }).catch(()=>{}); }, []);
 
-    const updateForm = (k,v) => setForm(p=>({...p,[k]:v}));
+    const updateForm = useCallback((k,v) => setForm(p=>({...p,[k]:v})), []);
 
     const generate = async (endpoint, body) => {
         setLoading(true); setResult(null);
@@ -4380,20 +4469,6 @@ const GoogleAdsPage = () => {
     };
 
     const tabs = [{id:'search-ads',label:'Search Ads'},{id:'keywords',label:'Keyword Research'},{id:'landing-page',label:'Landing Page Copy'},{id:'campaign',label:'Campaign Structure'},{id:'performance',label:'Performance'},{id:'setup',label:'Setup Guide'}];
-
-    const InputRow = ({label, field, type, placeholder}) => (
-        <div style={{flex:1,minWidth:180}}>
-            <label style={{fontSize:11,color:'var(--text-muted)',display:'block',marginBottom:3}}>{label}</label>
-            <input className="input" type={type||'text'} value={form[field]||''} onChange={e=>updateForm(field,e.target.value)} placeholder={placeholder} style={{fontSize:12}}/>
-        </div>
-    );
-
-    const renderResult = (data) => {
-        if (!data) return null;
-        if (typeof data === 'string') return <pre style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{data}</pre>;
-        if (Array.isArray(data)) return data.map((item, i) => <div key={i} style={{padding:16,border:'1px solid var(--border)',borderRadius:10,marginBottom:12}}>{Object.entries(item).map(([k,v]) => <div key={k} style={{marginBottom:8}}><span style={{fontSize:11,color:'var(--gold)',fontWeight:600,textTransform:'uppercase'}}>{k.replace(/_/g,' ')}: </span>{typeof v === 'string' ? <span style={{fontSize:13,color:'var(--text-secondary)',whiteSpace:'pre-wrap'}}>{v}</span> : Array.isArray(v) ? <div style={{marginTop:4}}>{v.map((vi,vi2)=><div key={vi2} style={{fontSize:12,color:'var(--text-secondary)',padding:'4px 0'}}>{typeof vi==='object'?JSON.stringify(vi,null,1):vi}</div>)}</div> : <span style={{fontSize:13,color:'var(--text-secondary)'}}>{JSON.stringify(v)}</span>}</div>)}</div>);
-        if (typeof data === 'object') return Object.entries(data).map(([k,v]) => <div key={k} style={{marginBottom:16}}><h4 style={{fontSize:13,fontWeight:700,color:'var(--gold)',marginBottom:8,textTransform:'uppercase'}}>{k.replace(/_/g,' ')}</h4>{typeof v === 'string' ? <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap'}}>{v}</p> : Array.isArray(v) ? v.map((vi,vi2)=><div key={vi2} style={{padding:12,border:'1px solid var(--border)',borderRadius:8,marginBottom:8,fontSize:12,color:'var(--text-secondary)'}}>{typeof vi==='object'?<div>{Object.entries(vi).map(([vk,vv])=><div key={vk}><strong style={{color:'var(--text-primary)'}}>{vk.replace(/_/g,' ')}:</strong> {typeof vv==='string'?vv:JSON.stringify(vv)}</div>)}</div>:vi}</div>) : <pre style={{fontSize:12,color:'var(--text-secondary)',whiteSpace:'pre-wrap'}}>{JSON.stringify(v,null,2)}</pre>}</div>);
-    };
 
     return (
         <div className="fade-in">
@@ -4411,11 +4486,15 @@ const GoogleAdsPage = () => {
                     <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
                         <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>Responsive Search Ad Generator</h3>
                         <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
-                            <InputRow label="Procedure" field="procedure" placeholder="e.g. Hair Transplant"/><InputRow label="Location" field="location" placeholder="Mumbai"/><InputRow label="USP" field="usp" placeholder="Board certified surgeons"/><InputRow label="Number of Ads" field="num_ads" type="number" placeholder="3"/>
+                            <StableInput label="Procedure" value={form.procedure} onChange={e=>updateForm('procedure',e.target.value)} placeholder="e.g. Hair Transplant"/>
+                            <StableInput label="Location" value={form.location} onChange={e=>updateForm('location',e.target.value)} placeholder="Mumbai"/>
+                            <StableInput label="USP" value={form.usp} onChange={e=>updateForm('usp',e.target.value)} placeholder="Board certified surgeons"/>
+                            <StableInput label="Number of Ads" value={form.num_ads} onChange={e=>updateForm('num_ads',e.target.value)} type="number" placeholder="3"/>
                         </div>
                         <button className="btn btn-gold" onClick={()=>generate('generate-search-ads',{procedure:form.procedure,location:form.location,usp:form.usp,num_ads:parseInt(form.num_ads)||3})} disabled={loading}>{loading?'Generating...':'Generate Search Ads'}</button>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Search Ads</h3>{renderResult(result.ads)}</div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Search Ads</h3><DeepRender data={result.ads}/></div>}
+                    <GenerationHistory endpoint="google-ads" filterAction="search_ads"/>
                 </div>
             )}
 
@@ -4424,11 +4503,13 @@ const GoogleAdsPage = () => {
                     <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
                         <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>Keyword Research Generator</h3>
                         <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
-                            <InputRow label="Procedures (comma-separated)" field="procedures" placeholder="Hair Transplant, Botox, PRP"/><InputRow label="Location" field="location" placeholder="Delhi, Mumbai"/>
+                            <StableInput label="Procedures (comma-separated)" value={form.procedures} onChange={e=>updateForm('procedures',e.target.value)} placeholder="Hair Transplant, Botox, PRP"/>
+                            <StableInput label="Location" value={form.location} onChange={e=>updateForm('location',e.target.value)} placeholder="Delhi, Mumbai"/>
                         </div>
                         <button className="btn btn-gold" onClick={()=>generate('generate-keywords',{procedures:form.procedures?form.procedures.split(',').map(s=>s.trim()):[form.procedure||'aesthetic treatment'],location:form.location})} disabled={loading}>{loading?'Generating...':'Generate Keywords'}</button>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Keyword Research</h3>{renderResult(result.keywords)}</div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Keyword Research</h3><DeepRender data={result.keywords}/></div>}
+                    <GenerationHistory endpoint="google-ads" filterAction="keywords"/>
                 </div>
             )}
 
@@ -4437,11 +4518,13 @@ const GoogleAdsPage = () => {
                     <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
                         <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>Landing Page Copy Generator</h3>
                         <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
-                            <InputRow label="Procedure" field="procedure" placeholder="e.g. Rhinoplasty"/><InputRow label="Doctor Name" field="doctor_name" placeholder="Dr. Sharma"/>
+                            <StableInput label="Procedure" value={form.procedure} onChange={e=>updateForm('procedure',e.target.value)} placeholder="e.g. Rhinoplasty"/>
+                            <StableInput label="Doctor Name" value={form.doctor_name} onChange={e=>updateForm('doctor_name',e.target.value)} placeholder="Dr. Sharma"/>
                         </div>
                         <button className="btn btn-gold" onClick={()=>generate('generate-landing-page',{procedure:form.procedure,doctor_name:form.doctor_name})} disabled={loading}>{loading?'Generating...':'Generate Landing Page Copy'}</button>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Landing Page Copy</h3>{renderResult(result.landing_page)}</div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Landing Page Copy</h3><DeepRender data={result.landing_page}/></div>}
+                    <GenerationHistory endpoint="google-ads" filterAction="landing_page"/>
                 </div>
             )}
 
@@ -4450,11 +4533,14 @@ const GoogleAdsPage = () => {
                     <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
                         <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>Campaign Structure Generator</h3>
                         <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
-                            <InputRow label="Procedures (comma-separated)" field="procedures" placeholder="Hair Transplant, Botox, PRP"/><InputRow label="Monthly Budget (INR)" field="monthly_budget" type="number" placeholder="50000"/><InputRow label="Location" field="location" placeholder="Mumbai"/>
+                            <StableInput label="Procedures (comma-separated)" value={form.procedures} onChange={e=>updateForm('procedures',e.target.value)} placeholder="Hair Transplant, Botox, PRP"/>
+                            <StableInput label="Monthly Budget (INR)" value={form.monthly_budget} onChange={e=>updateForm('monthly_budget',e.target.value)} type="number" placeholder="50000"/>
+                            <StableInput label="Location" value={form.location} onChange={e=>updateForm('location',e.target.value)} placeholder="Mumbai"/>
                         </div>
                         <button className="btn btn-gold" onClick={()=>generate('generate-campaign-structure',{procedures:form.procedures?form.procedures.split(',').map(s=>s.trim()):[form.procedure||'aesthetic treatments'],monthly_budget:form.monthly_budget,location:form.location})} disabled={loading}>{loading?'Generating...':'Generate Structure'}</button>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Campaign Structure</h3>{renderResult(result.structure)}</div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Campaign Structure</h3><DeepRender data={result.structure}/></div>}
+                    <GenerationHistory endpoint="google-ads" filterAction="campaign_structure"/>
                 </div>
             )}
 
@@ -4467,13 +4553,27 @@ const GoogleAdsPage = () => {
 
             {activeTab === 'setup' && (
                 <div className="glass" style={{padding:24,borderRadius:12}}>
-                    <h3 style={{fontSize:16,fontWeight:600,marginBottom:16,color:'var(--gold)'}}>Google Ads Setup Guide</h3>
+                    <h3 style={{fontSize:16,fontWeight:600,marginBottom:16,color:'var(--gold)'}}>Google Ads Complete Setup Guide</h3>
+                    <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20}}>Follow these steps to connect your Google Ads account, set up conversion tracking, configure landing pages, and start running search ads for your clinic.</p>
                     <div style={{display:'flex',flexDirection:'column',gap:16}}>
-                        {[{title:'Step 1: Get Your Customer ID',desc:'Log in to Google Ads. Your Customer ID is the 10-digit number in the top-right corner.',link:'https://ads.google.com/'},{title:'Step 2: Create Developer Token',desc:'Go to Google Ads > Tools > API Center. Apply for a developer token.',link:'https://developers.google.com/google-ads/api/docs/first-call/dev-token'},{title:'Step 3: Set Up OAuth Credentials',desc:'In Google Cloud Console, create OAuth 2.0 credentials and generate a refresh token.',link:'https://console.cloud.google.com/apis/credentials'},{title:'Step 4: Set Up Webhook (Optional)',desc:'Point your landing page form to the webhook URL in Settings.'},{title:'Step 5: Enter Credentials',desc:'Go to Settings > Google Ads. Enter Customer ID, Developer Token, Client ID, Client Secret, and Refresh Token.'}].map((s,i) => (
+                        {[
+                            {title:'Step 1: Create Google Ads Account',desc:'Go to ads.google.com and create a new Google Ads account. Use your clinic business email. Select "Expert Mode" (not Smart Mode) for full control over campaigns. Set your billing to INR and timezone to IST. Add a payment method (credit card, debit card, or UPI).',link:'https://ads.google.com/',tips:['Always use Expert Mode for full campaign control','Set a conservative daily budget initially (Rs. 500-1000)','Enable auto-tagging for proper conversion tracking']},
+                            {title:'Step 2: Get Your Customer ID',desc:'Your Google Ads Customer ID is the 10-digit number shown in the top-right corner of your Google Ads dashboard (format: XXX-XXX-XXXX). Copy this number. You will need it to connect Google Ads to CallCoach CRM.',link:'https://ads.google.com/',tips:['Customer ID is account-specific, not user-specific','If you manage multiple accounts, use the MCC (Manager) account ID','Store the Customer ID securely']},
+                            {title:'Step 3: Set Up Conversion Tracking',desc:'Go to Tools & Settings > Measurement > Conversions. Create conversion actions for: (1) Phone Calls from ads (call extensions), (2) Website Form Submissions (use Google Tag or GTM), (3) WhatsApp Click (track as custom conversion), (4) Booking Confirmation (if you have online booking). For each conversion, set the category to "Lead" and count "One" per interaction. Set the conversion window to 30 days.',link:'https://ads.google.com/aw/conversions',tips:['Install Google Tag (gtag.js) on all website pages','Use Google Tag Manager for easier event management','Test each conversion action before launching ads']},
+                            {title:'Step 4: Install Google Tag on Website',desc:'Go to Tools & Settings > Setup > Google Tag. Copy the tag code and install it on every page of your clinic website in the <head> section. For WordPress, use the "Site Kit by Google" plugin or "Google Tag Manager for WordPress" plugin. This enables conversion tracking, remarketing audiences, and proper attribution.',link:'https://tagmanager.google.com/',tips:['Use Google Tag Assistant Chrome extension to verify installation','Set up enhanced conversions for better attribution','Install on landing pages as well, not just your main website']},
+                            {title:'Step 5: Create Developer Token (for API access)',desc:'To connect Google Ads to CallCoach CRM via API: Go to Google Ads > Tools & Settings > Setup > API Center. Apply for a developer token. For basic access (read-only reporting), approval is usually fast. For standard access (campaign management), you need to fill out an application form. The token format is a long alphanumeric string.',link:'https://developers.google.com/google-ads/api/docs/first-call/dev-token',tips:['Basic access is sufficient for reporting integration','Standard access takes 3-5 business days for approval','Keep your developer token confidential']},
+                            {title:'Step 6: Set Up OAuth 2.0 Credentials',desc:'Go to Google Cloud Console > APIs & Services > Credentials. Create a new OAuth 2.0 Client ID (type: Web Application). Add your redirect URI. Generate a refresh token using the OAuth Playground or the google-ads-api authentication flow. You need: Client ID, Client Secret, and Refresh Token.',link:'https://console.cloud.google.com/apis/credentials',tips:['Enable the Google Ads API in your Google Cloud project first','Use OAuth Playground for easy refresh token generation','Refresh tokens do not expire unless you revoke them']},
+                            {title:'Step 7: Configure Landing Pages',desc:'For each procedure you advertise, create a dedicated landing page with: (1) Hero section with procedure name and CTA, (2) Doctor credentials and clinic trust signals, (3) Before/After concepts (no real patient photos without consent), (4) FAQ section addressing top 5 patient concerns, (5) WhatsApp click-to-chat button (SBA primary CTA), (6) Phone call button, (7) Simple lead form (name + phone only). Install Google Tag on each landing page. Use the Landing Page Copy Generator tab to get AI-generated copy.',tips:['One landing page per procedure for better Quality Score','Mobile-first design (80%+ traffic is mobile)','Page load speed under 3 seconds','Include the city/location name for local SEO']},
+                            {title:'Step 8: Set Up Form Webhook (Lead Capture)',desc:'Point your landing page form to the CallCoach CRM webhook URL. Go to Settings > Integrations in CallCoach to get your unique webhook URL. Add hidden fields for utm_source, utm_medium, utm_campaign to track which ad brought the lead. Form submissions will auto-create leads in CRM with campaign tagging and trigger nurture sequences.',tips:['Test the webhook with a dummy submission first','Include UTM parameters in your Google Ads final URLs','Set up instant WhatsApp notification for new leads']},
+                            {title:'Step 9: Create Remarketing Audiences',desc:'Go to Tools & Settings > Shared Library > Audience Manager. Create these audiences: (1) All website visitors (last 30 days), (2) Procedure page visitors (last 14 days), (3) Form page visitors who did not submit (last 7 days), (4) Past converters (for exclusion). These audiences power your remarketing campaigns on both Google Display and YouTube.',link:'https://ads.google.com/aw/audiences',tips:['Minimum audience size for remarketing is 1,000 users','Create separate audiences per procedure page','Use audience insights to understand your visitor demographics']},
+                            {title:'Step 10: Enter Credentials in CallCoach CRM',desc:'Go to Settings > Google Ads section in CallCoach CRM. Enter: Customer ID (from Step 2), Developer Token (from Step 5), Client ID, Client Secret, and Refresh Token (from Step 6). Click "Test Connection" to verify. Once connected, campaign performance data will sync to your dashboard automatically.'},
+                            {title:'Step 11: Launch Your First Campaign',desc:'Use the Campaign Structure Generator tab above to get a complete campaign plan. Start with Search campaigns only (not Display or Performance Max). Target exact-match and phrase-match keywords for your top 2-3 procedures. Set location targeting to your city + 25km radius. Start with Rs. 500-1000/day and optimize after 7 days of data. Use the keyword research tool to find the best keywords for your procedures.',tips:['Never launch Display campaigns first (Search only)','Use negative keywords from Day 1 (list provided in keyword research)','Check Search Terms report daily for the first week','Complement with Meta Ads WhatsApp campaigns for full-funnel coverage']}
+                        ].map((s,i) => (
                             <div key={i} style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
                                 <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>{s.title}</div>
-                                <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6}}>{s.desc}</p>
-                                {s.link && <a href={s.link} target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline',marginTop:6,display:'inline-block'}}>Open Link</a>}
+                                <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7}}>{s.desc}</p>
+                                {s.tips && <div style={{marginTop:10,padding:10,background:'rgba(212,175,55,0.05)',borderRadius:8,border:'1px solid rgba(212,175,55,0.1)'}}><div style={{fontSize:11,fontWeight:600,color:'var(--gold)',marginBottom:4}}>PRO TIPS</div>{s.tips.map((t,ti)=><div key={ti} style={{fontSize:12,color:'var(--text-muted)',padding:'2px 0'}}>- {t}</div>)}</div>}
+                                {s.link && <a href={s.link} target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline',marginTop:8,display:'inline-block'}}>Open Link</a>}
                             </div>
                         ))}
                     </div>

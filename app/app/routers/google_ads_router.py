@@ -4,7 +4,7 @@ Google Ads management, lead sync, campaign monitoring, and reporting.
 """
 import logging
 from datetime import datetime
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import Optional
 from pydantic import BaseModel
@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from app.database import get_db
 from app.auth import get_current_user
 from app.models import User
-from app.services.activity_logger import log_activity
+from app.services.activity_logger import log_activity, get_activity_logs
 from app.services.prompt_quality import WRITING_QUALITY_DIRECTIVE
 
 logger = logging.getLogger(__name__)
@@ -112,6 +112,31 @@ def update_config(
                  {"connected": bool(gads.get("customer_id") and gads.get("refresh_token"))},
                  current_user.email)
     return {"status": "updated", "connected": bool(gads.get("customer_id") and gads.get("refresh_token"))}
+
+
+# ---------------------------------------------------------------------------
+# Generation History
+# ---------------------------------------------------------------------------
+
+@router.get("/history")
+def get_generation_history(
+    action_filter: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get Google Ads content generation history."""
+    logs = get_activity_logs(db=db, clinic_id=current_user.clinic_id, category="script_generation", limit=limit)
+    ads_logs = get_activity_logs(db=db, clinic_id=current_user.clinic_id, category="ads", limit=limit)
+    content_logs = get_activity_logs(db=db, clinic_id=current_user.clinic_id, category="content", limit=limit)
+    all_logs = logs + ads_logs + content_logs
+    # Filter to only google-related logs
+    google_keywords = ["google", "keyword", "landing_page", "search_ad", "campaign_structure"]
+    all_logs = [l for l in all_logs if any(kw in l.get("action", "") for kw in google_keywords)]
+    all_logs.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    if action_filter:
+        all_logs = [l for l in all_logs if action_filter in l.get("action", "")]
+    return {"history": all_logs[:limit], "count": len(all_logs[:limit])}
 
 
 # ---------------------------------------------------------------------------

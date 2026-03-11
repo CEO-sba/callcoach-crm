@@ -6,13 +6,14 @@ Following SBA Meta Ads SOP methodology.
 import json
 import logging
 from datetime import datetime
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.auth import get_current_user
 from app.models import User
-from app.services.activity_logger import log_activity
+from app.services.activity_logger import log_activity, get_activity_logs
 from app.services.prompt_quality import WRITING_QUALITY_DIRECTIVE
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,39 @@ def _parse_json_response(text: str):
         return json.loads(text)
     except:
         return text
+
+
+# ---------------------------------------------------------------------------
+# Generation History
+# ---------------------------------------------------------------------------
+
+@router.get("/history")
+def get_generation_history(
+    action_filter: Optional[str] = Query(None, description="Filter by action type"),
+    limit: int = Query(50, ge=1, le=200),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get Meta Ads content generation history."""
+    logs = get_activity_logs(
+        db=db,
+        clinic_id=current_user.clinic_id,
+        category="script_generation",
+        limit=limit,
+    )
+    # Also get ads category logs
+    ads_logs = get_activity_logs(
+        db=db,
+        clinic_id=current_user.clinic_id,
+        category="ads",
+        limit=limit,
+    )
+    # Merge and sort by timestamp descending
+    all_logs = logs + ads_logs
+    all_logs.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    if action_filter:
+        all_logs = [l for l in all_logs if action_filter in l.get("action", "")]
+    return {"history": all_logs[:limit], "count": len(all_logs[:limit])}
 
 
 # ---------------------------------------------------------------------------
@@ -172,7 +206,7 @@ Format as JSON array. Make each variation distinctly different in approach."""
 
 
 # ---------------------------------------------------------------------------
-# Image Ad Prompts (AI image generation prompts)
+# Image Ad Prompts (AI image generation prompts) + Usage Guides
 # ---------------------------------------------------------------------------
 
 @router.post("/image-prompts")
@@ -181,7 +215,7 @@ def generate_image_prompts(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Generate AI image creation prompts for Meta Ads."""
+    """Generate AI image creation prompts for Meta Ads with usage guides."""
     from app.models import Clinic
     clinic = db.query(Clinic).filter(Clinic.id == current_user.clinic_id).first()
 
@@ -207,13 +241,16 @@ For each prompt provide:
 - ad_format: Which Meta Ads format this works best for (1080x1080 feed, 1080x1920 story, 1200x628 link)
 - use_case: Where to use this (feed_ad, story_ad, carousel_card, reel_cover)
 - color_palette: Suggested colors (hex codes)
+- platform_guide: Specific platform to use this prompt on (Midjourney, DALL-E 3, Ideogram, Leonardo AI, or Canva AI)
+- how_to_use: Step-by-step instructions on how to use this exact prompt on the recommended platform to get the best output (4-6 steps)
+- tips: 2-3 tips for getting better results with this specific prompt
 
 IMPORTANT: Do NOT include real people's faces. Focus on abstract beauty, clinic interiors, treatment concepts, lifestyle shots, and graphical elements.
 
 Format as JSON array."""
 
     try:
-        result = _call_claude(prompt, 3000)
+        result = _call_claude(prompt, 4000)
         parsed = _parse_json_response(result)
         log_activity(db, current_user.clinic_id, "script_generation", "meta_image_prompts_generated",
                      {"procedure": procedure, "num_prompts": num_prompts, "image_type": image_type},
@@ -225,7 +262,7 @@ Format as JSON array."""
 
 
 # ---------------------------------------------------------------------------
-# Carousel Prompts
+# Carousel Prompts + Usage Guides
 # ---------------------------------------------------------------------------
 
 @router.post("/carousel-prompts")
@@ -234,7 +271,7 @@ def generate_carousel_prompts(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Generate carousel ad concepts for Meta Ads."""
+    """Generate carousel ad concepts for Meta Ads with usage guides."""
     from app.models import Clinic
     clinic = db.query(Clinic).filter(Clinic.id == current_user.clinic_id).first()
 
@@ -263,13 +300,15 @@ For each carousel provide:
   - ai_image_prompt: Detailed AI image generation prompt for this card
   - text_overlay_headline: Bold text on the card (max 6 words)
   - text_overlay_body: Supporting text on the card (max 15 words)
+  - platform_to_use: Best AI platform for generating this card image (Midjourney, DALL-E 3, Canva AI, Leonardo AI)
 - cta: Call to action for the carousel
 - target_objective: awareness, consideration, or conversion
+- design_guide: Step-by-step instructions on how to create this carousel from scratch, including which tools to use for image generation, how to assemble cards in Canva or Meta Creative Hub, text placement tips, and final export settings for Meta Ads
 
 Format as JSON array."""
 
     try:
-        result = _call_claude(prompt, 4000)
+        result = _call_claude(prompt, 5000)
         parsed = _parse_json_response(result)
         log_activity(db, current_user.clinic_id, "script_generation", "meta_carousel_prompts_generated",
                      {"procedure": procedure, "num_carousels": num_carousels, "carousel_type": carousel_type},
@@ -281,7 +320,7 @@ Format as JSON array."""
 
 
 # ---------------------------------------------------------------------------
-# Campaign Strategy
+# Campaign Strategy (SBA SOP Aligned)
 # ---------------------------------------------------------------------------
 
 @router.post("/campaign-strategy")
@@ -290,7 +329,7 @@ def generate_campaign_strategy(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Generate a complete Meta Ads campaign strategy."""
+    """Generate a complete Meta Ads campaign strategy following SBA SOPs."""
     from app.models import Clinic
     clinic = db.query(Clinic).filter(Clinic.id == current_user.clinic_id).first()
 
@@ -299,7 +338,7 @@ def generate_campaign_strategy(
     location = data.get("location", "")
     goals = data.get("goals", "lead generation")
 
-    prompt = f"""You are a Meta Ads strategist for aesthetic clinics following the SBA (Skin Business Accelerator) methodology.
+    prompt = f"""You are a Meta Ads strategist for aesthetic clinics strictly following the SBA (Skin Business Accelerator) methodology.
 
 Clinic: {clinic.name if clinic else 'Aesthetic Clinic'}
 Procedures to Advertise: {', '.join(procedures) if isinstance(procedures, list) else procedures}
@@ -307,26 +346,60 @@ Monthly Budget: Rs. {budget}
 Location: {location or 'India'}
 Goals: {goals}
 
+SBA CORE PRINCIPLES YOU MUST FOLLOW:
+
+1. FUNNEL STRATEGY (SBA SOP):
+   - PRIMARY FUNNEL: WhatsApp Click-to-Chat ads. This is the #1 recommended funnel for aesthetic clinics in India. Patients prefer WhatsApp over forms. Use "Send Message" CTA pointing to WhatsApp.
+   - SECONDARY FUNNEL: Progressive multi-step lead forms on Meta. Use progressive disclosure: Step 1 asks name + phone, Step 2 asks procedure interest + preferred date. Reduces form abandonment by 40-60%.
+   - TERTIARY FUNNEL: Google Search Ads with dedicated landing pages for high-intent keywords. Landing page should have WhatsApp CTA button prominently placed.
+   - NEVER recommend direct Meta lead forms as primary. They generate low-quality leads. Always recommend WhatsApp-first or progressive forms.
+
+2. CAMPAIGN STRUCTURE (SBA SOP):
+   - Separate campaigns by procedure category, not by audience
+   - Use Advantage+ placements, let Meta optimize
+   - Set campaign budget optimization (CBO) at campaign level
+   - Minimum 3 ad creatives per ad set (1 video, 1 image, 1 carousel)
+
+3. TARGETING (SBA SOP):
+   - Start broad (age + gender + location only) for Advantage+ to learn
+   - Layer interests only if budget is below Rs. 30,000/month
+   - Create lookalike audiences from converted leads after 50+ conversions
+   - Always exclude existing patients and converted leads
+
+4. CREATIVE STRATEGY (SBA SOP):
+   - 60% video content (talking head by doctor + patient testimonials)
+   - 25% image ads (before/after concepts, offer announcements, authority posts)
+   - 15% carousel ads (procedure education, FAQ, social proof)
+   - All creatives must feature the doctor's face or voice for trust building
+   - Hinglish scripts for North India, regional language for South India
+
+5. BUDGET ALLOCATION (SBA SOP):
+   - 70% on prospecting (cold audiences, WhatsApp click-to-chat)
+   - 20% on retargeting (video viewers, page visitors, form abandoners)
+   - 10% on brand awareness (reach campaigns for local area)
+
 Create a complete Meta Ads campaign strategy covering:
 
-1. campaign_structure: Array of campaigns with name, objective, daily_budget, procedures_covered
-2. ad_set_strategy: Targeting recommendations including age, gender, interests, locations, lookalike audiences, custom audiences
-3. funnel_recommendation: Which funnel type to use (direct_lead_form, landing_page, whatsapp_click, messenger) with reasoning
-4. creative_mix: Recommended split of video vs image vs carousel ads (percentages)
-5. testing_plan: What to A/B test first, second, third
-6. budget_allocation: How to split budget across campaigns and ad sets
-7. retargeting_setup: Audiences to create and retarget (website visitors, video viewers, page engagers, lead form openers)
-8. kpi_targets: Expected CPL, CTR, conversion rate benchmarks for this niche
-9. scaling_plan: When and how to scale (at what CPL, what budget increases, when to add new ad sets)
-10. first_week_checklist: Day-by-day actions for the first 7 days after launch
+1. campaign_structure: Array of campaigns with name, objective, daily_budget, procedures_covered, funnel_type (whatsapp_click/progressive_form/landing_page)
+2. ad_set_strategy: Targeting for each ad set including age, gender, location radius, interest layers (if applicable), custom audiences, lookalike setup
+3. funnel_recommendation: Detailed funnel architecture explaining WhatsApp click-to-chat as primary, progressive forms as secondary, and when to use Google landing pages. Include WhatsApp auto-reply setup notes.
+4. creative_mix: Exact split with specific creative types for each campaign
+5. testing_plan: Structured A/B testing roadmap. Week 1 test creatives, Week 2 test audiences, Week 3 test offers, Week 4 test placements
+6. budget_allocation: Day-by-day budget ramp plan for first 14 days. Start at 50% budget, scale to 100% after optimization signals.
+7. retargeting_setup: Warm audience segments to create (video viewers 50%+, page visitors 7 days, WhatsApp openers, form abandoners). Retargeting ad content for each segment.
+8. kpi_targets: Expected benchmarks for this procedure category and location. CPL range, CTR range, WhatsApp conversation rate, consultation booking rate, show-up rate.
+9. scaling_plan: Clear scaling triggers (scale when CPL is below target for 3+ days). Budget increase rules (20% every 3 days). New ad set expansion criteria.
+10. first_week_checklist: Detailed day-by-day action plan for first 7 days post-launch with specific checks and optimizations.
+11. whatsapp_integration: How to set up WhatsApp Business API for ad responses, auto-reply message templates, AI chatbot handoff flow, and lead capture into CRM.
+12. google_ads_complement: How to complement this Meta strategy with Google Search Ads targeting high-intent keywords for the same procedures. Include recommended Google Ads budget split.
 
 Format as JSON object with each section as a key."""
 
     try:
-        result = _call_claude(prompt, 4000)
+        result = _call_claude(prompt, 6000)
         parsed = _parse_json_response(result)
         log_activity(db, current_user.clinic_id, "ads", "meta_campaign_strategy_generated",
-                     {"procedures": procedures, "budget": budget, "goals": goals},
+                     {"procedures": procedures, "budget": budget, "goals": goals, "location": location},
                      current_user.email)
         return {"strategy": parsed}
     except Exception as e:
@@ -335,7 +408,7 @@ Format as JSON object with each section as a key."""
 
 
 # ---------------------------------------------------------------------------
-# Retargeting Setup
+# Retargeting Setup (Now Operational with Full Inputs)
 # ---------------------------------------------------------------------------
 
 @router.post("/retargeting-plan")
@@ -344,31 +417,93 @@ def generate_retargeting_plan(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Generate retargeting audience and ad plan."""
+    """Generate retargeting audience and ad plan with procedure-specific strategy."""
     from app.models import Clinic
     clinic = db.query(Clinic).filter(Clinic.id == current_user.clinic_id).first()
 
-    prompt = f"""You are a Meta Ads retargeting expert for aesthetic clinics.
+    procedure = data.get("procedure", "aesthetic treatments")
+    monthly_budget = data.get("monthly_budget", "10000")
+    location = data.get("location", "")
+    current_campaigns = data.get("current_campaigns", "Meta Ads prospecting")
+    pixel_installed = data.get("pixel_installed", "yes")
+    website_traffic = data.get("website_traffic", "moderate")
+    language = data.get("language", "Hinglish")
+
+    prompt = f"""You are a Meta Ads retargeting expert for aesthetic clinics following SBA methodology.
 
 Clinic: {clinic.name if clinic else 'Aesthetic Clinic'}
+Primary Procedure: {procedure}
+Retargeting Budget: Rs. {monthly_budget}/month
+Location: {location or 'India'}
+Current Active Campaigns: {current_campaigns}
+Meta Pixel Installed: {pixel_installed}
+Website Traffic Level: {website_traffic} (low = under 500 visitors/month, moderate = 500-2000, high = 2000+)
+Preferred Language: {language}
 
-Create a comprehensive retargeting plan with:
+Create a comprehensive, procedure-specific retargeting plan with:
 
-1. custom_audiences: Array of audiences to create, each with name, source (website, video, page, lead_form, instagram), retention_days, description
-2. retargeting_ad_sets: Array of ad sets targeting these audiences, each with audience_name, ad_type (video/image/carousel), messaging_angle, budget_percentage
-3. retargeting_scripts: 3 short retargeting video script outlines for people who showed interest but did not convert
-4. retargeting_ad_copy: 3 ad copy variations designed specifically for warm retargeting
-5. exclusion_audiences: Who to exclude from retargeting
-6. frequency_caps: Recommended frequency limits
-7. sequence_strategy: How to sequence retargeting (Day 1-3, Day 4-7, Day 8-14, Day 15-30)
+1. custom_audiences: Array of audiences to create, each with:
+   - name: Descriptive audience name
+   - source: Where the data comes from (website, video_views, page_engagement, lead_form, instagram, whatsapp)
+   - retention_days: How many days to keep users in this audience
+   - estimated_size: Expected audience size based on traffic level
+   - priority: high/medium/low
+   - description: What this audience represents and why it matters
+
+2. retargeting_ad_sets: Array of ad sets, each with:
+   - ad_set_name: Descriptive name
+   - audience_name: Which custom audience to target
+   - ad_type: video/image/carousel
+   - messaging_angle: What psychological approach to use
+   - budget_percentage: What % of retargeting budget to allocate
+   - frequency_cap: Maximum times to show per day
+   - schedule: How long to run this ad set
+
+3. retargeting_scripts: 4 retargeting video scripts specifically for {procedure}:
+   - Script 1: Urgency/scarcity angle (limited slots, seasonal offer)
+   - Script 2: Social proof angle (other patients like them chose this)
+   - Script 3: Educational angle (addressing the #1 concern that stopped them)
+   - Script 4: Direct offer angle (special price for returning visitors)
+   Each script should have: title, hook, full_script (in {language}), cta, duration
+
+4. retargeting_ad_copy: 4 ad copy sets specifically for warm retargeting of {procedure} leads:
+   - Each with: primary_text, headline, description, angle, targeting_note
+
+5. whatsapp_retargeting: How to retarget WhatsApp conversation starters who did not book:
+   - Follow-up message sequences (Day 1, Day 3, Day 7)
+   - AI Employee re-engagement prompts
+   - Special offers for WhatsApp retargeting
+
+6. exclusion_audiences: Who to exclude from retargeting with reasoning
+
+7. frequency_caps: Recommended frequency limits per audience segment with reasoning
+
+8. sequence_strategy: How to sequence retargeting over 30 days:
+   - Day 1-3: Immediate follow-up (highest intent)
+   - Day 4-7: Educational content + soft CTA
+   - Day 8-14: Social proof + offers
+   - Day 15-30: Final push with best offer
+   Include which ad creative to show at each stage.
+
+9. pixel_events: Which Meta Pixel events to set up for better retargeting:
+   - Standard events (ViewContent, Lead, Schedule, CompleteRegistration)
+   - Custom events for clinic websites (ProcedurePageView, PricingPageView, DoctorProfileView)
+   - How to set up each event
+
+10. measurement: How to measure retargeting success:
+    - Key metrics to track
+    - Expected benchmarks for retargeting campaigns
+    - When to pause vs scale retargeting
 
 Format as JSON object."""
 
     try:
-        result = _call_claude(prompt, 3000)
+        result = _call_claude(prompt, 5000)
         parsed = _parse_json_response(result)
         log_activity(db, current_user.clinic_id, "ads", "meta_retargeting_plan_generated",
-                     {}, current_user.email)
+                     {"procedure": procedure, "budget": monthly_budget, "location": location},
+                     current_user.email)
         return {"plan": parsed}
     except Exception as e:
+        logger.error(f"Retargeting plan generation failed: {e}")
         raise HTTPException(status_code=500, detail="Retargeting plan generation failed")
