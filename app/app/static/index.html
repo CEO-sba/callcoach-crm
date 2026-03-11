@@ -1557,7 +1557,7 @@ const CoachingPage = () => {
 const ContactsPage = () => {
     const [contacts, setContacts] = useState([]);
     const [search, setSearch] = useState('');
-    useEffect(()=>{ apiFetch('/contacts').then(data => setContacts(data.contacts || data || [])).catch(()=>{}); },[]);
+    useEffect(()=>{ apiFetch('/contacts').then(data => { const arr = Array.isArray(data?.contacts) ? data.contacts : Array.isArray(data) ? data : []; setContacts(arr); }).catch(()=>{}); },[]);
     const filtered = contacts.filter(c => !search || (c.name||'').toLowerCase().includes(search.toLowerCase()) || (c.phone||'').includes(search) || (c.email||'').toLowerCase().includes(search.toLowerCase()));
     return (
         <div className="fade-in">
@@ -2734,7 +2734,7 @@ const UnifiedInboxPage = () => {
         Promise.all([
             apiFetch('/inbox/conversations').catch(()=>[]),
             apiFetch('/inbox/stats').catch(()=>null)
-        ]).then(([convos, s]) => { setConversations(convos.conversations||convos||[]); setStats(s); setLoading(false); });
+        ]).then(([convos, s]) => { const arr = Array.isArray(convos?.conversations) ? convos.conversations : Array.isArray(convos) ? convos : []; setConversations(arr); setStats(s); setLoading(false); });
     }, []);
 
     const selectConvo = async (convo) => {
@@ -2865,7 +2865,7 @@ const HiringPage = () => {
             apiFetch('/hiring/dashboard').catch(()=>null),
             apiFetch('/hiring/positions').catch(()=>[]),
             apiFetch('/hiring/candidates').catch(()=>[])
-        ]).then(([d, p, c]) => { setDashboard(d); setPositions(p.positions||p||[]); setCandidates(c.candidates||c||[]); setLoading(false); });
+        ]).then(([d, p, c]) => { setDashboard(d); const posArr = Array.isArray(p?.positions) ? p.positions : Array.isArray(p) ? p : []; setPositions(posArr); const canArr = Array.isArray(c?.candidates) ? c.candidates : Array.isArray(c) ? c : []; setCandidates(canArr); setLoading(false); });
     };
     useEffect(loadData, []);
 
@@ -3052,7 +3052,7 @@ const ConsultationsPage = () => {
         Promise.all([
             apiFetch('/consultations').catch(()=>[]),
             apiFetch('/consultations/dashboard').catch(()=>null)
-        ]).then(([c, d]) => { setConsultations(c.consultations||c||[]); setDashboard(d); setLoading(false); });
+        ]).then(([c, d]) => { const conArr = Array.isArray(c?.consultations) ? c.consultations : Array.isArray(c) ? c : []; setConsultations(conArr); setDashboard(d); setLoading(false); });
     };
     useEffect(loadData, []);
 
@@ -3195,7 +3195,7 @@ const OperationsPage = () => {
             apiFetch('/operations/inventory').catch(()=>[]),
             apiFetch('/operations/patients').catch(()=>[]),
             apiFetch('/operations/procedures').catch(()=>[])
-        ]).then(([d, inv, pat, proc]) => { setDashboard(d); setInventory(inv.items||inv||[]); setPatients(pat.patients||pat||[]); setProcedures(proc.procedures||proc||[]); setLoading(false); });
+        ]).then(([d, inv, pat, proc]) => { setDashboard(d); const invArr = Array.isArray(inv?.items) ? inv.items : Array.isArray(inv) ? inv : []; setInventory(invArr); const patArr = Array.isArray(pat?.patients) ? pat.patients : Array.isArray(pat) ? pat : []; setPatients(patArr); const procArr = Array.isArray(proc?.procedures) ? proc.procedures : Array.isArray(proc) ? proc : []; setProcedures(procArr); setLoading(false); });
     };
     useEffect(loadData, []);
 
@@ -3391,9 +3391,12 @@ const MarketingHubPage = () => {
             apiFetch('/marketing/reports').catch(()=>[])
         ]).then(([d, ads, cont, reps]) => {
             setDashboard(d);
-            setAdData(ads.performances||ads||[]);
-            setContent(cont.content_pieces||cont||[]);
-            setReports(reps.reports||reps||[]);
+            const adArr = Array.isArray(ads?.performances) ? ads.performances : Array.isArray(ads) ? ads : [];
+            setAdData(adArr);
+            const contArr = Array.isArray(cont?.content_pieces) ? cont.content_pieces : Array.isArray(cont) ? cont : [];
+            setContent(contArr);
+            const repArr = Array.isArray(reps?.reports) ? reps.reports : Array.isArray(reps) ? reps : [];
+            setReports(repArr);
             setLoading(false);
         });
     };
@@ -3589,9 +3592,9 @@ const LegalFinancePage = () => {
             apiFetch('/legal/documents').catch(()=>[])
         ]).then(([fd, recs, invs, docs]) => {
             setFinanceDash(fd);
-            setRecords(recs.records||recs||[]);
-            setInvoices(invs.invoices||invs||[]);
-            setDocuments(docs.documents||docs||[]);
+            setRecords(Array.isArray(recs?.records) ? recs.records : Array.isArray(recs) ? recs : []);
+            setInvoices(Array.isArray(invs?.invoices) ? invs.invoices : Array.isArray(invs) ? invs : []);
+            setDocuments(Array.isArray(docs?.documents) ? docs.documents : Array.isArray(docs) ? docs : []);
             setLoading(false);
         });
     };
