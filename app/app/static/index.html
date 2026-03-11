@@ -11,10 +11,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-primary: #06080F;
-            --bg-secondary: #0D1117;
-            --bg-card: rgba(15, 20, 30, 0.7);
-            --bg-card-hover: rgba(20, 28, 42, 0.8);
+            --bg-primary: #000000;
+            --bg-secondary: #0A0A0A;
+            --bg-card: rgba(10, 10, 10, 0.85);
+            --bg-card-hover: rgba(18, 18, 18, 0.9);
             --border: rgba(232, 135, 37, 0.12);
             --border-hover: rgba(232, 135, 37, 0.3);
             --gold: #E88725;
@@ -138,7 +138,7 @@
 
         /* Audio Player */
         .audio-player { width: 100%; border-radius: 8px; background: rgba(255,255,255,0.03); }
-        .audio-player::-webkit-media-controls-panel { background: rgba(15,20,30,0.9); }
+        .audio-player::-webkit-media-controls-panel { background: rgba(5,5,5,0.9); }
 
         /* AI Coach Chat */
         .coach-chat-bubble { background: rgba(232,135,37,0.06); border: 1px solid rgba(232,135,37,0.15); border-radius: 12px; padding: 16px; font-size: 13px; line-height: 1.7; color: var(--text-secondary); white-space: pre-wrap; animation: fadeIn 0.4s ease-out; }
@@ -181,14 +181,14 @@
         .stat-card-hover:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0,0,0,0.2); border-color: var(--border-hover); }
 
         /* Mobile hamburger */
-        .mobile-header { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 60; background: rgba(13,17,23,0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); padding: 10px 16px; align-items: center; justify-content: space-between; }
+        .mobile-header { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 60; background: rgba(0,0,0,0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); padding: 10px 16px; align-items: center; justify-content: space-between; }
         .hamburger { background: none; border: none; color: var(--text-primary); cursor: pointer; padding: 6px; display: flex; align-items: center; justify-content: center; border-radius: 8px; transition: background 0.2s; -webkit-tap-highlight-color: transparent; }
         .hamburger:active { background: rgba(232,135,37,0.1); }
         .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 55; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.3s; }
         .mobile-overlay.show { display: block; opacity: 1; }
 
         /* Bottom tab bar (mobile) */
-        .bottom-tab-bar { display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 60; background: rgba(13,17,23,0.95); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-top: 1px solid var(--border); padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); }
+        .bottom-tab-bar { display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 60; background: rgba(0,0,0,0.95); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-top: 1px solid var(--border); padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); }
         .bottom-tab-bar-inner { display: flex; justify-content: space-around; align-items: center; }
         .bottom-tab { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 8px; border-radius: 10px; background: none; border: none; color: var(--text-muted); font-size: 9px; font-weight: 600; cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent; min-width: 56px; }
         .bottom-tab:active { transform: scale(0.9); }
@@ -347,64 +347,10 @@ class ErrorBoundary extends React.Component {
 }
 
 // ============ LOGO ============
-const SBARocket = ({size=32}) => {
-    const uid = React.useId ? React.useId() : 'r' + size;
-    return (
-    <svg width={size} height={size} viewBox="0 0 100 120" fill="none">
-        <defs>
-            <linearGradient id={`bg${uid}`} x1="50" y1="0" x2="50" y2="110" gradientUnits="userSpaceOnUse">
-                <stop offset="0" stopColor="#F5A623"/>
-                <stop offset="0.35" stopColor="#E88725"/>
-                <stop offset="0.65" stopColor="#D4700E"/>
-                <stop offset="1" stopColor="#C4650A"/>
-            </linearGradient>
-            <linearGradient id={`dg${uid}`} x1="50" y1="0" x2="50" y2="110" gradientUnits="userSpaceOnUse">
-                <stop offset="0" stopColor="#C4650A"/>
-                <stop offset="1" stopColor="#8B4513"/>
-            </linearGradient>
-            <linearGradient id={`fg${uid}`} x1="50" y1="88" x2="50" y2="118" gradientUnits="userSpaceOnUse">
-                <stop offset="0" stopColor="#FFD700"/>
-                <stop offset="0.4" stopColor="#F5A623"/>
-                <stop offset="1" stopColor="#E88725" stopOpacity="0.3"/>
-            </linearGradient>
-        </defs>
-        {/* Body - pointed geometric teardrop */}
-        <path d="M50 2 C50 2 30 28 27 55 C25 72 28 85 32 95 L42 100 L50 97 L58 100 L68 95 C72 85 75 72 73 55 C70 28 50 2 50 2Z" fill={`url(#bg${uid})`} stroke="#A0500A" strokeWidth="1.2"/>
-        {/* Left panel edge */}
-        <path d="M50 6 L35 58 L32 95" fill="none" stroke="#A0500A" strokeWidth="0.7" opacity="0.6"/>
-        {/* Right panel edge */}
-        <path d="M50 6 L65 58 L68 95" fill="none" stroke="#A0500A" strokeWidth="0.7" opacity="0.6"/>
-        {/* Window outer */}
-        <circle cx="50" cy="46" r="12" fill="#0a0a0a" stroke={`url(#bg${uid})`} strokeWidth="2.5"/>
-        {/* Window inner ring */}
-        <circle cx="50" cy="46" r="8" fill="none" stroke="#E88725" strokeWidth="1.2" opacity="0.6"/>
-        {/* Left fin */}
-        <path d="M27 65 L8 88 L14 98 L32 88Z" fill={`url(#bg${uid})`} stroke="#A0500A" strokeWidth="1"/>
-        <path d="M26 70 L14 92" fill="none" stroke="#A0500A" strokeWidth="0.5" opacity="0.5"/>
-        {/* Right fin */}
-        <path d="M73 65 L92 88 L86 98 L68 88Z" fill={`url(#bg${uid})`} stroke="#A0500A" strokeWidth="1"/>
-        <path d="M74 70 L86 92" fill="none" stroke="#A0500A" strokeWidth="0.5" opacity="0.5"/>
-        {/* Flame center */}
-        <path d="M44 100 L50 118 L56 100Z" fill={`url(#fg${uid})`}/>
-        {/* Flame left */}
-        <path d="M36 98 L40 112 L46 98Z" fill={`url(#fg${uid})`} opacity="0.7"/>
-        {/* Flame right */}
-        <path d="M54 98 L60 112 L64 98Z" fill={`url(#fg${uid})`} opacity="0.7"/>
-    </svg>
-    );
-};
-
 const Logo = () => (
-    <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'8px 0'}}>
-        <SBARocket size={38}/>
-        <div>
-            <div style={{display:'flex',alignItems:'baseline',gap:0}}>
-                <span style={{fontSize:22,fontWeight:900,letterSpacing:'-0.01em',fontFamily:"'Inter',sans-serif",color:'#FFFFFF'}}>SB</span>
-                <span style={{fontSize:22,fontWeight:900,letterSpacing:'-0.01em',fontFamily:"'Inter',sans-serif"}} className="text-gradient">A</span>
-                <span style={{fontSize:14,fontWeight:700,letterSpacing:'0.02em',fontFamily:"'Inter',sans-serif",color:'var(--text-muted)',marginLeft:6}}>CRM</span>
-            </div>
-            <div style={{fontSize:7.5,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.1em'}}>SKIN BUSINESS ACCELERATOR</div>
-        </div>
+    <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'8px 0'}}>
+        <img src="/static/sba-logo.png" alt="SBA" style={{height:36,objectFit:'contain'}}/>
+        <span style={{fontSize:14,fontWeight:700,letterSpacing:'0.02em',fontFamily:"'Inter',sans-serif",color:'var(--text-muted)'}}>CRM</span>
     </div>
 );
 
@@ -528,16 +474,9 @@ const LoginPage = ({ onLogin }) => {
         <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'radial-gradient(ellipse at 50% 0%, rgba(232,135,37,0.08) 0%, transparent 60%), var(--bg-primary)'}}>
             <div className="fade-in" style={{width:'100%',maxWidth:420,padding:'40px 20px'}}>
                 <div style={{textAlign:'center',marginBottom:32,display:'flex',flexDirection:'column',alignItems:'center'}}>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:14,marginBottom:8}}>
-                        <SBARocket size={56}/>
-                        <div>
-                            <div style={{display:'flex',alignItems:'baseline',gap:0}}>
-                                <span style={{fontSize:36,fontWeight:900,letterSpacing:'-0.01em',fontFamily:"'Inter',sans-serif",color:'#FFFFFF'}}>SB</span>
-                                <span style={{fontSize:36,fontWeight:900,letterSpacing:'-0.01em',fontFamily:"'Inter',sans-serif"}} className="text-gradient">A</span>
-                                <span style={{fontSize:22,fontWeight:700,letterSpacing:'0.02em',fontFamily:"'Inter',sans-serif",color:'var(--text-muted)',marginLeft:8}}>CRM</span>
-                            </div>
-                            <div style={{fontSize:10,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.12em'}}>SKIN BUSINESS ACCELERATOR</div>
-                        </div>
+                    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,marginBottom:8}}>
+                        <img src="/static/sba-logo.png" alt="Skin Business Accelerator" style={{height:52,objectFit:'contain'}}/>
+                        <span style={{fontSize:20,fontWeight:700,letterSpacing:'0.04em',fontFamily:"'Inter',sans-serif",color:'var(--text-muted)'}}>CRM</span>
                     </div>
                 </div>
                 <form onSubmit={handleSubmit} className="glass" style={{padding:32,borderRadius:16}}>
@@ -5643,11 +5582,9 @@ const MISPage = () => {
                         : <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
                     }
                 </button>
-                <div style={{display:'flex',alignItems:'center',gap:5}}>
-                    <SBARocket size={26}/>
-                    <span style={{fontSize:15,fontWeight:900,fontFamily:"'Inter',sans-serif",color:'#FFF'}}>SB</span>
-                    <span style={{fontSize:15,fontWeight:900,fontFamily:"'Inter',sans-serif"}} className="text-gradient">A</span>
-                    <span style={{fontSize:11,fontWeight:700,color:'var(--text-muted)',marginLeft:2}}>CRM</span>
+                <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <img src="/static/sba-logo.png" alt="SBA" style={{height:24,objectFit:'contain'}}/>
+                    <span style={{fontSize:11,fontWeight:700,color:'var(--text-muted)'}}>CRM</span>
                 </div>
                 <div style={{width:28,height:28,borderRadius:7,background:'rgba(232,135,37,0.1)',display:'flex',alignItems:'center',justifyContent:'center'}}>
                     <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="var(--text-muted)" strokeWidth="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
