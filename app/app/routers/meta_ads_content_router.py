@@ -36,6 +36,14 @@ def _call_claude(prompt: str, max_tokens: int = 3000) -> str:
     return response.content[0].text.strip()
 
 
+def _apply_regenerate_changes(prompt: str, data: dict) -> str:
+    """Append user's regeneration feedback to the prompt if provided."""
+    changes = data.get("regenerate_changes", "")
+    if changes and changes.strip():
+        prompt += f"\n\nIMPORTANT - USER FEEDBACK (apply these specific changes to your output):\n{changes.strip()}"
+    return prompt
+
+
 def _parse_json_response(text: str):
     if text.startswith("```"):
         text = text.split("```")[1]
@@ -139,6 +147,7 @@ For each script provide:
 Format as JSON array."""
 
     try:
+        prompt = _apply_regenerate_changes(prompt, data)
         result = _call_claude(prompt, 4000)
         parsed = _parse_json_response(result)
         log_activity(db, current_user.clinic_id, "script_generation", "meta_video_scripts_generated",
@@ -194,6 +203,7 @@ Generate {num_variations} complete ad copy sets. Each set must include:
 Format as JSON array. Make each variation distinctly different in approach."""
 
     try:
+        prompt = _apply_regenerate_changes(prompt, data)
         result = _call_claude(prompt, 3000)
         parsed = _parse_json_response(result)
         log_activity(db, current_user.clinic_id, "script_generation", "meta_ad_copy_generated",
@@ -250,6 +260,7 @@ IMPORTANT: Do NOT include real people's faces. Focus on abstract beauty, clinic 
 Format as JSON array."""
 
     try:
+        prompt = _apply_regenerate_changes(prompt, data)
         result = _call_claude(prompt, 4000)
         parsed = _parse_json_response(result)
         log_activity(db, current_user.clinic_id, "script_generation", "meta_image_prompts_generated",
@@ -308,6 +319,7 @@ For each carousel provide:
 Format as JSON array."""
 
     try:
+        prompt = _apply_regenerate_changes(prompt, data)
         result = _call_claude(prompt, 5000)
         parsed = _parse_json_response(result)
         log_activity(db, current_user.clinic_id, "script_generation", "meta_carousel_prompts_generated",
@@ -396,6 +408,7 @@ Create a complete Meta Ads campaign strategy covering:
 Format as JSON object with each section as a key."""
 
     try:
+        prompt = _apply_regenerate_changes(prompt, data)
         result = _call_claude(prompt, 6000)
         parsed = _parse_json_response(result)
         log_activity(db, current_user.clinic_id, "ads", "meta_campaign_strategy_generated",
@@ -498,6 +511,7 @@ Create a comprehensive, procedure-specific retargeting plan with:
 Format as JSON object."""
 
     try:
+        prompt = _apply_regenerate_changes(prompt, data)
         result = _call_claude(prompt, 5000)
         parsed = _parse_json_response(result)
         log_activity(db, current_user.clinic_id, "ads", "meta_retargeting_plan_generated",

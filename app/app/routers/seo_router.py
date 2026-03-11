@@ -4,7 +4,7 @@ SEO tools, GMB optimization, backlink tracking, and AI SEO coaching.
 """
 import logging
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
 from pydantic import BaseModel
@@ -18,6 +18,40 @@ from app.services.prompt_quality import enhance_system_prompt, WRITING_QUALITY_D
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/seo", tags=["seo"])
+
+
+# ---------------------------------------------------------------------------
+# Generation History
+# ---------------------------------------------------------------------------
+
+@router.get("/history")
+def get_seo_generation_history(
+    action_filter: Optional[str] = None,
+    limit: int = 50,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get SEO content generation history."""
+    from app.services.activity_logger import get_activity_logs
+    logs = get_activity_logs(db=db, clinic_id=current_user.clinic_id, category="content", limit=limit)
+    seo_keywords = ["seo", "gmb", "backlink", "keyword", "audit"]
+    logs = [l for l in logs if any(kw in l.get("action", "") for kw in seo_keywords)]
+    logs.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    if action_filter:
+        logs = [l for l in logs if action_filter in l.get("action", "")]
+    return {"history": logs[:limit], "count": len(logs[:limit])}
+
+
+def _apply_regenerate_changes(prompt: str, data) -> str:
+    """Append user's regeneration feedback to the prompt if provided."""
+    changes = ""
+    if isinstance(data, dict):
+        changes = data.get("regenerate_changes", "")
+    elif hasattr(data, "regenerate_changes"):
+        changes = getattr(data, "regenerate_changes", "") or ""
+    if changes and str(changes).strip():
+        prompt += f"\n\nIMPORTANT - USER FEEDBACK (apply these specific changes to your output):\n{str(changes).strip()}"
+    return prompt
 
 
 # ---------------------------------------------------------------------------
@@ -38,6 +72,7 @@ class SEOAuditRequest(BaseModel):
     website_url: str
     focus_keywords: Optional[list] = None
     procedures: Optional[list] = None
+    regenerate_changes: Optional[str] = None
 
 class BacklinkEntry(BaseModel):
     source_url: str
@@ -111,6 +146,7 @@ def update_gmb_config(
 
 @router.post("/gmb/optimize")
 def gmb_ai_optimize(
+    data: dict = Body(default={}),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -147,6 +183,8 @@ Provide a comprehensive GMB optimization plan:
 
 Format as JSON with sections as keys."""
 
+    prompt = _apply_regenerate_changes(prompt, data)
+
     try:
         client = Anthropic(api_key=ANTHROPIC_API_KEY)
         response = client.messages.create(
@@ -166,6 +204,7 @@ Format as JSON with sections as keys."""
 @router.post("/gmb/generate-posts")
 def generate_gmb_posts(
     num_posts: int = 4,
+    data: dict = Body(default={}),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -190,6 +229,8 @@ Each post should be:
 - Mix of: offers, educational content, before/after stories (anonymized), clinic updates
 
 Format as JSON array: [{{title, content, cta_type, suggested_image_description}}]"""
+
+    prompt = _apply_regenerate_changes(prompt, data)
 
     try:
         client = Anthropic(api_key=ANTHROPIC_API_KEY)
@@ -259,6 +300,8 @@ Provide a comprehensive SEO audit covering:
 
 Format as JSON with each section as a key. Include actionable, specific recommendations."""
 
+    prompt = _apply_regenerate_changes(prompt, data)
+
     try:
         client = Anthropic(api_key=ANTHROPIC_API_KEY)
         response = client.messages.create(
@@ -326,6 +369,7 @@ def add_backlink(
 
 @router.post("/backlink-ideas")
 def generate_backlink_ideas(
+    data: dict = Body(default={}),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -360,6 +404,8 @@ Also include:
 - 5 local citation opportunities
 
 Format as JSON."""
+
+    prompt = _apply_regenerate_changes(prompt, data)
 
     try:
         client = Anthropic(api_key=ANTHROPIC_API_KEY)
@@ -435,6 +481,7 @@ Keep responses focused and practical."""
 def keyword_research(
     procedures: list = [],
     location: str = "",
+    data: dict = Body(default={}),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -469,6 +516,8 @@ Also provide:
 - 5 featured snippet opportunities
 
 Format as JSON."""
+
+    prompt = _apply_regenerate_changes(prompt, data)
 
     try:
         client = Anthropic(api_key=ANTHROPIC_API_KEY)

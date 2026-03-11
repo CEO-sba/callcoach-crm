@@ -367,7 +367,8 @@ async def analyze_agent_growth(
     avg_score_30d: float,
     avg_score_7d: float,
     weakest_areas: list,
-    strongest_areas: list
+    strongest_areas: list,
+    regenerate_changes: str = ""
 ) -> dict:
     """Progressive growth analysis for an agent."""
     try:
@@ -403,6 +404,9 @@ Return JSON:
     ],
     "encouragement": "Personalized motivational message based on their actual progress"
 }}"""
+
+        if regenerate_changes and regenerate_changes.strip():
+            prompt += f"\n\nIMPORTANT - USER FEEDBACK (apply these specific changes to your output):\n{regenerate_changes.strip()}"
 
         response = client.messages.create(
             model=ANTHROPIC_MODEL,

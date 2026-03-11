@@ -344,11 +344,13 @@ class MarketingInsightOut(BaseModel):
 class GenerateAdAnglesRequest(BaseModel):
     procedure_category: Optional[str] = None
     num_angles: int = 5
+    regenerate_changes: Optional[str] = None
 
 class GenerateContentIdeasRequest(BaseModel):
     platform: str = "instagram"  # instagram, youtube, linkedin
     content_type: str = "reel"  # reel, carousel, post, video
     num_ideas: int = 5
+    regenerate_changes: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------

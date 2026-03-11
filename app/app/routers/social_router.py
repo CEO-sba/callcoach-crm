@@ -12,6 +12,18 @@ from app.database import get_db
 from app.auth import get_current_user
 from app.models import User
 from app.services.activity_logger import log_activity
+
+
+def _apply_regenerate_changes(prompt: str, data) -> str:
+    """Append user's regeneration feedback to the prompt if provided."""
+    changes = ""
+    if isinstance(data, dict):
+        changes = data.get("regenerate_changes", "")
+    elif hasattr(data, "regenerate_changes"):
+        changes = getattr(data, "regenerate_changes", "") or ""
+    if changes and str(changes).strip():
+        prompt += f"\n\nIMPORTANT - USER FEEDBACK (apply these specific changes to your output):\n{str(changes).strip()}"
+    return prompt
 from app.models_whatsapp import SocialAccount, SocialPost, MarketingInsight
 from app.schemas_whatsapp import (
     SocialAccountConnect, SocialAccountOut,
@@ -22,6 +34,30 @@ from app.schemas_whatsapp import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/social", tags=["social"])
+
+
+# ---------------------------------------------------------------------------
+# Generation History
+# ---------------------------------------------------------------------------
+
+@router.get("/history")
+def get_social_generation_history(
+    action_filter: Optional[str] = None,
+    limit: int = 50,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get social content generation history."""
+    from app.services.activity_logger import get_activity_logs
+    logs = get_activity_logs(db=db, clinic_id=current_user.clinic_id, category="script_generation", limit=limit)
+    content_logs = get_activity_logs(db=db, clinic_id=current_user.clinic_id, category="content", limit=limit)
+    all_logs = logs + content_logs
+    social_keywords = ["content_ideas", "ad_angles", "social"]
+    all_logs = [l for l in all_logs if any(kw in l.get("action", "") for kw in social_keywords)]
+    all_logs.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    if action_filter:
+        all_logs = [l for l in all_logs if action_filter in l.get("action", "")]
+    return {"history": all_logs[:limit], "count": len(all_logs[:limit])}
 
 
 # ---------------------------------------------------------------------------
@@ -248,6 +284,8 @@ For each idea, provide:
 
 Format as JSON array with objects having: title, outline, cta, hashtags"""
 
+    prompt = _apply_regenerate_changes(prompt, data)
+
     try:
         client = Anthropic(api_key=ANTHROPIC_API_KEY)
         response = client.messages.create(
@@ -306,6 +344,8 @@ For each ad angle, provide:
 5. Suggested visual direction
 
 Format as JSON array."""
+
+    prompt = _apply_regenerate_changes(prompt, data)
 
     try:
         client = Anthropic(api_key=ANTHROPIC_API_KEY)

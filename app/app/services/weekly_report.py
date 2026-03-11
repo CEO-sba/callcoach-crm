@@ -146,7 +146,8 @@ Return a JSON response:
 def generate_weekly_report(
     db: Session,
     clinic_id: str,
-    week_start: Optional[datetime] = None
+    week_start: Optional[datetime] = None,
+    regenerate_changes: str = ""
 ) -> Dict[str, Any]:
     """
     Generate a comprehensive weekly report for a clinic.
@@ -433,6 +434,9 @@ def generate_weekly_report(
     ai_summary = {}
     ai_recommendations = []
     revenue_impact = {}
+
+    if regenerate_changes and regenerate_changes.strip():
+        ai_prompt += f"\n\nIMPORTANT - USER FEEDBACK (apply these specific changes to your output):\n{regenerate_changes.strip()}"
 
     try:
         client = get_client()

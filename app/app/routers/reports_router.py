@@ -6,7 +6,7 @@ All endpoints require authentication.
 """
 from typing import Optional, List
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
@@ -117,6 +117,7 @@ def get_weekly_reports_history(
 @router.post("/weekly/generate")
 async def manually_generate_report(
     week_start: Optional[str] = None,
+    data: dict = Body(default={}),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -149,7 +150,8 @@ async def manually_generate_report(
         )
 
     # Generate report
-    report_data = generate_weekly_report(db, current_user.clinic_id, parsed_week_start)
+    report_data = generate_weekly_report(db, current_user.clinic_id, parsed_week_start,
+                                          regenerate_changes=data.get("regenerate_changes", ""))
 
     # Check for existing report and update or create
     existing = db.query(WeeklyReport).filter(

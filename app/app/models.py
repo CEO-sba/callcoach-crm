@@ -36,6 +36,7 @@ class Clinic(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     is_active = Column(Boolean, default=True)
     leaderboard_visible = Column(Boolean, default=True)  # Toggle leaderboard visibility for agents
+    settings = Column(JSON, default=dict)  # Stores activity_logs, gmb config, backlinks, google_ads config, etc.
 
     users = relationship("User", back_populates="clinic")
     calls = relationship("Call", back_populates="clinic")

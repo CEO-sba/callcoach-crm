@@ -139,6 +139,14 @@ def get_generation_history(
     return {"history": all_logs[:limit], "count": len(all_logs[:limit])}
 
 
+def _apply_regenerate_changes(prompt: str, data: dict) -> str:
+    """Append user's regeneration feedback to the prompt if provided."""
+    changes = data.get("regenerate_changes", "")
+    if changes and changes.strip():
+        prompt += f"\n\nIMPORTANT - USER FEEDBACK (apply these specific changes to your output):\n{changes.strip()}"
+    return prompt
+
+
 # ---------------------------------------------------------------------------
 # Campaigns
 # ---------------------------------------------------------------------------
@@ -377,6 +385,7 @@ Generate {num_ads} Responsive Search Ads. Each ad must include:
 Format as JSON array of ad objects."""
 
     try:
+        prompt = _apply_regenerate_changes(prompt, data)
         parsed = _call_claude_gads(prompt, 4000)
         log_activity(db, current_user.clinic_id, "script_generation", "google_search_ads_generated",
                      {"procedure": procedure, "location": location, "num_ads": num_ads},
@@ -419,6 +428,7 @@ For each procedure, provide:
 Format as JSON object with procedure names as keys."""
 
     try:
+        prompt = _apply_regenerate_changes(prompt, data)
         parsed = _call_claude_gads(prompt, 3000)
         log_activity(db, current_user.clinic_id, "ads", "google_keyword_research_generated",
                      {"procedures": procedures, "location": location},
@@ -463,6 +473,7 @@ Generate complete landing page copy sections:
 Format as JSON object."""
 
     try:
+        prompt = _apply_regenerate_changes(prompt, data)
         parsed = _call_claude_gads(prompt, 3500)
         log_activity(db, current_user.clinic_id, "content", "google_landing_page_copy_generated",
                      {"procedure": procedure, "doctor_name": doctor_name},
@@ -509,6 +520,7 @@ Create a complete Google Ads campaign structure:
 Format as JSON object."""
 
     try:
+        prompt = _apply_regenerate_changes(prompt, data)
         parsed = _call_claude_gads(prompt, 4000)
         log_activity(db, current_user.clinic_id, "ads", "google_campaign_structure_generated",
                      {"procedures": procedures, "budget": budget, "location": location},

@@ -1169,18 +1169,22 @@ const CoachingPage = () => {
         setCompareIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : prev.length >= 5 ? prev : [...prev, id]);
     };
 
-    const generateGrowth = async () => {
+    const generateGrowth = async (regenerateChanges) => {
         setGrowthLoading(true);
         try {
-            const res = await apiFetch('/coaching/growth-plan', {method:'POST'});
+            const body = {};
+            if (regenerateChanges) body.regenerate_changes = regenerateChanges;
+            const res = await apiFetch('/coaching/growth-plan', {method:'POST', body});
             setGrowthPlan(res);
         } catch(e) {} finally { setGrowthLoading(false); }
     };
 
-    const generateReport = async () => {
+    const generateReport = async (regenerateChanges) => {
         setReportLoading(true);
         try {
-            const res = await apiFetch('/reports/weekly/generate', {method:'POST'});
+            const body = {};
+            if (regenerateChanges) body.regenerate_changes = regenerateChanges;
+            const res = await apiFetch('/reports/weekly/generate', {method:'POST', body});
             setWeeklyReport(res);
         } catch(e) {} finally { setReportLoading(false); }
     };
@@ -1506,6 +1510,7 @@ const CoachingPage = () => {
                                             </div>
                                         </div>
                                     )}
+                                    <RegenerateWithChanges loading={reportLoading} onRegenerate={(changes)=>generateReport(changes)}/>
                                 </div>
                             );
                         })() : (
@@ -1541,12 +1546,14 @@ const CoachingPage = () => {
                                     <div style={{fontSize:13,color:'var(--success)',lineHeight:1.6}}>{growthPlan.encouragement}</div>
                                 </div>
                             )}
+                            <RegenerateWithChanges loading={growthLoading} onRegenerate={(changes)=>generateGrowth(changes)}/>
                         </div>
                     ) : (
                         <div style={{textAlign:'center',padding:40,color:'var(--text-muted)'}}>
                             <p style={{fontSize:14}}>Generate a personalized AI growth plan based on your recent call performance.</p>
                         </div>
                     )}
+                    <GenerationHistory endpoint="coaching" filterAction="growth_plan"/>
                 </div>
             )}
         </div>
@@ -3325,10 +3332,12 @@ const HiringPage = () => {
         } catch(e) { alert(e.message); }
     };
 
-    const generateJD = async (posId) => {
+    const generateJD = async (posId, regenerateChanges) => {
         setGenJdLoading(posId);
         try {
-            const resp = await apiFetch(`/hiring/positions/${posId}/generate-jd`, { method:'POST' });
+            const body = {};
+            if (regenerateChanges) body.regenerate_changes = regenerateChanges;
+            const resp = await apiFetch(`/hiring/positions/${posId}/generate-jd`, { method:'POST', body });
             alert('JD Generated! Check the position details.');
             loadData();
         } catch(e) { alert(e.message); }
@@ -3851,20 +3860,24 @@ const MarketingHubPage = () => {
         setInsightsLoading(false);
     };
 
-    const generateContent = async () => {
+    const generateContent = async (regenerateChanges) => {
         setGenContentLoading(true);
         try {
-            await apiFetch('/marketing/content/generate', { method:'POST', body:contentPrompt });
+            const body = {...contentPrompt};
+            if (regenerateChanges) body.regenerate_changes = regenerateChanges;
+            await apiFetch('/marketing/content/generate', { method:'POST', body });
             setShowGenContent(false);
             loadData();
         } catch(e) { alert(e.message); }
         setGenContentLoading(false);
     };
 
-    const generateReport = async () => {
+    const generateReport = async (regenerateChanges) => {
         setGenReportLoading(true);
         try {
-            await apiFetch('/marketing/reports/generate', { method:'POST', body:{ report_type:'weekly', platform:'combined' }});
+            const body = { report_type:'weekly', platform:'combined' };
+            if (regenerateChanges) body.regenerate_changes = regenerateChanges;
+            await apiFetch('/marketing/reports/generate', { method:'POST', body });
             loadData();
         } catch(e) { alert(e.message); }
         setGenReportLoading(false);
@@ -4260,6 +4273,30 @@ const GenerationHistory = ({endpoint, filterAction}) => {
     );
 };
 
+// ============ SHARED REGENERATE WITH CHANGES PANEL ============
+const RegenerateWithChanges = ({onRegenerate, loading}) => {
+    const [changes, setChanges] = useState('');
+    const [expanded, setExpanded] = useState(false);
+    if (!onRegenerate) return null;
+    return (
+        <div style={{marginTop:12,border:'1px solid rgba(212,175,55,0.2)',borderRadius:10,background:'rgba(212,175,55,0.03)',overflow:'hidden'}}>
+            <button onClick={()=>setExpanded(!expanded)} style={{width:'100%',background:'none',border:'none',padding:'10px 16px',cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center',color:'var(--text-secondary)',fontSize:13}}>
+                <span style={{fontWeight:600,color:'var(--gold)'}}>Want specific changes? Regenerate with feedback</span>
+                <span style={{fontSize:10,color:'var(--text-muted)'}}>{expanded?'▲':'▼'}</span>
+            </button>
+            {expanded && (
+                <div style={{padding:'0 16px 14px'}}>
+                    <textarea value={changes} onChange={e=>setChanges(e.target.value)} placeholder="Tell us what to change. Examples:\n- Make the tone more aggressive and direct\n- Focus more on hair transplant cost savings\n- Add more emotional hooks in the opening\n- Include a specific offer: Rs. 999 consultation\n- Make it shorter / longer\n- Use more Hinglish slang\n- Change the CTA to WhatsApp booking\n- Add doctor credentials in every script" rows={4} style={{width:'100%',fontSize:12,borderRadius:8,border:'1px solid var(--border)',background:'var(--card-bg)',color:'var(--text-primary)',padding:10,resize:'vertical',fontFamily:'inherit',lineHeight:1.6}} className="input"/>
+                    <div style={{display:'flex',gap:8,marginTop:8,alignItems:'center'}}>
+                        <button className="btn btn-gold" onClick={()=>{if(!changes.trim()){alert('Please describe what changes you want.');return;}onRegenerate(changes);}} disabled={loading||!changes.trim()} style={{fontSize:12,padding:'6px 18px'}}>{loading?'Regenerating...':'Regenerate with Changes'}</button>
+                        <button onClick={()=>{setChanges('');setExpanded(false);}} style={{background:'none',border:'none',color:'var(--text-muted)',fontSize:12,cursor:'pointer'}}>Cancel</button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 // ============ META ADS MANAGEMENT ============
 const MetaAdsPage = () => {
     const [activeTab, setActiveTab] = useState('scripts');
@@ -4269,13 +4306,17 @@ const MetaAdsPage = () => {
 
     const updateForm = useCallback((k,v) => setForm(p=>({...p,[k]:v})), []);
 
-    const generate = async (endpoint, bodyOverride) => {
+    const [lastGenParams, setLastGenParams] = useState(null);
+
+    const generate = async (endpoint, bodyOverride, regenerateChanges) => {
         if (!form.procedure && !bodyOverride?.procedures && endpoint !== 'retargeting-plan') { alert('Enter a procedure name'); return; }
         setLoading(true); setResult(null);
         try {
             const body = bodyOverride || {procedure:form.procedure,target_audience:form.target_audience,tone:form.tone,language:form.language,num_scripts:form.num,script_type:form.script_type,usp:form.usp,offer:form.offer,doctor_name:form.doctor_name,campaign_objective:form.campaign_objective,pain_points:form.pain_points,num_variations:form.num,style:form.style,num_prompts:form.num,image_type:form.image_type,num_carousels:form.num > 5 ? 3 : form.num,carousel_type:form.carousel_type,monthly_budget:form.monthly_budget,location:form.location,procedures:form.procedures?form.procedures.split(',').map(s=>s.trim()):[form.procedure]};
+            if (regenerateChanges) body.regenerate_changes = regenerateChanges;
             const res = await apiFetch(`/meta-content/${endpoint}`, {method:'POST', body});
             setResult(res);
+            setLastGenParams({endpoint, body: bodyOverride});
         } catch(e) { alert('Generation failed. Check API key in Settings.'); }
         setLoading(false);
     };
@@ -4312,7 +4353,7 @@ const MetaAdsPage = () => {
                             <button className="btn btn-gold" onClick={()=>generate('video-scripts')} disabled={loading} style={{height:36,minWidth:160}}>{loading?'Generating...':'Generate Scripts'}</button>
                         </div>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Scripts</h3><DeepRender data={result.scripts}/></div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Scripts</h3><DeepRender data={result.scripts}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('video-scripts',null,changes)}/></div>}
                     <GenerationHistory endpoint="meta-content" filterAction="video_scripts"/>
                 </div>
             )}
@@ -4334,7 +4375,7 @@ const MetaAdsPage = () => {
                             <div style={{display:'flex',alignItems:'end'}}><button className="btn btn-gold" onClick={()=>generate('ad-copy')} disabled={loading} style={{height:36,minWidth:140}}>{loading?'Generating...':'Generate Copy'}</button></div>
                         </div>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Ad Copy</h3><DeepRender data={result.ad_copy}/></div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Ad Copy</h3><DeepRender data={result.ad_copy}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('ad-copy',null,changes)}/></div>}
                     <GenerationHistory endpoint="meta-content" filterAction="ad_copy"/>
                 </div>
             )}
@@ -4352,7 +4393,7 @@ const MetaAdsPage = () => {
                         </div>
                         <button className="btn btn-gold" onClick={()=>generate('image-prompts')} disabled={loading} style={{minWidth:160}}>{loading?'Generating...':'Generate Image Prompts'}</button>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Image Prompts (with Usage Guides)</h3><DeepRender data={result.prompts}/></div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Image Prompts (with Usage Guides)</h3><DeepRender data={result.prompts}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('image-prompts',null,changes)}/></div>}
                     <GenerationHistory endpoint="meta-content" filterAction="image_prompts"/>
                 </div>
             )}
@@ -4370,7 +4411,7 @@ const MetaAdsPage = () => {
                         </div>
                         <button className="btn btn-gold" onClick={()=>generate('carousel-prompts')} disabled={loading} style={{minWidth:160}}>{loading?'Generating...':'Generate Carousels'}</button>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Carousels (with Design Guide)</h3><DeepRender data={result.carousels}/></div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Carousels (with Design Guide)</h3><DeepRender data={result.carousels}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('carousel-prompts',null,changes)}/></div>}
                     <GenerationHistory endpoint="meta-content" filterAction="carousel"/>
                 </div>
             )}
@@ -4387,7 +4428,7 @@ const MetaAdsPage = () => {
                         </div>
                         <button className="btn btn-gold" onClick={()=>generate('campaign-strategy',{procedures:form.procedures?form.procedures.split(',').map(s=>s.trim()):[form.procedure||'aesthetic treatments'],monthly_budget:form.monthly_budget,location:form.location,goals:'lead generation and brand awareness'})} disabled={loading} style={{minWidth:180}}>{loading?'Generating...':'Generate Strategy'}</button>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Campaign Strategy</h3><DeepRender data={result.strategy}/></div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Campaign Strategy</h3><DeepRender data={result.strategy}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('campaign-strategy',{procedures:form.procedures?form.procedures.split(',').map(s=>s.trim()):[form.procedure||'aesthetic treatments'],monthly_budget:form.monthly_budget,location:form.location,goals:'lead generation and brand awareness'},changes)}/></div>}
                     <GenerationHistory endpoint="meta-content" filterAction="strategy"/>
                 </div>
             )}
@@ -4410,7 +4451,7 @@ const MetaAdsPage = () => {
                         </div>
                         <button className="btn btn-gold" onClick={()=>generate('retargeting-plan',{procedure:form.procedure||'aesthetic treatments',monthly_budget:form.retarget_budget,location:form.location,language:form.language,pixel_installed:form.pixel_installed,website_traffic:form.website_traffic,current_campaigns:form.current_campaigns})} disabled={loading} style={{minWidth:180}}>{loading?'Generating...':'Generate Retargeting Plan'}</button>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Retargeting Plan</h3><DeepRender data={result.plan}/></div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Retargeting Plan</h3><DeepRender data={result.plan}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('retargeting-plan',{procedure:form.procedure||'aesthetic treatments',monthly_budget:form.retarget_budget,location:form.location,language:form.language,pixel_installed:form.pixel_installed,website_traffic:form.website_traffic,current_campaigns:form.current_campaigns},changes)}/></div>}
                     <GenerationHistory endpoint="meta-content" filterAction="retargeting"/>
                 </div>
             )}
@@ -4459,10 +4500,12 @@ const GoogleAdsPage = () => {
 
     const updateForm = useCallback((k,v) => setForm(p=>({...p,[k]:v})), []);
 
-    const generate = async (endpoint, body) => {
+    const generate = async (endpoint, body, regenerateChanges) => {
         setLoading(true); setResult(null);
         try {
-            const res = await apiFetch(`/google-ads/${endpoint}`, {method:'POST', body});
+            const finalBody = {...body};
+            if (regenerateChanges) finalBody.regenerate_changes = regenerateChanges;
+            const res = await apiFetch(`/google-ads/${endpoint}`, {method:'POST', body:finalBody});
             setResult(res);
         } catch(e) { alert('Generation failed. Check API key in Settings.'); }
         setLoading(false);
@@ -4493,7 +4536,7 @@ const GoogleAdsPage = () => {
                         </div>
                         <button className="btn btn-gold" onClick={()=>generate('generate-search-ads',{procedure:form.procedure,location:form.location,usp:form.usp,num_ads:parseInt(form.num_ads)||3})} disabled={loading}>{loading?'Generating...':'Generate Search Ads'}</button>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Search Ads</h3><DeepRender data={result.ads}/></div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Search Ads</h3><DeepRender data={result.ads}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('generate-search-ads',{procedure:form.procedure,location:form.location,usp:form.usp,num_ads:parseInt(form.num_ads)||3},changes)}/></div>}
                     <GenerationHistory endpoint="google-ads" filterAction="search_ads"/>
                 </div>
             )}
@@ -4508,7 +4551,7 @@ const GoogleAdsPage = () => {
                         </div>
                         <button className="btn btn-gold" onClick={()=>generate('generate-keywords',{procedures:form.procedures?form.procedures.split(',').map(s=>s.trim()):[form.procedure||'aesthetic treatment'],location:form.location})} disabled={loading}>{loading?'Generating...':'Generate Keywords'}</button>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Keyword Research</h3><DeepRender data={result.keywords}/></div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Keyword Research</h3><DeepRender data={result.keywords}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('generate-keywords',{procedures:form.procedures?form.procedures.split(',').map(s=>s.trim()):[form.procedure||'aesthetic treatment'],location:form.location},changes)}/></div>}
                     <GenerationHistory endpoint="google-ads" filterAction="keywords"/>
                 </div>
             )}
@@ -4523,7 +4566,7 @@ const GoogleAdsPage = () => {
                         </div>
                         <button className="btn btn-gold" onClick={()=>generate('generate-landing-page',{procedure:form.procedure,doctor_name:form.doctor_name})} disabled={loading}>{loading?'Generating...':'Generate Landing Page Copy'}</button>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Landing Page Copy</h3><DeepRender data={result.landing_page}/></div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Landing Page Copy</h3><DeepRender data={result.landing_page}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('generate-landing-page',{procedure:form.procedure,doctor_name:form.doctor_name},changes)}/></div>}
                     <GenerationHistory endpoint="google-ads" filterAction="landing_page"/>
                 </div>
             )}
@@ -4539,7 +4582,7 @@ const GoogleAdsPage = () => {
                         </div>
                         <button className="btn btn-gold" onClick={()=>generate('generate-campaign-structure',{procedures:form.procedures?form.procedures.split(',').map(s=>s.trim()):[form.procedure||'aesthetic treatments'],monthly_budget:form.monthly_budget,location:form.location})} disabled={loading}>{loading?'Generating...':'Generate Structure'}</button>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Campaign Structure</h3><DeepRender data={result.structure}/></div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Campaign Structure</h3><DeepRender data={result.structure}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('generate-campaign-structure',{procedures:form.procedures?form.procedures.split(',').map(s=>s.trim()):[form.procedure||'aesthetic treatments'],monthly_budget:form.monthly_budget,location:form.location},changes)}/></div>}
                     <GenerationHistory endpoint="google-ads" filterAction="campaign_structure"/>
                 </div>
             )}
@@ -4621,10 +4664,12 @@ const SocialSchedulingPage = () => {
         try { await apiFetch(`/social/posts/${id}`, {method:'DELETE'}); setPosts(prev => prev.filter(p => p.id !== id)); } catch(e) {}
     };
 
-    const generateIdeas = async () => {
+    const generateIdeas = async (regenerateChanges) => {
         setAiLoading(true);
         try {
-            const res = await apiFetch('/social/generate-content', {method:'POST', body:{content_type:'post',platform:'instagram',num_ideas:5}});
+            const body = {content_type:'post',platform:'instagram',num_ideas:5};
+            if (regenerateChanges) body.regenerate_changes = regenerateChanges;
+            const res = await apiFetch('/social/generate-content', {method:'POST', body});
             setAiIdeas(res.ideas || '');
         } catch(e) {} finally { setAiLoading(false); }
     };
@@ -4723,10 +4768,12 @@ const SocialSchedulingPage = () => {
                     {aiIdeas ? (
                         <div style={{padding:16,background:'rgba(255,255,255,0.02)',border:'1px solid var(--border)',borderRadius:10}}>
                             <pre style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{aiIdeas}</pre>
+                            <RegenerateWithChanges loading={aiLoading} onRegenerate={(changes)=>generateIdeas(changes)}/>
                         </div>
                     ) : (
                         <p style={{textAlign:'center',padding:30,color:'var(--text-muted)',fontSize:13}}>Generate AI-powered content ideas based on your clinic data and patient insights.</p>
                     )}
+                    <GenerationHistory endpoint="social" filterAction="content_ideas"/>
                 </div>
             )}
 
@@ -4789,37 +4836,45 @@ const SEOPage = () => {
         });
     }, []);
 
-    const runAudit = async () => {
+    const runAudit = async (regenerateChanges) => {
         if (!auditUrl) { alert('Enter website URL'); return; }
         setAuditLoading(true);
         try {
-            const res = await apiFetch('/seo/audit', {method:'POST', body:{website_url:auditUrl}});
+            const body = {website_url:auditUrl};
+            if (regenerateChanges) body.regenerate_changes = regenerateChanges;
+            const res = await apiFetch('/seo/audit', {method:'POST', body});
             setAuditResult(res.audit || '');
         } catch(e) {} finally { setAuditLoading(false); }
     };
 
-    const optimizeGMB = async () => {
+    const optimizeGMB = async (regenerateChanges) => {
         setGmbLoading(true);
         try {
-            const res = await apiFetch('/seo/gmb/optimize', {method:'POST'});
+            const body = {};
+            if (regenerateChanges) body.regenerate_changes = regenerateChanges;
+            const res = await apiFetch('/seo/gmb/optimize', {method:'POST', body});
             setGmbPlan(res.optimization_plan || '');
         } catch(e) {} finally { setGmbLoading(false); }
     };
 
-    const generateGMBPosts = async () => {
+    const generateGMBPosts = async (regenerateChanges) => {
         setGmbPostsLoading(true);
         try {
-            const res = await apiFetch('/seo/gmb/generate-posts', {method:'POST'});
+            const body = {};
+            if (regenerateChanges) body.regenerate_changes = regenerateChanges;
+            const res = await apiFetch('/seo/gmb/generate-posts', {method:'POST', body});
             const posts = res.posts;
             if (typeof posts === 'string') { try { setGmbPosts(JSON.parse(posts)); } catch(e) { setGmbPosts(posts); } }
             else { setGmbPosts(posts || null); }
         } catch(e) {} finally { setGmbPostsLoading(false); }
     };
 
-    const getBlIdeas = async () => {
+    const getBlIdeas = async (regenerateChanges) => {
         setBlLoading(true);
         try {
-            const res = await apiFetch('/seo/backlink-ideas', {method:'POST'});
+            const body = {};
+            if (regenerateChanges) body.regenerate_changes = regenerateChanges;
+            const res = await apiFetch('/seo/backlink-ideas', {method:'POST', body});
             setBlIdeas(res.ideas || '');
         } catch(e) {} finally { setBlLoading(false); }
     };
@@ -4833,10 +4888,12 @@ const SEOPage = () => {
         } catch(e) {}
     };
 
-    const doKeywordResearch = async () => {
+    const doKeywordResearch = async (regenerateChanges) => {
         setKwLoading(true);
         try {
-            const res = await apiFetch('/seo/keyword-research', {method:'POST', body:{procedures:[],location:''}});
+            const body = {procedures:[],location:''};
+            if (regenerateChanges) body.regenerate_changes = regenerateChanges;
+            const res = await apiFetch('/seo/keyword-research', {method:'POST', body});
             setKeywords(res.keywords || '');
         } catch(e) {} finally { setKwLoading(false); }
     };
@@ -4905,8 +4962,10 @@ const SEOPage = () => {
                     {auditResult && (
                         <div style={{padding:16,background:'rgba(255,255,255,0.02)',border:'1px solid var(--border)',borderRadius:10,marginTop:12}}>
                             <pre style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{auditResult}</pre>
+                            <RegenerateWithChanges loading={auditLoading} onRegenerate={(changes)=>runAudit(changes)}/>
                         </div>
                     )}
+                    <GenerationHistory endpoint="seo" filterAction="seo_audit"/>
                 </div>
             )}
 
@@ -4922,6 +4981,7 @@ const SEOPage = () => {
                         {gmbPlan ? (
                             <div style={{padding:16,background:'rgba(255,255,255,0.02)',border:'1px solid var(--border)',borderRadius:10}}>
                                 <pre style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{gmbPlan}</pre>
+                                <RegenerateWithChanges loading={gmbLoading} onRegenerate={(changes)=>optimizeGMB(changes)}/>
                             </div>
                         ) : (
                             <p style={{color:'var(--text-muted)',fontSize:13}}>Click to get a comprehensive AI optimization plan for your Google Business Profile.</p>
@@ -4951,10 +5011,12 @@ const SEOPage = () => {
                                             )}
                                         </div>
                                     ))}
+                                    <RegenerateWithChanges loading={gmbPostsLoading} onRegenerate={(changes)=>generateGMBPosts(changes)}/>
                                 </div>
                             ) : (
                                 <div style={{padding:16,background:'rgba(255,255,255,0.02)',border:'1px solid var(--border)',borderRadius:10}}>
                                     <pre style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{typeof gmbPosts === 'string' ? gmbPosts : JSON.stringify(gmbPosts, null, 2)}</pre>
+                                    <RegenerateWithChanges loading={gmbPostsLoading} onRegenerate={(changes)=>generateGMBPosts(changes)}/>
                                 </div>
                             )
                         ) : (
@@ -4980,6 +5042,7 @@ const SEOPage = () => {
                             </div>
                         </div>
                     </div>
+                    <GenerationHistory endpoint="seo" filterAction="gmb"/>
                 </div>
             )}
 
@@ -4994,10 +5057,12 @@ const SEOPage = () => {
                     {keywords ? (
                         <div style={{padding:16,background:'rgba(255,255,255,0.02)',border:'1px solid var(--border)',borderRadius:10}}>
                             <pre style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{keywords}</pre>
+                            <RegenerateWithChanges loading={kwLoading} onRegenerate={(changes)=>doKeywordResearch(changes)}/>
                         </div>
                     ) : (
                         <p style={{textAlign:'center',padding:30,color:'var(--text-muted)',fontSize:13}}>Click "Research Keywords" to get AI-powered keyword research for your clinic's procedures and location.</p>
                     )}
+                    <GenerationHistory endpoint="seo" filterAction="keyword_research"/>
                 </div>
             )}
 
@@ -5041,8 +5106,10 @@ const SEOPage = () => {
                         <div className="glass" style={{padding:24,borderRadius:12}}>
                             <h3 style={{fontSize:16,fontWeight:600,marginBottom:12}}>AI Link Building Ideas</h3>
                             <pre style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{blIdeas}</pre>
+                            <RegenerateWithChanges loading={blLoading} onRegenerate={(changes)=>getBlIdeas(changes)}/>
                         </div>
                     )}
+                    <GenerationHistory endpoint="seo" filterAction="backlink_ideas"/>
                 </div>
             )}
 

@@ -2,7 +2,7 @@
 CallCoach CRM - Coaching & Analytics Router
 """
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User, Clinic, CoachingInsight, Call
@@ -16,6 +16,26 @@ from app.services.comparison_service import (
 from app.services.activity_logger import log_activity
 
 router = APIRouter(prefix="/api", tags=["coaching"])
+
+
+# ---------------------------------------------------------------------------
+# Generation History
+# ---------------------------------------------------------------------------
+
+@router.get("/coaching/history")
+def get_coaching_generation_history(
+    action_filter: Optional[str] = None,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get coaching generation history."""
+    from app.services.activity_logger import get_activity_logs
+    logs = get_activity_logs(db=db, clinic_id=current_user.clinic_id, category="coaching", limit=limit)
+    logs.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    if action_filter:
+        logs = [l for l in logs if action_filter in l.get("action", "")]
+    return {"history": logs[:limit], "count": len(logs[:limit])}
 
 
 @router.get("/dashboard", response_model=DashboardStats)
@@ -77,6 +97,7 @@ def agent_performance(user_id: str, days: int = 30, db: Session = Depends(get_db
 @router.post("/coaching/growth-plan")
 async def generate_growth_plan(
     user_id: Optional[str] = None,
+    data: dict = Body(default={}),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -100,7 +121,8 @@ async def generate_growth_plan(
         avg_score_30d=perf["avg_score"],
         avg_score_7d=perf["avg_score_7d"],
         weakest_areas=perf["weakest_areas"],
-        strongest_areas=perf["strongest_areas"]
+        strongest_areas=perf["strongest_areas"],
+        regenerate_changes=data.get("regenerate_changes", "")
     )
 
     # Store insights
