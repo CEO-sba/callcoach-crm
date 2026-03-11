@@ -5,7 +5,7 @@ question generation, JD creation, and hiring coach.
 """
 import logging
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from typing import Optional
@@ -24,6 +24,8 @@ from app.services.hiring_ai_coach import (
     generate_job_description,
     ask_hiring_coach,
 )
+
+from app.services.activity_logger import log_activity
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +142,7 @@ async def list_positions(
 
 @router.post("/positions")
 async def create_position(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -160,6 +162,10 @@ async def create_position(
     db.add(position)
     db.commit()
     db.refresh(position)
+    log_activity(db, current_user.clinic_id, "hr", "position_created",
+                 {"title": data["title"], "department": data["department"],
+                  "salary_range": data.get("salary_range")},
+                 current_user.email, related_id=position.id, related_type="position")
 
     return {"status": "created", "position_id": position.id}
 
@@ -167,7 +173,7 @@ async def create_position(
 @router.put("/positions/{position_id}")
 async def update_position(
     position_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -186,6 +192,9 @@ async def update_position(
             setattr(position, field, value)
 
     db.commit()
+    log_activity(db, current_user.clinic_id, "hr", "position_updated",
+                 {"position_id": position_id, "fields_updated": list(data.keys())},
+                 current_user.email, related_id=position_id, related_type="position")
     return {"status": "updated", "position_id": position.id}
 
 
@@ -204,8 +213,12 @@ async def delete_position(
     if not position:
         raise HTTPException(status_code=404, detail="Position not found")
 
+    title = position.title
     db.delete(position)  # cascade deletes candidates and interviews
     db.commit()
+    log_activity(db, current_user.clinic_id, "hr", "position_deleted",
+                 {"position_id": position_id, "title": title},
+                 current_user.email)
 
     return {"status": "deleted"}
 
@@ -239,6 +252,10 @@ async def generate_jd(
         additional_context=data.get("context", ""),
     )
 
+    log_activity(db, current_user.clinic_id, "hr", "job_description_generated",
+                 {"position_id": position_id, "title": position.title,
+                  "department": position.department},
+                 current_user.email, related_id=position_id, related_type="position")
     return {
         "position_id": position_id,
         "job_description": result,
@@ -305,7 +322,7 @@ async def list_candidates(
 
 @router.post("/candidates")
 async def add_candidate(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -335,6 +352,10 @@ async def add_candidate(
     db.add(candidate)
     db.commit()
     db.refresh(candidate)
+    log_activity(db, current_user.clinic_id, "hr", "candidate_added",
+                 {"name": data["name"], "position_id": data["position_id"],
+                  "source": data.get("source", "direct")},
+                 current_user.email, related_id=candidate.id, related_type="candidate")
 
     return {"status": "created", "candidate_id": candidate.id}
 
@@ -400,7 +421,7 @@ async def get_candidate(
 @router.put("/candidates/{candidate_id}")
 async def update_candidate(
     candidate_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -419,6 +440,10 @@ async def update_candidate(
             setattr(candidate, field, value)
 
     db.commit()
+    log_activity(db, current_user.clinic_id, "hr", "candidate_updated",
+                 {"candidate_id": candidate_id, "fields_updated": list(data.keys()),
+                  "new_status": data.get("status")},
+                 current_user.email, related_id=candidate_id, related_type="candidate")
     return {"status": "updated", "candidate_id": candidate.id}
 
 
@@ -475,6 +500,11 @@ async def ai_evaluate_candidate(
         candidate.interview_notes["ai_evaluation"] = result
         db.commit()
 
+    log_activity(db, current_user.clinic_id, "hr", "candidate_ai_evaluated",
+                 {"candidate_id": candidate_id, "candidate_name": candidate.name,
+                  "position": position.title if position else "Unknown",
+                  "overall_score": result.get("overall_score", 0)},
+                 current_user.email, related_id=candidate_id, related_type="candidate")
     return {
         "candidate_id": candidate_id,
         "evaluation": result,
@@ -488,7 +518,7 @@ async def ai_evaluate_candidate(
 @router.post("/candidates/{candidate_id}/interviews")
 async def schedule_interview(
     candidate_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -523,6 +553,10 @@ async def schedule_interview(
     candidate.status = "interview_scheduled"
     db.commit()
     db.refresh(interview)
+    log_activity(db, current_user.clinic_id, "hr", "interview_scheduled",
+                 {"candidate_id": candidate_id, "candidate_name": candidate.name,
+                  "scheduled_at": data["scheduled_at"]},
+                 current_user.email, related_id=interview.id, related_type="interview")
 
     return {"status": "scheduled", "interview_id": interview.id}
 
@@ -530,7 +564,7 @@ async def schedule_interview(
 @router.put("/interviews/{interview_id}")
 async def update_interview(
     interview_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -560,6 +594,10 @@ async def update_interview(
         candidate.status = "interview_done"
 
     db.commit()
+    log_activity(db, current_user.clinic_id, "hr", "interview_updated",
+                 {"interview_id": interview_id, "candidate_id": interview.candidate_id,
+                  "status": data.get("status"), "has_recommendation": bool(data.get("recommendation"))},
+                 current_user.email, related_id=interview_id, related_type="interview")
     return {"status": "updated", "interview_id": interview.id}
 
 
@@ -592,6 +630,10 @@ async def generate_questions(
         candidate_resume=data.get("candidate_resume", ""),
     )
 
+    log_activity(db, current_user.clinic_id, "hr", "interview_questions_generated",
+                 {"position_id": position_id, "title": position.title,
+                  "round": data.get("round", "screening")},
+                 current_user.email, related_id=position_id, related_type="position")
     return {
         "position_id": position_id,
         "position_title": position.title,
@@ -606,8 +648,9 @@ async def generate_questions(
 
 @router.post("/coach/ask")
 async def ask_coach(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     """Ask the Hiring AI Coach a question about hiring, HR, or team building."""
     question = data.get("question")
@@ -619,4 +662,7 @@ async def ask_coach(
         context=data.get("context", {}),
     )
 
+    log_activity(db, current_user.clinic_id, "coaching", "hiring_coach_asked",
+                 {"question": question[:100]},
+                 current_user.email)
     return {"question": question, "answer": result.get("answer", "")}

@@ -12,6 +12,8 @@ from pydantic import BaseModel
 from app.database import get_db
 from app.auth import get_current_user
 from app.models import User
+from app.services.activity_logger import log_activity
+from app.services.prompt_quality import enhance_system_prompt, WRITING_QUALITY_DIRECTIVE
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +100,8 @@ def update_gmb_config(
     settings["gmb"] = gmb
     clinic.settings = settings
     db.commit()
+    log_activity(db, current_user.clinic_id, "content", "gmb_config_updated",
+                 {"fields_updated": list(update_data.keys())}, current_user.email)
     return {"status": "updated"}
 
 
@@ -148,8 +152,11 @@ Format as JSON with sections as keys."""
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=2500,
+            system=WRITING_QUALITY_DIRECTIVE.strip(),
             messages=[{"role": "user", "content": prompt}]
         )
+        log_activity(db, current_user.clinic_id, "content", "gmb_optimization_generated",
+                     {"clinic": clinic.name if clinic else "unknown"}, current_user.email)
         return {"optimization_plan": response.content[0].text}
     except Exception as e:
         logger.error(f"GMB optimization failed: {e}")
@@ -188,9 +195,25 @@ Format as JSON array: [{{title, content, cta_type, suggested_image_description}}
         client = Anthropic(api_key=ANTHROPIC_API_KEY)
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
-            max_tokens=1500,
+            max_tokens=2000,
+            system=WRITING_QUALITY_DIRECTIVE.strip(),
             messages=[{"role": "user", "content": prompt}]
         )
+        ai_text = response.content[0].text.strip()
+        # Parse JSON from AI response
+        import json as _json
+        if ai_text.startswith("```"):
+            ai_text = ai_text.split("```")[1]
+            if ai_text.startswith("json"):
+                ai_text = ai_text[4:]
+            ai_text = ai_text.strip()
+        posts = _json.loads(ai_text)
+        log_activity(db, current_user.clinic_id, "content", "gmb_posts_generated",
+                     {"num_posts": num_posts}, current_user.email)
+        return {"posts": posts}
+    except _json.JSONDecodeError:
+        log_activity(db, current_user.clinic_id, "content", "gmb_posts_generated",
+                     {"num_posts": num_posts, "parse_fallback": True}, current_user.email)
         return {"posts": response.content[0].text}
     except Exception as e:
         raise HTTPException(status_code=500, detail="Post generation failed")
@@ -241,8 +264,11 @@ Format as JSON with each section as a key. Include actionable, specific recommen
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=3000,
+            system=WRITING_QUALITY_DIRECTIVE.strip(),
             messages=[{"role": "user", "content": prompt}]
         )
+        log_activity(db, current_user.clinic_id, "content", "seo_audit_generated",
+                     {"website": data.website_url, "keywords": data.focus_keywords}, current_user.email)
         return {"audit": response.content[0].text}
     except Exception as e:
         raise HTTPException(status_code=500, detail="SEO audit failed")
@@ -292,6 +318,9 @@ def add_backlink(
     settings["backlinks"] = backlinks
     clinic.settings = settings
     db.commit()
+    log_activity(db, current_user.clinic_id, "content", "backlink_added",
+                 {"source_url": data.source_url, "target_url": data.target_url, "da": data.domain_authority},
+                 current_user.email)
     return {"status": "added", "total": len(backlinks)}
 
 
@@ -337,8 +366,11 @@ Format as JSON."""
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=2000,
+            system=WRITING_QUALITY_DIRECTIVE.strip(),
             messages=[{"role": "user", "content": prompt}]
         )
+        log_activity(db, current_user.clinic_id, "content", "backlink_ideas_generated",
+                     {"clinic": clinic.name if clinic else "unknown"}, current_user.email)
         return {"ideas": response.content[0].text}
     except Exception as e:
         raise HTTPException(status_code=500, detail="Backlink idea generation failed")
@@ -388,9 +420,11 @@ Keep responses focused and practical."""
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=1500,
-            system=system_prompt,
+            system=enhance_system_prompt(system_prompt),
             messages=[{"role": "user", "content": data.message}]
         )
+        log_activity(db, current_user.clinic_id, "content", "seo_coach_query",
+                     {"query": data.message[:100]}, current_user.email)
         return {"response": response.content[0].text}
     except Exception as e:
         logger.error(f"SEO coach failed: {e}")
@@ -441,8 +475,11 @@ Format as JSON."""
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=2500,
+            system=WRITING_QUALITY_DIRECTIVE.strip(),
             messages=[{"role": "user", "content": prompt}]
         )
+        log_activity(db, current_user.clinic_id, "content", "keyword_research_generated",
+                     {"procedures": procedures, "location": location}, current_user.email)
         return {"keywords": response.content[0].text}
     except Exception as e:
         raise HTTPException(status_code=500, detail="Keyword research failed")

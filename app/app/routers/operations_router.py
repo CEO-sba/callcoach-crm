@@ -6,7 +6,7 @@ Invoicing is handled by legal_finance_router.py.
 """
 import logging
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
 from sqlalchemy import func, case, and_
@@ -14,6 +14,7 @@ from sqlalchemy import func, case, and_
 from app.database import get_db
 from app.auth import get_current_user
 from app.models import User
+from app.services.activity_logger import log_activity
 from app.models_expanded import (
     InventoryItem,
     PatientRecord,
@@ -204,7 +205,7 @@ async def list_inventory(
 
 @router.post("/inventory")
 async def add_inventory_item(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -229,6 +230,11 @@ async def add_inventory_item(
     db.add(item)
     db.commit()
     db.refresh(item)
+
+    log_activity(db, current_user.clinic_id, "user_action", "inventory_item_added",
+                 {"name": data["name"], "category": data["category"],
+                  "stock": data.get("current_stock", 0), "unit_price": data.get("unit_price", 0)},
+                 current_user.email, related_id=item.id, related_type="inventory")
 
     return {"status": "created", "item_id": item.id}
 
@@ -268,7 +274,7 @@ async def get_inventory_item(
 @router.put("/inventory/{item_id}")
 async def update_inventory_item(
     item_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -300,7 +306,7 @@ async def update_inventory_item(
 @router.post("/inventory/{item_id}/restock")
 async def restock_item(
     item_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -323,6 +329,11 @@ async def restock_item(
     db.commit()
     db.refresh(item)
 
+    log_activity(db, current_user.clinic_id, "user_action", "inventory_restocked",
+                 {"item": item.name, "quantity_added": quantity_added,
+                  "new_stock": item.current_stock}, current_user.email,
+                 related_id=item.id, related_type="inventory")
+
     return {
         "status": "restocked",
         "item_id": item.id,
@@ -334,7 +345,7 @@ async def restock_item(
 @router.post("/inventory/{item_id}/consume")
 async def consume_item(
     item_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -357,6 +368,11 @@ async def consume_item(
 
     db.commit()
     db.refresh(item)
+
+    log_activity(db, current_user.clinic_id, "user_action", "inventory_consumed",
+                 {"item": item.name, "quantity_used": quantity_used,
+                  "remaining_stock": item.current_stock}, current_user.email,
+                 related_id=item.id, related_type="inventory")
 
     return {
         "status": "consumed",
@@ -485,7 +501,7 @@ async def list_patients(
 
 @router.post("/patients")
 async def create_patient_record(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -508,6 +524,11 @@ async def create_patient_record(
     db.add(patient)
     db.commit()
     db.refresh(patient)
+
+    log_activity(db, current_user.clinic_id, "user_action", "patient_record_created",
+                 {"name": data["name"], "phone": data.get("phone"),
+                  "email": data.get("email")}, current_user.email,
+                 related_id=patient.id, related_type="patient")
 
     return {"status": "created", "patient_id": patient.id}
 
@@ -590,7 +611,7 @@ async def get_patient_detail(
 @router.put("/patients/{patient_id}")
 async def update_patient_record(
     patient_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -620,7 +641,7 @@ async def update_patient_record(
 @router.post("/patients/{patient_id}/visit")
 async def record_patient_visit(
     patient_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -674,6 +695,11 @@ async def record_patient_visit(
 
     db.commit()
     db.refresh(patient)
+
+    log_activity(db, current_user.clinic_id, "user_action", "patient_visit_recorded",
+                 {"patient_id": patient_id, "visits_count": patient.visits_count,
+                  "procedure": data.get("procedure_name"), "cost": data.get("cost", 0)},
+                 current_user.email, related_id=patient_id, related_type="patient")
 
     result = {
         "status": "visit_recorded",
@@ -856,6 +882,9 @@ async def ai_inventory_analysis(
         additional_context=f"Total items: {len(items)}"
     )
 
+    log_activity(db, current_user.clinic_id, "report", "ai_inventory_analysis_generated",
+                 {"total_items": len(items)}, current_user.email)
+
     return {"analysis": analysis}
 
 
@@ -911,6 +940,10 @@ async def ai_patient_insights(
         procedure_stats=procedure_stats
     )
 
+    log_activity(db, current_user.clinic_id, "report", "ai_patient_insights_generated",
+                 {"patients_analyzed": len(patient_data), "procedures_tracked": len(procedure_stats)},
+                 current_user.email)
+
     return {"analysis": analysis}
 
 
@@ -960,12 +993,16 @@ async def ai_operations_report(
         period=period
     )
 
+    log_activity(db, current_user.clinic_id, "report", "ai_operations_report_generated",
+                 {"period": period, "patients": total_patients, "inventory": total_items},
+                 current_user.email)
+
     return {"report": report}
 
 
 @router.post("/ai/coach")
 async def operations_coach_qa(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -992,6 +1029,9 @@ async def operations_coach_qa(
     }
 
     response = await ask_operations_coach(question=question, context=context)
+
+    log_activity(db, current_user.clinic_id, "coaching", "operations_coach_asked",
+                 {"question": question[:100]}, current_user.email)
 
     return {"response": response}
 

@@ -96,6 +96,24 @@ class AIEmployeeUpdate(BaseModel):
     followup_enabled: Optional[bool] = None
     max_messages_before_handoff: Optional[int] = None
     system_prompt: Optional[str] = None
+    # Advanced Personalization
+    personality_traits: Optional[list] = None
+    brand_voice_description: Optional[str] = None
+    custom_faqs: Optional[list] = None
+    objection_responses: Optional[list] = None
+    usp_points: Optional[list] = None
+    competitor_differentiators: Optional[str] = None
+    follow_up_style: Optional[str] = None
+    emoji_usage: Optional[str] = None
+    message_length_preference: Optional[str] = None
+    qualification_questions: Optional[list] = None
+    escalation_triggers: Optional[list] = None
+    special_instructions: Optional[str] = None
+    welcome_offer: Optional[str] = None
+    doctor_credentials: Optional[str] = None
+    success_stories: Optional[list] = None
+    banned_phrases: Optional[list] = None
+    preferred_phrases: Optional[list] = None
 
 class AIEmployeeOut(BaseModel):
     id: str
@@ -115,6 +133,24 @@ class AIEmployeeOut(BaseModel):
     followup_enabled: bool
     max_messages_before_handoff: int
     system_prompt: Optional[str]
+    # Advanced Personalization
+    personality_traits: Optional[list] = None
+    brand_voice_description: Optional[str] = None
+    custom_faqs: Optional[list] = None
+    objection_responses: Optional[list] = None
+    usp_points: Optional[list] = None
+    competitor_differentiators: Optional[str] = None
+    follow_up_style: Optional[str] = None
+    emoji_usage: Optional[str] = None
+    message_length_preference: Optional[str] = None
+    qualification_questions: Optional[list] = None
+    escalation_triggers: Optional[list] = None
+    special_instructions: Optional[str] = None
+    welcome_offer: Optional[str] = None
+    doctor_credentials: Optional[str] = None
+    success_stories: Optional[list] = None
+    banned_phrases: Optional[list] = None
+    preferred_phrases: Optional[list] = None
     created_at: datetime
     updated_at: datetime
     class Config:

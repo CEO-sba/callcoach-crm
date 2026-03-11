@@ -11,6 +11,7 @@ from typing import Optional
 from datetime import datetime
 from anthropic import Anthropic
 from app.config import ANTHROPIC_API_KEY, ANTHROPIC_MODEL
+from app.services.prompt_quality import enhance_system_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -233,7 +234,7 @@ Return JSON:
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=3000,
-            system=CONTENT_GENERATION_SYSTEM,
+            system=enhance_system_prompt(CONTENT_GENERATION_SYSTEM),
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -306,7 +307,7 @@ Generate a 30-day calendar. Return JSON:
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=8000,
-            system=CONTENT_GENERATION_SYSTEM,
+            system=enhance_system_prompt(CONTENT_GENERATION_SYSTEM),
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -362,7 +363,7 @@ Score each dimension and return JSON:
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=3000,
-            system=MARKETING_COACH_SYSTEM,
+            system=enhance_system_prompt(MARKETING_COACH_SYSTEM),
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -434,7 +435,7 @@ Return JSON:
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=4000,
-            system=AD_REPORT_SYSTEM,
+            system=enhance_system_prompt(AD_REPORT_SYSTEM),
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -513,7 +514,7 @@ Return JSON:
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=6000,
-            system=MARKET_RESEARCH_SYSTEM,
+            system=enhance_system_prompt(MARKET_RESEARCH_SYSTEM),
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -567,7 +568,7 @@ Return JSON:
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=4000,
-            system=MARKETING_COACH_SYSTEM,
+            system=enhance_system_prompt(MARKETING_COACH_SYSTEM),
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -608,7 +609,7 @@ async def ask_marketing_coach(
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=2000,
-            system=MARKETING_COACH_SYSTEM,
+            system=enhance_system_prompt(MARKETING_COACH_SYSTEM),
             messages=messages
         )
 
@@ -664,7 +665,7 @@ Return JSON:
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=3000,
-            system=MARKETING_COACH_SYSTEM,
+            system=enhance_system_prompt(MARKETING_COACH_SYSTEM),
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -719,7 +720,7 @@ Extract learnings that should influence future content generation. Return JSON:
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=1500,
-            system=MARKETING_COACH_SYSTEM,
+            system=enhance_system_prompt(MARKETING_COACH_SYSTEM),
             messages=[{"role": "user", "content": prompt}]
         )
 

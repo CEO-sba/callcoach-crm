@@ -18,6 +18,7 @@ from app.config import SECRET_KEY
 from app.services.admin_service import (
     get_platform_stats, get_platform_averages, get_clinic_detail_stats, list_all_clinics
 )
+from app.services.activity_logger import log_activity
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -119,6 +120,10 @@ def create_clinic(
     db.refresh(clinic)
     db.refresh(admin_user)
 
+    log_activity(db, clinic.id, "system", "clinic_created",
+                 {"clinic_name": data.clinic_name, "admin_email": data.admin_email,
+                  "city": data.clinic_city, "specialty": data.clinic_specialty},
+                 current_user.email)
     return {
         "status": "ok",
         "clinic_id": clinic.id,
@@ -233,6 +238,9 @@ def add_clinic_user(
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    log_activity(db, clinic_id, "system", "user_added_by_admin",
+                 {"email": user.email, "full_name": user.full_name, "role": user.role},
+                 current_user.email, related_id=new_user.id, related_type="user")
     return new_user
 
 

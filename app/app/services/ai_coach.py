@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from anthropic import Anthropic
 from sqlalchemy.orm import Session
 from app.config import ANTHROPIC_API_KEY, ANTHROPIC_MODEL
+from app.services.prompt_quality import enhance_system_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -298,7 +299,7 @@ async def analyze_call(
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=4096,
-            system=CALL_ANALYZER_SYSTEM,
+            system=enhance_system_prompt(CALL_ANALYZER_SYSTEM),
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -342,7 +343,7 @@ async def get_live_coaching_tip(
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=500,
-            system=LIVE_COACHING_SYSTEM,
+            system=enhance_system_prompt(LIVE_COACHING_SYSTEM),
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -406,7 +407,7 @@ Return JSON:
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=2000,
-            system=PROGRESSIVE_GROWTH_SYSTEM,
+            system=enhance_system_prompt(PROGRESSIVE_GROWTH_SYSTEM),
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -454,7 +455,7 @@ Return JSON:
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=1500,
-            system=DEAL_HEALTH_SYSTEM,
+            system=enhance_system_prompt(DEAL_HEALTH_SYSTEM),
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -555,7 +556,7 @@ USER QUESTION: {question}"""
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=1500,
-            system=COACH_QA_SYSTEM,
+            system=enhance_system_prompt(COACH_QA_SYSTEM),
             messages=[{"role": "user", "content": context}]
         )
         answer = response.content[0].text.strip()

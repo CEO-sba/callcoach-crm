@@ -126,6 +126,25 @@ class AIEmployee(Base):
     followup_enabled = Column(Boolean, default=True)
     max_messages_before_handoff = Column(Integer, default=15)
 
+    # Advanced Personalization (makes the AI feel like an extension of the clinic)
+    personality_traits = Column(JSON, default=list)  # e.g. ["empathetic", "knowledgeable", "reassuring", "cheerful"]
+    brand_voice_description = Column(Text)  # Free-text description of how the clinic communicates
+    custom_faqs = Column(JSON, default=list)  # [{question, answer}] - clinic-specific knowledge base
+    objection_responses = Column(JSON, default=list)  # [{objection, response}] - pre-trained objection handling
+    usp_points = Column(JSON, default=list)  # ["15+ years experience", "10000+ patients treated"] - unique selling points
+    competitor_differentiators = Column(Text)  # How to position against competitors if patients compare
+    follow_up_style = Column(String(50), default="gentle")  # gentle, assertive, educational
+    emoji_usage = Column(String(50), default="moderate")  # none, minimal, moderate, expressive
+    message_length_preference = Column(String(50), default="concise")  # concise, balanced, detailed
+    qualification_questions = Column(JSON, default=list)  # Questions to naturally ask to qualify leads
+    escalation_triggers = Column(JSON, default=list)  # Keywords/phrases that trigger human handoff
+    special_instructions = Column(Text)  # Any additional clinic-specific instructions
+    welcome_offer = Column(Text)  # Special offer to mention for first-time inquiries
+    doctor_credentials = Column(Text)  # Full doctor credentials to mention when building authority
+    success_stories = Column(JSON, default=list)  # [{procedure, story_summary}] - anonymized success stories for social proof
+    banned_phrases = Column(JSON, default=list)  # Phrases the AI should never use
+    preferred_phrases = Column(JSON, default=list)  # Phrases the clinic wants the AI to use
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

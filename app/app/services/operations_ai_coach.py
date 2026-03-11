@@ -7,6 +7,7 @@ import json
 import logging
 from anthropic import Anthropic
 from app.config import ANTHROPIC_API_KEY, ANTHROPIC_MODEL
+from app.services.prompt_quality import enhance_system_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +104,7 @@ Return JSON:
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=2500,
-            system=system_prompt,
+            system=enhance_system_prompt(system_prompt),
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -177,7 +178,7 @@ Return JSON:
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=3000,
-            system=system_prompt,
+            system=enhance_system_prompt(system_prompt),
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -244,7 +245,7 @@ Return JSON:
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=2500,
-            system=system_prompt,
+            system=enhance_system_prompt(system_prompt),
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -283,7 +284,7 @@ Focus on implementation and measurable outcomes."""
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=1500,
-            system=system_prompt,
+            system=enhance_system_prompt(system_prompt),
             messages=[{"role": "user", "content": context_text}]
         )
         return {"answer": response.content[0].text.strip()}

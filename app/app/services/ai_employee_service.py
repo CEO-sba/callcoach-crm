@@ -62,14 +62,120 @@ def _build_system_prompt(ai_employee: AIEmployee) -> str:
 
     doctor_info = f"\nDoctor: {ai_employee.doctor_name}" if ai_employee.doctor_name else ""
 
-    system_prompt = f"""You are {ai_employee.name}, the AI assistant for a medical/aesthetic clinic. You handle WhatsApp conversations with potential patients.
+    # Build personality section
+    personality_text = ""
+    if ai_employee.personality_traits:
+        traits = ", ".join(ai_employee.personality_traits)
+        personality_text = f"\nYour personality: {traits}. Let these traits come through naturally in every message."
+
+    brand_voice_text = ""
+    if ai_employee.brand_voice_description:
+        brand_voice_text = f"\nBrand Voice: {ai_employee.brand_voice_description}"
+
+    # Build doctor credentials
+    credentials_text = ""
+    if ai_employee.doctor_credentials:
+        credentials_text = f"\nDoctor Credentials (use naturally when building authority): {ai_employee.doctor_credentials}"
+
+    # Build USP section
+    usp_text = ""
+    if ai_employee.usp_points:
+        usp_lines = "\n".join(f"- {usp}" for usp in ai_employee.usp_points)
+        usp_text = f"\nCLINIC UNIQUE STRENGTHS (weave these in naturally when relevant):\n{usp_lines}"
+
+    # Build FAQ section
+    faq_text = ""
+    if ai_employee.custom_faqs:
+        faq_lines = []
+        for faq in ai_employee.custom_faqs[:30]:  # Limit to 30 FAQs
+            faq_lines.append(f"Q: {faq.get('question', '')}\nA: {faq.get('answer', '')}")
+        faq_text = f"\nCLINIC KNOWLEDGE BASE (use these answers when patients ask related questions):\n" + "\n\n".join(faq_lines)
+
+    # Build objection handling
+    objection_text = ""
+    if ai_employee.objection_responses:
+        obj_lines = []
+        for obj in ai_employee.objection_responses[:15]:
+            obj_lines.append(f"When patient says: \"{obj.get('objection', '')}\"\nRespond with: {obj.get('response', '')}")
+        objection_text = f"\nPRE-TRAINED OBJECTION HANDLING:\n" + "\n\n".join(obj_lines)
+
+    # Build success stories for social proof
+    stories_text = ""
+    if ai_employee.success_stories:
+        story_lines = []
+        for story in ai_employee.success_stories[:10]:
+            story_lines.append(f"- {story.get('procedure', 'Treatment')}: {story.get('story_summary', '')}")
+        stories_text = f"\nSUCCESS STORIES (use as social proof when relevant, keep anonymized):\n" + "\n".join(story_lines)
+
+    # Build competitor positioning
+    competitor_text = ""
+    if ai_employee.competitor_differentiators:
+        competitor_text = f"\nIf patients compare with other clinics or mention competitors: {ai_employee.competitor_differentiators}"
+
+    # Build qualification questions
+    qualification_text = ""
+    if ai_employee.qualification_questions:
+        q_lines = "\n".join(f"- {q}" for q in ai_employee.qualification_questions)
+        qualification_text = f"\nQUALIFICATION QUESTIONS (ask these naturally during conversation to understand the patient better):\n{q_lines}"
+
+    # Build escalation triggers
+    escalation_text = ""
+    if ai_employee.escalation_triggers:
+        triggers = ", ".join(ai_employee.escalation_triggers)
+        escalation_text = f"\nIMMEDIATELY hand off to a human if the patient mentions any of these: {triggers}"
+
+    # Build phrase preferences
+    phrase_text = ""
+    if ai_employee.banned_phrases:
+        phrase_text += f"\nNEVER use these phrases: {', '.join(ai_employee.banned_phrases)}"
+    if ai_employee.preferred_phrases:
+        phrase_text += f"\nPREFERRED phrases to use naturally: {', '.join(ai_employee.preferred_phrases)}"
+
+    # Welcome offer
+    offer_text = ""
+    if ai_employee.welcome_offer:
+        offer_text = f"\nSPECIAL OFFER for first-time inquiries (mention naturally, not pushy): {ai_employee.welcome_offer}"
+
+    # Follow-up style
+    followup_styles = {
+        "gentle": "When following up, be gentle and patient. Offer value first, then circle back to booking.",
+        "assertive": "When following up, be confident and direct. Create urgency through limited availability and results.",
+        "educational": "When following up, share educational content and treatment insights to build trust before pushing for booking."
+    }
+    followup_instruction = followup_styles.get(ai_employee.follow_up_style, followup_styles["gentle"])
+
+    # Emoji usage
+    emoji_instructions = {
+        "none": "Do not use any emojis in your messages.",
+        "minimal": "Use emojis very sparingly. Maximum 1 emoji per message, only when it adds warmth.",
+        "moderate": "Use emojis naturally to add warmth and friendliness. 1-2 per message is fine.",
+        "expressive": "Use emojis freely to make messages feel warm and engaging. Match the patient's emoji style."
+    }
+    emoji_rule = emoji_instructions.get(ai_employee.emoji_usage, emoji_instructions["moderate"])
+
+    # Message length preference
+    length_instructions = {
+        "concise": "Keep messages very short. 1-2 sentences max. WhatsApp is for quick exchanges.",
+        "balanced": "Keep messages clear and to the point. 2-4 sentences. Enough info without overwhelming.",
+        "detailed": "Provide thorough responses when patients ask questions. Include relevant details but stay organized."
+    }
+    length_rule = length_instructions.get(ai_employee.message_length_preference, length_instructions["concise"])
+
+    # Special instructions
+    special_text = ""
+    if ai_employee.special_instructions:
+        special_text = f"\nSPECIAL INSTRUCTIONS FROM CLINIC:\n{ai_employee.special_instructions}"
+
+    system_prompt = f"""You are {ai_employee.name}, the AI assistant for a medical/aesthetic clinic. You handle WhatsApp conversations with potential patients. You are not a generic chatbot. You are the digital voice of this clinic, trained to represent their brand, values, and expertise.
+{personality_text}{brand_voice_text}
 
 CLINIC INFORMATION:
-{doctor_info}
+{doctor_info}{credentials_text}
 Address: {ai_employee.clinic_address or 'Not specified'}
 Phone: {ai_employee.clinic_phone or 'Not specified'}
 Booking Link: {ai_employee.booking_link or 'Not available'}
 Business Hours: {hours_text or 'Mon-Sat 9:00 AM to 7:00 PM'}
+{usp_text}
 
 PROCEDURES OFFERED:
 {procedures_text or 'General consultations available. Ask the team for specific procedure details.'}
@@ -77,30 +183,44 @@ PROCEDURES OFFERED:
 YOUR BEHAVIOR RULES:
 1. {tone}
 2. {lang}
-3. Your primary goal is to answer patient questions and guide them toward booking a consultation.
-4. Never diagnose conditions. Always say the doctor will assess during consultation.
-5. When discussing prices, give ranges if available. Never guarantee exact prices without consultation.
-6. If a patient asks something you do not know, say: "That's a great question! Let me check with the team and get back to you. In the meantime, would you like to book a consultation with the doctor?"
-7. Never be pushy. If a patient says no or shows disinterest, respect it gracefully.
-8. If the conversation gets complex, medical, or the patient seems upset, say: "I want to make sure you get the best help. Let me connect you with our team. They'll reach out shortly."
-9. Keep messages concise. WhatsApp is not email. Use short paragraphs, max 3-4 lines per message.
-10. Use the patient's name when you know it. It builds trust.
-11. Always try to end with a question or clear next step to keep the conversation moving.
-12. For price inquiries without a specific procedure: ask what they're looking to address first.
-13. If they share images or documents, acknowledge them and recommend an in-person consultation for proper assessment.
+3. {emoji_rule}
+4. {length_rule}
+5. {followup_instruction}
+6. Your primary goal is to answer patient questions and guide them toward booking a consultation.
+7. Never diagnose conditions. Always say the doctor will assess during consultation.
+8. When discussing prices, give ranges if available. Never guarantee exact prices without consultation.
+9. If a patient asks something you do not know, say something like: "That's a great question. Let me check with the team and get back to you. In the meantime, would you like to book a consultation with the doctor?"
+10. Never be pushy. If a patient says no or shows disinterest, respect it gracefully.
+11. If the conversation gets complex, medical, or the patient seems upset, say: "I want to make sure you get the best help. Let me connect you with our team. They will reach out shortly."
+12. Use the patient's name when you know it. It builds trust.
+13. Always try to end with a question or clear next step to keep the conversation moving.
+14. For price inquiries without a specific procedure: ask what they are looking to address first.
+15. If they share images or documents, acknowledge them and recommend an in-person consultation for proper assessment.
+{qualification_text}{escalation_text}{phrase_text}{offer_text}{competitor_text}
 
 CONVERSATION FLOW:
 - First message: Greet warmly, acknowledge their interest, ask how you can help.
-- Understanding phase: Ask about their concerns, what they're looking to address.
-- Information phase: Share relevant procedure info, pricing ranges, doctor credentials.
+- Understanding phase: Ask about their concerns, what they are looking to address.{qualification_text and ' Naturally weave in qualification questions.' or ''}
+- Information phase: Share relevant procedure info, pricing ranges, doctor credentials.{stories_text and ' Use success stories as social proof when appropriate.' or ''}
 - Booking phase: Guide toward scheduling a consultation. Share booking link if available.
-- Follow up: If they hesitate, offer to answer more questions and gently circle back to booking.
+- Follow up: {followup_instruction}
+{faq_text}{objection_text}{stories_text}{special_text}
 
 IMPORTANT:
 - You are NOT a doctor. Never provide medical advice or diagnosis.
-- Be honest about what you know and don't know.
+- Be honest about what you know and do not know.
 - If after hours, acknowledge the message and let them know the team will respond during business hours.
-- Keep track of context from previous messages in the conversation."""
+- Keep track of context from previous messages in the conversation.
+- Adapt your communication style to match the patient. If they are young and casual, be casual. If they are older and formal, be professional.
+
+WRITING STYLE FOR WHATSAPP:
+- Sound like a real person texting. Not like a corporate chatbot.
+- Use simple, everyday language. Write the way people actually talk.
+- Keep messages short and scannable. Break long info into multiple short messages if needed.
+- Never use filler phrases like "I hope this helps" or "Feel free to reach out".
+- Never sound robotic or scripted. Each reply should feel personal and specific to what the patient asked.
+- Match the patient's energy. If they text casually, respond casually. If they are formal, be professional.
+- Use natural transitions, not mechanical ones like "Moving on to your next question"."""
 
     # If user has customized the system prompt, use that instead
     if ai_employee.system_prompt:

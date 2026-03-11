@@ -2195,6 +2195,10 @@ const AIEmployeePage = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [msg, setMsg] = useState('');
+    const [activeTab, setActiveTab] = useState('identity');
+    const [testMsg, setTestMsg] = useState('');
+    const [testReply, setTestReply] = useState('');
+    const [testing, setTesting] = useState(false);
 
     useEffect(() => { loadConfig(); }, []);
 
@@ -2203,7 +2207,7 @@ const AIEmployeePage = () => {
         try {
             const data = await apiFetch('/whatsapp/ai-employee');
             if (data) setConfig(data);
-            else setConfig({name:'Clinic Assistant',tone:'professional',language:'english',auto_reply_enabled:true,max_messages_before_handoff:15,greeting_message:'Hello! Thank you for reaching out. How can I help you today?',after_hours_message:'Thank you for your message. Our team is currently unavailable but we will get back to you first thing in the morning.',procedures_offered:[],booking_link:'',clinic_address:'',clinic_phone:'',doctor_name:''});
+            else setConfig({name:'Clinic Assistant',tone:'professional',language:'english',auto_reply_enabled:true,max_messages_before_handoff:15,greeting_message:'Hello! Thank you for reaching out. How can I help you today?',after_hours_message:'Thank you for your message. Our team is currently unavailable but we will get back to you first thing in the morning.',procedures_offered:[],booking_link:'',clinic_address:'',clinic_phone:'',doctor_name:'',system_prompt:'',followup_enabled:true,personality_traits:'empathetic, knowledgeable, patient',objection_handling:'Always acknowledge the concern first, then provide factual information and social proof',qualification_questions:['What procedure are you interested in?','Have you consulted with a doctor before?','What is your timeline for the procedure?'],success_stories:'',pricing_strategy:'Share ranges when available, always recommend consultation for exact pricing',emergency_protocol:'If patient describes emergency symptoms, immediately provide emergency numbers and advise visiting nearest hospital',competitor_handling:'Never speak negatively about competitors. Focus on our unique strengths and patient experience.',follow_up_timing:{first_follow_up_hours:2,second_follow_up_hours:24,third_follow_up_hours:72},sentiment_detection:true,auto_tag_leads:true,handoff_triggers:['angry','complaint','medical emergency','wants to speak to doctor'],custom_responses:{},brand_voice_description:'We are a premium, trustworthy clinic that combines cutting-edge technology with genuine patient care',patient_education_mode:true,upsell_enabled:false,multilingual_auto_detect:true});
         } catch(e) { console.error(e); }
         setLoading(false);
     };
@@ -2220,7 +2224,7 @@ const AIEmployeePage = () => {
 
     const updateField = (field, value) => setConfig({...config, [field]: value});
 
-    const addProcedure = () => setConfig({...config, procedures_offered: [...(config.procedures_offered||[]), {name:'',description:'',price_range:'',duration:''}]});
+    const addProcedure = () => setConfig({...config, procedures_offered: [...(config.procedures_offered||[]), {name:'',description:'',price_range:'',duration:'',recovery_time:'',ideal_candidate:'',common_concerns:''}]});
     const updateProcedure = (i, field, val) => {
         const procs = [...(config.procedures_offered||[])];
         procs[i] = {...procs[i], [field]: val};
@@ -2232,73 +2236,184 @@ const AIEmployeePage = () => {
         setConfig({...config, procedures_offered: procs});
     };
 
+    const testAI = async () => {
+        if (!testMsg) return;
+        setTesting(true); setTestReply('');
+        try {
+            const res = await apiFetch('/whatsapp/test-ai', {method:'POST', body:{message:testMsg}});
+            setTestReply(res.reply || 'No reply generated');
+        } catch(e) { setTestReply('Error: Could not generate test reply. Make sure AI Employee is configured and API key is set.'); }
+        setTesting(false);
+    };
+
     if (loading) return <div style={{padding:40,textAlign:'center'}}><span className="spinner"></span></div>;
     if (!config) return <div style={{padding:40,textAlign:'center',color:'var(--text-muted)'}}>Connect WhatsApp first to configure AI Employee</div>;
 
+    const tabs = [{id:'identity',label:'Identity'},{id:'clinic',label:'Clinic Info'},{id:'procedures',label:'Procedures'},{id:'personality',label:'Personality'},{id:'automation',label:'Automation'},{id:'advanced',label:'Advanced'},{id:'test',label:'Test AI'}];
+
     return (
         <div className="fade-in">
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24}} className="resp-header">
-                <h1 className="page-title" style={{fontSize:24,fontWeight:700}}>AI Employee Config</h1>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}} className="resp-header">
+                <div><h1 className="page-title" style={{fontSize:24,fontWeight:700}}>AI Employee</h1><p style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>Your clinic's intelligent WhatsApp assistant - personalized to feel like an extension of your team</p></div>
                 <div style={{display:'flex',gap:8,alignItems:'center'}}>
                     {msg && <span style={{fontSize:12,color:'var(--success)'}}>{msg}</span>}
                     <button className="btn btn-gold" onClick={save} disabled={saving}>{saving?<span className="spinner"></span>:'Save Changes'}</button>
                 </div>
             </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}} className="resp-grid-2">
-                {/* Identity & Behavior */}
-                <div className="glass" style={{padding:24,borderRadius:12}}>
-                    <h3 style={{fontSize:15,fontWeight:600,marginBottom:16,color:'var(--gold)'}}>Identity & Behavior</h3>
-                    <div style={{display:'flex',flexDirection:'column',gap:14}}>
-                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Assistant Name</label><input className="input" value={config.name||''} onChange={e=>updateField('name',e.target.value)}/></div>
-                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Doctor Name</label><input className="input" value={config.doctor_name||''} onChange={e=>updateField('doctor_name',e.target.value)}/></div>
-                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Tone</label>
-                            <select className="input" value={config.tone||'professional'} onChange={e=>updateField('tone',e.target.value)}>
-                                <option value="professional">Professional</option><option value="friendly">Friendly</option><option value="warm">Warm</option>
-                            </select>
+
+            <div style={{display:'flex',gap:4,marginBottom:20,overflowX:'auto',paddingBottom:2}}>
+                {tabs.map(t => <button key={t.id} className={`detail-tab ${activeTab===t.id?'active':''}`} onClick={()=>setActiveTab(t.id)}>{t.label}</button>)}
+            </div>
+
+            {activeTab === 'identity' && (
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}} className="resp-grid-2">
+                    <div className="glass" style={{padding:24,borderRadius:12}}>
+                        <h3 style={{fontSize:15,fontWeight:600,marginBottom:16,color:'var(--gold)'}}>Identity</h3>
+                        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Assistant Name</label><input className="input" value={config.name||''} onChange={e=>updateField('name',e.target.value)} placeholder="e.g. Dr. Sharma's Assistant"/></div>
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Doctor Name</label><input className="input" value={config.doctor_name||''} onChange={e=>updateField('doctor_name',e.target.value)}/></div>
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Tone</label>
+                                <select className="input" value={config.tone||'professional'} onChange={e=>updateField('tone',e.target.value)}>
+                                    <option value="professional">Professional & Respectful</option><option value="friendly">Friendly & Approachable</option><option value="warm">Warm & Empathetic</option><option value="luxury">Luxury & Premium</option><option value="clinical">Clinical & Authoritative</option>
+                                </select>
+                            </div>
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Language</label>
+                                <select className="input" value={config.language||'english'} onChange={e=>updateField('language',e.target.value)}>
+                                    <option value="english">English</option><option value="hindi">Hindi</option><option value="hinglish">Hinglish</option><option value="arabic">Arabic</option><option value="auto">Auto-detect</option>
+                                </select>
+                            </div>
                         </div>
-                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Language</label>
-                            <select className="input" value={config.language||'english'} onChange={e=>updateField('language',e.target.value)}>
-                                <option value="english">English</option><option value="hindi">Hindi</option><option value="hinglish">Hinglish</option>
-                            </select>
+                    </div>
+                    <div className="glass" style={{padding:24,borderRadius:12}}>
+                        <h3 style={{fontSize:15,fontWeight:600,marginBottom:16,color:'var(--gold)'}}>Messages</h3>
+                        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Greeting Message (first message to new patients)</label><textarea className="input" rows={3} value={config.greeting_message||''} onChange={e=>updateField('greeting_message',e.target.value)}/></div>
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>After Hours Message</label><textarea className="input" rows={3} value={config.after_hours_message||''} onChange={e=>updateField('after_hours_message',e.target.value)}/></div>
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Brand Voice Description</label><textarea className="input" rows={2} value={config.brand_voice_description||''} onChange={e=>updateField('brand_voice_description',e.target.value)} placeholder="Describe your brand personality in 1-2 sentences"/></div>
                         </div>
-                        <div style={{display:'flex',gap:16}}>
-                            <label style={{fontSize:13,display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}><input type="checkbox" checked={config.auto_reply_enabled} onChange={e=>updateField('auto_reply_enabled',e.target.checked)}/> Auto-reply enabled</label>
-                        </div>
-                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Max AI messages before handoff</label><input className="input" type="number" value={config.max_messages_before_handoff||15} onChange={e=>updateField('max_messages_before_handoff',parseInt(e.target.value)||15)}/></div>
                     </div>
                 </div>
-                {/* Clinic Details */}
+            )}
+
+            {activeTab === 'clinic' && (
                 <div className="glass" style={{padding:24,borderRadius:12}}>
                     <h3 style={{fontSize:15,fontWeight:600,marginBottom:16,color:'var(--gold)'}}>Clinic Details</h3>
-                    <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}} className="resp-grid-2">
                         <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Clinic Address</label><textarea className="input" rows={2} value={config.clinic_address||''} onChange={e=>updateField('clinic_address',e.target.value)}/></div>
                         <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Clinic Phone</label><input className="input" value={config.clinic_phone||''} onChange={e=>updateField('clinic_phone',e.target.value)}/></div>
                         <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Booking Link</label><input className="input" value={config.booking_link||''} onChange={e=>updateField('booking_link',e.target.value)} placeholder="https://..."/></div>
-                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Greeting Message</label><textarea className="input" rows={3} value={config.greeting_message||''} onChange={e=>updateField('greeting_message',e.target.value)}/></div>
-                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>After Hours Message</label><textarea className="input" rows={3} value={config.after_hours_message||''} onChange={e=>updateField('after_hours_message',e.target.value)}/></div>
+                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Success Stories (paste anonymized patient success stories for AI to reference)</label><textarea className="input" rows={3} value={config.success_stories||''} onChange={e=>updateField('success_stories',e.target.value)} placeholder="Patient testimonials and success stories..."/></div>
                     </div>
                 </div>
-            </div>
-            {/* Procedures */}
-            <div className="glass" style={{padding:24,borderRadius:12,marginTop:20}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-                    <h3 style={{fontSize:15,fontWeight:600,color:'var(--gold)'}}>Procedures Offered</h3>
-                    <button className="btn btn-ghost btn-sm" onClick={addProcedure}>{Icons.plus} Add Procedure</button>
-                </div>
-                {(config.procedures_offered||[]).length === 0 ? <p style={{fontSize:13,color:'var(--text-muted)'}}>No procedures added yet. Add procedures so the AI can answer patient questions accurately.</p> : (
-                    <div style={{display:'flex',flexDirection:'column',gap:12}}>
-                        {(config.procedures_offered||[]).map((p, i) => (
-                            <div key={i} style={{display:'grid',gridTemplateColumns:'1fr 1fr 120px 100px auto',gap:8,alignItems:'center'}} className="resp-grid-4">
-                                <input className="input" placeholder="Procedure name" value={p.name||''} onChange={e=>updateProcedure(i,'name',e.target.value)} style={{fontSize:13}}/>
-                                <input className="input" placeholder="Description" value={p.description||''} onChange={e=>updateProcedure(i,'description',e.target.value)} style={{fontSize:13}}/>
-                                <input className="input" placeholder="Price range" value={p.price_range||''} onChange={e=>updateProcedure(i,'price_range',e.target.value)} style={{fontSize:13}}/>
-                                <input className="input" placeholder="Duration" value={p.duration||''} onChange={e=>updateProcedure(i,'duration',e.target.value)} style={{fontSize:13}}/>
-                                <button className="btn btn-danger btn-xs" onClick={()=>removeProcedure(i)} style={{padding:'6px 8px'}}>X</button>
-                            </div>
-                        ))}
+            )}
+
+            {activeTab === 'procedures' && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                        <h3 style={{fontSize:15,fontWeight:600,color:'var(--gold)'}}>Procedures Offered</h3>
+                        <button className="btn btn-ghost btn-sm" onClick={addProcedure}>{Icons.plus} Add Procedure</button>
                     </div>
-                )}
-            </div>
+                    <p style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>Add detailed procedure information so the AI can answer patient questions accurately and comprehensively. The more detail you provide, the better the AI responds.</p>
+                    {(config.procedures_offered||[]).length === 0 ? <p style={{fontSize:13,color:'var(--text-muted)',textAlign:'center',padding:20}}>No procedures added yet.</p> : (
+                        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+                            {(config.procedures_offered||[]).map((p, i) => (
+                                <div key={i} style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
+                                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+                                        <span style={{fontSize:14,fontWeight:600,color:'var(--gold)'}}>{p.name || `Procedure ${i+1}`}</span>
+                                        <button className="btn btn-danger btn-xs" onClick={()=>removeProcedure(i)}>Remove</button>
+                                    </div>
+                                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}} className="resp-grid-2">
+                                        <div><label style={{fontSize:11,color:'var(--text-muted)',display:'block',marginBottom:2}}>Name</label><input className="input" value={p.name||''} onChange={e=>updateProcedure(i,'name',e.target.value)} style={{fontSize:12}}/></div>
+                                        <div><label style={{fontSize:11,color:'var(--text-muted)',display:'block',marginBottom:2}}>Price Range</label><input className="input" value={p.price_range||''} onChange={e=>updateProcedure(i,'price_range',e.target.value)} style={{fontSize:12}} placeholder="Rs. 50,000 - Rs. 2,00,000"/></div>
+                                        <div><label style={{fontSize:11,color:'var(--text-muted)',display:'block',marginBottom:2}}>Duration</label><input className="input" value={p.duration||''} onChange={e=>updateProcedure(i,'duration',e.target.value)} style={{fontSize:12}} placeholder="2-4 hours"/></div>
+                                        <div><label style={{fontSize:11,color:'var(--text-muted)',display:'block',marginBottom:2}}>Recovery Time</label><input className="input" value={p.recovery_time||''} onChange={e=>updateProcedure(i,'recovery_time',e.target.value)} style={{fontSize:12}} placeholder="7-10 days"/></div>
+                                        <div style={{gridColumn:'1/-1'}}><label style={{fontSize:11,color:'var(--text-muted)',display:'block',marginBottom:2}}>Description</label><textarea className="input" rows={2} value={p.description||''} onChange={e=>updateProcedure(i,'description',e.target.value)} style={{fontSize:12}} placeholder="Detailed description of the procedure..."/></div>
+                                        <div><label style={{fontSize:11,color:'var(--text-muted)',display:'block',marginBottom:2}}>Ideal Candidate</label><input className="input" value={p.ideal_candidate||''} onChange={e=>updateProcedure(i,'ideal_candidate',e.target.value)} style={{fontSize:12}} placeholder="Who is this best for?"/></div>
+                                        <div><label style={{fontSize:11,color:'var(--text-muted)',display:'block',marginBottom:2}}>Common Concerns</label><input className="input" value={p.common_concerns||''} onChange={e=>updateProcedure(i,'common_concerns',e.target.value)} style={{fontSize:12}} placeholder="Pain, scarring, downtime..."/></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {activeTab === 'personality' && (
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}} className="resp-grid-2">
+                    <div className="glass" style={{padding:24,borderRadius:12}}>
+                        <h3 style={{fontSize:15,fontWeight:600,marginBottom:16,color:'var(--gold)'}}>Personality & Behavior</h3>
+                        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Personality Traits</label><input className="input" value={config.personality_traits||''} onChange={e=>updateField('personality_traits',e.target.value)} placeholder="empathetic, knowledgeable, patient, warm"/></div>
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Objection Handling Strategy</label><textarea className="input" rows={3} value={config.objection_handling||''} onChange={e=>updateField('objection_handling',e.target.value)} placeholder="How should AI handle objections about price, pain, results?"/></div>
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Competitor Handling</label><textarea className="input" rows={2} value={config.competitor_handling||''} onChange={e=>updateField('competitor_handling',e.target.value)} placeholder="How to handle when patients mention competitors"/></div>
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Pricing Strategy</label><textarea className="input" rows={2} value={config.pricing_strategy||''} onChange={e=>updateField('pricing_strategy',e.target.value)} placeholder="How to discuss pricing with patients"/></div>
+                        </div>
+                    </div>
+                    <div className="glass" style={{padding:24,borderRadius:12}}>
+                        <h3 style={{fontSize:15,fontWeight:600,marginBottom:16,color:'var(--gold)'}}>Safety & Protocols</h3>
+                        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Emergency Protocol</label><textarea className="input" rows={2} value={config.emergency_protocol||''} onChange={e=>updateField('emergency_protocol',e.target.value)} placeholder="What to do if patient describes emergency symptoms"/></div>
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Handoff Triggers (comma-separated)</label><input className="input" value={Array.isArray(config.handoff_triggers)?config.handoff_triggers.join(', '):config.handoff_triggers||''} onChange={e=>updateField('handoff_triggers',e.target.value.split(',').map(s=>s.trim()))} placeholder="angry, complaint, medical emergency"/></div>
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Max AI Messages Before Handoff</label><input className="input" type="number" value={config.max_messages_before_handoff||15} onChange={e=>updateField('max_messages_before_handoff',parseInt(e.target.value)||15)}/></div>
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Qualification Questions (one per line)</label><textarea className="input" rows={3} value={Array.isArray(config.qualification_questions)?config.qualification_questions.join('\n'):config.qualification_questions||''} onChange={e=>updateField('qualification_questions',e.target.value.split('\n').filter(Boolean))} placeholder="What procedure are you interested in?\nHave you consulted before?"/></div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'automation' && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <h3 style={{fontSize:15,fontWeight:600,marginBottom:16,color:'var(--gold)'}}>Automation Settings</h3>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}} className="resp-grid-2">
+                        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                            <label style={{fontSize:13,display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}><input type="checkbox" checked={config.auto_reply_enabled} onChange={e=>updateField('auto_reply_enabled',e.target.checked)}/> Auto-reply to all incoming messages</label>
+                            <label style={{fontSize:13,display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}><input type="checkbox" checked={config.followup_enabled!==false} onChange={e=>updateField('followup_enabled',e.target.checked)}/> Enable automatic follow-ups</label>
+                            <label style={{fontSize:13,display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}><input type="checkbox" checked={config.sentiment_detection!==false} onChange={e=>updateField('sentiment_detection',e.target.checked)}/> AI sentiment detection (detect frustrated patients)</label>
+                            <label style={{fontSize:13,display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}><input type="checkbox" checked={config.auto_tag_leads!==false} onChange={e=>updateField('auto_tag_leads',e.target.checked)}/> Auto-tag leads by procedure interest</label>
+                            <label style={{fontSize:13,display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}><input type="checkbox" checked={config.patient_education_mode!==false} onChange={e=>updateField('patient_education_mode',e.target.checked)}/> Patient education mode (share educational info proactively)</label>
+                            <label style={{fontSize:13,display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}><input type="checkbox" checked={config.multilingual_auto_detect!==false} onChange={e=>updateField('multilingual_auto_detect',e.target.checked)}/> Auto-detect patient language and respond accordingly</label>
+                        </div>
+                        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>First Follow-up (hours after last message)</label><input className="input" type="number" value={config.follow_up_timing?.first_follow_up_hours||2} onChange={e=>updateField('follow_up_timing',{...config.follow_up_timing,first_follow_up_hours:parseInt(e.target.value)||2})}/></div>
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Second Follow-up (hours)</label><input className="input" type="number" value={config.follow_up_timing?.second_follow_up_hours||24} onChange={e=>updateField('follow_up_timing',{...config.follow_up_timing,second_follow_up_hours:parseInt(e.target.value)||24})}/></div>
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Third Follow-up (hours)</label><input className="input" type="number" value={config.follow_up_timing?.third_follow_up_hours||72} onChange={e=>updateField('follow_up_timing',{...config.follow_up_timing,third_follow_up_hours:parseInt(e.target.value)||72})}/></div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'advanced' && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <h3 style={{fontSize:15,fontWeight:600,marginBottom:16,color:'var(--gold)'}}>Advanced: Custom System Prompt</h3>
+                    <p style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>Override the auto-generated system prompt with your own. Leave empty to use the automatically generated prompt based on your configuration above. Only modify if you know exactly what you want the AI to do differently.</p>
+                    <textarea className="input" rows={12} value={config.system_prompt||''} onChange={e=>updateField('system_prompt',e.target.value)} placeholder="Leave empty to use auto-generated prompt. Or paste your custom system prompt here..." style={{fontSize:12,fontFamily:'monospace'}}/>
+                </div>
+            )}
+
+            {activeTab === 'test' && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <h3 style={{fontSize:15,fontWeight:600,marginBottom:16,color:'var(--gold)'}}>Test Your AI Employee</h3>
+                    <p style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>Send a test message to see how your AI Employee would respond. This helps you fine-tune the personality and behavior.</p>
+                    <div style={{display:'flex',gap:10,marginBottom:16}}>
+                        <input className="input" value={testMsg} onChange={e=>setTestMsg(e.target.value)} placeholder="Type a test message (e.g. 'How much does hair transplant cost?')" style={{flex:1}} onKeyDown={e=>e.key==='Enter'&&testAI()}/>
+                        <button className="btn btn-gold" onClick={testAI} disabled={testing}>{testing?'Testing...':'Send Test'}</button>
+                    </div>
+                    {testReply && (
+                        <div style={{padding:16,background:'rgba(255,255,255,0.03)',border:'1px solid var(--border)',borderRadius:10,borderLeft:'3px solid var(--gold)'}}>
+                            <div style={{fontSize:11,color:'var(--gold)',fontWeight:600,marginBottom:6}}>AI Employee Reply:</div>
+                            <div style={{fontSize:14,color:'var(--text-primary)',lineHeight:1.7,whiteSpace:'pre-wrap'}}>{testReply}</div>
+                        </div>
+                    )}
+                    <div style={{marginTop:20}}>
+                        <h4 style={{fontSize:13,fontWeight:600,marginBottom:8}}>Quick Test Messages</h4>
+                        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                            {['How much does hair transplant cost?','I want to book a consultation','What are your clinic timings?','Do you have EMI options?','Which doctor will do my procedure?','I am scared about pain during the procedure','A friend recommended your clinic','I got a cheaper quote from another clinic'].map(q=>(
+                                <button key={q} className="btn btn-ghost btn-sm" onClick={()=>{setTestMsg(q);}} style={{fontSize:11}}>{q}</button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -2392,14 +2507,20 @@ const NurturePage = () => {
     const [sequences, setSequences] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState(null);
-    const [enrollments, setEnrollments] = useState([]);
     const [seeding, setSeeding] = useState(false);
+    const [showCreate, setShowCreate] = useState(false);
+    const [generating, setGenerating] = useState(false);
+    const [createForm, setCreateForm] = useState({procedure_name:'',procedure_description:'',clinic_name:'',doctor_name:'',tone:'warm, professional, educational',language:'English'});
+    const [nurtureTab, setNurtureTab] = useState('all');
 
     useEffect(() => { loadSequences(); }, []);
 
     const loadSequences = async () => {
         setLoading(true);
-        try { setSequences(await apiFetch('/nurture/sequences')); } catch(e) { console.error(e); }
+        try {
+            const data = await apiFetch('/nurture/sequences');
+            setSequences(Array.isArray(data) ? data : []);
+        } catch(e) { console.error(e); }
         setLoading(false);
     };
 
@@ -2410,9 +2531,19 @@ const NurturePage = () => {
         } catch(e) { console.error(e); }
     };
 
-    const toggleSequence = async (id) => {
+    const toggleSequence = async (id, e) => {
+        if(e) e.stopPropagation();
         try {
             await apiFetch(`/nurture/sequences/${id}/toggle`, {method:'PUT'});
+            loadSequences();
+        } catch(e) { console.error(e); }
+    };
+
+    const deleteSequence = async (id, e) => {
+        if(e) e.stopPropagation();
+        if(!confirm('Delete this sequence? Active enrollments will be cancelled.')) return;
+        try {
+            await apiFetch(`/nurture/sequences/${id}`, {method:'DELETE'});
             loadSequences();
         } catch(e) { console.error(e); }
     };
@@ -2427,62 +2558,180 @@ const NurturePage = () => {
         setSeeding(false);
     };
 
+    const generateAISequence = async () => {
+        if(!createForm.procedure_name.trim()) return alert('Enter a procedure name');
+        setGenerating(true);
+        try {
+            const res = await apiFetch('/nurture/generate-sequence', {method:'POST', body:createForm});
+            alert(`${res.message}`);
+            setShowCreate(false);
+            setCreateForm({procedure_name:'',procedure_description:'',clinic_name:'',doctor_name:'',tone:'warm, professional, educational',language:'English'});
+            loadSequences();
+            // Auto-view the new sequence
+            if(res.sequence_id) {
+                const detail = await apiFetch(`/nurture/sequences/${res.sequence_id}`);
+                setSelected(detail);
+            }
+        } catch(e) {
+            alert('Generation failed: ' + (e.message || 'Try again'));
+        }
+        setGenerating(false);
+    };
+
+    const filteredSeqs = nurtureTab === 'all' ? sequences : nurtureTab === 'templates' ? sequences.filter(s=>s.is_template) : sequences.filter(s=>!s.is_template);
+
+    // Detail view
     if (selected) {
+        const steps = selected.steps || [];
         return (
             <div className="fade-in">
-                <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:24}}>
+                <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:24,flexWrap:'wrap'}}>
                     <button className="btn btn-ghost btn-sm" onClick={()=>setSelected(null)}>{Icons.back} Back</button>
-                    <h1 style={{fontSize:20,fontWeight:700}}>{selected.name}</h1>
+                    <h1 style={{fontSize:20,fontWeight:700,flex:1,minWidth:200}}>{selected.name}</h1>
                     <span className={`badge ${selected.is_active?'badge-green':'badge-red'}`}>{selected.is_active?'Active':'Inactive'}</span>
                     {selected.is_template && <span className="badge badge-blue">Template</span>}
+                    <button className="btn btn-sm" style={{background:selected.is_active?'var(--error)':'var(--success)',color:'#fff',fontSize:11,padding:'4px 12px',borderRadius:6}} onClick={()=>{toggleSequence(selected.id);setSelected({...selected,is_active:!selected.is_active});}}>
+                        {selected.is_active ? 'Deactivate' : 'Activate'}
+                    </button>
                 </div>
                 <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
                     <div style={{fontSize:13,color:'var(--text-secondary)',marginBottom:8}}>{selected.description}</div>
                     <div style={{fontSize:12,color:'var(--text-muted)'}}>Category: {selected.procedure_category || 'General'} | Steps: {selected.total_steps} | Trigger: {selected.trigger_type}</div>
+                    <div style={{fontSize:12,color:'var(--text-muted)',marginTop:4}}>Duration: ~{Math.round((steps.length > 0 ? Math.max(...steps.map(s=>s.delay_hours||0)) : 0) / 24)} days | WhatsApp automated delivery via background scheduler</div>
                 </div>
-                <h3 style={{fontSize:16,fontWeight:600,marginBottom:12}}>Sequence Steps</h3>
-                <div style={{display:'flex',flexDirection:'column',gap:12}}>
-                    {(selected.steps || []).map((step, i) => (
-                        <div key={step.id || i} className="glass" style={{padding:16,borderRadius:10}}>
-                            <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
-                                <span style={{fontWeight:600,fontSize:13,color:'var(--gold)'}}>Step {step.step_number}</span>
-                                <span style={{fontSize:12,color:'var(--text-muted)'}}>
-                                    {step.delay_hours === 0 ? 'Immediately' : step.delay_type === 'days' ? `After ${step.delay_hours/24}d` : step.delay_type === 'weeks' ? `After ${step.delay_hours/168}w` : `After ${step.delay_hours}h`}
-                                    {' via '}{step.channel} {step.is_ai_generated && '(AI personalized)'}
-                                </span>
+                <h3 style={{fontSize:16,fontWeight:600,marginBottom:12}}>Messages ({steps.length})</h3>
+                <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                    {steps.map((step, i) => {
+                        const dayNum = Math.round((step.delay_hours||0)/24);
+                        const weekNum = Math.round(dayNum/7);
+                        const monthNum = Math.round(dayNum/30);
+                        const timing = step.delay_hours === 0 ? 'Day 0 (Immediately)' : monthNum >= 2 ? `Month ${monthNum} (Day ${dayNum})` : weekNum >= 1 ? `Week ${weekNum} (Day ${dayNum})` : `Day ${dayNum}`;
+                        return (
+                            <div key={step.id || i} className="glass" style={{padding:14,borderRadius:10}}>
+                                <div style={{display:'flex',justifyContent:'space-between',marginBottom:6,flexWrap:'wrap',gap:6}}>
+                                    <span style={{fontWeight:600,fontSize:13,color:'var(--gold)'}}>#{step.step_number} {timing}</span>
+                                    <span style={{fontSize:11,color:'var(--text-muted)'}}>
+                                        {step.channel} {step.is_ai_generated && ' | AI personalized at send'}
+                                    </span>
+                                </div>
+                                <div style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',background:'rgba(255,255,255,0.02)',padding:12,borderRadius:8,border:'1px solid var(--border)'}}>{step.message_template}</div>
                             </div>
-                            <div style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',background:'rgba(255,255,255,0.02)',padding:12,borderRadius:8,border:'1px solid var(--border)'}}>{step.message_template}</div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
         );
     }
 
+    // Create modal
+    if (showCreate) {
+        return (
+            <div className="fade-in">
+                <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:24}}>
+                    <button className="btn btn-ghost btn-sm" onClick={()=>setShowCreate(false)}>{Icons.back} Back</button>
+                    <h1 style={{fontSize:22,fontWeight:700}}>Create Custom Nurture Sequence</h1>
+                </div>
+                <div className="glass" style={{padding:24,borderRadius:14,maxWidth:700}}>
+                    <p style={{fontSize:13,color:'var(--text-secondary)',marginBottom:20,lineHeight:1.6}}>AI will generate a complete 60-message nurture sequence spread over 12 months for your procedure. Messages are optimized for WhatsApp and include education, social proof, objection handling, and re-engagement.</p>
+                    <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                        <div>
+                            <label style={{fontSize:12,fontWeight:600,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Procedure Name *</label>
+                            <input style={{width:'100%',padding:'10px 14px',background:'var(--bg-secondary)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text-primary)',fontSize:14}} placeholder="e.g. Hair Transplant FUE, Botox, Rhinoplasty, Dental Implants" value={createForm.procedure_name} onChange={e=>setCreateForm({...createForm,procedure_name:e.target.value})}/>
+                        </div>
+                        <div>
+                            <label style={{fontSize:12,fontWeight:600,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Procedure Description (optional)</label>
+                            <textarea style={{width:'100%',padding:'10px 14px',background:'var(--bg-secondary)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text-primary)',fontSize:13,minHeight:80,resize:'vertical'}} placeholder="Describe the procedure, its benefits, recovery time, ideal patient profile..." value={createForm.procedure_description} onChange={e=>setCreateForm({...createForm,procedure_description:e.target.value})}/>
+                        </div>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+                            <div>
+                                <label style={{fontSize:12,fontWeight:600,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Clinic Name</label>
+                                <input style={{width:'100%',padding:'10px 14px',background:'var(--bg-secondary)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text-primary)',fontSize:13}} placeholder="Your clinic name" value={createForm.clinic_name} onChange={e=>setCreateForm({...createForm,clinic_name:e.target.value})}/>
+                            </div>
+                            <div>
+                                <label style={{fontSize:12,fontWeight:600,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Doctor Name</label>
+                                <input style={{width:'100%',padding:'10px 14px',background:'var(--bg-secondary)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text-primary)',fontSize:13}} placeholder="Dr. Name" value={createForm.doctor_name} onChange={e=>setCreateForm({...createForm,doctor_name:e.target.value})}/>
+                            </div>
+                        </div>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+                            <div>
+                                <label style={{fontSize:12,fontWeight:600,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Tone</label>
+                                <select style={{width:'100%',padding:'10px 14px',background:'var(--bg-secondary)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text-primary)',fontSize:13}} value={createForm.tone} onChange={e=>setCreateForm({...createForm,tone:e.target.value})}>
+                                    <option value="warm, professional, educational">Warm & Professional</option>
+                                    <option value="friendly, casual, conversational">Friendly & Casual</option>
+                                    <option value="clinical, authoritative, expert">Clinical & Authoritative</option>
+                                    <option value="luxury, premium, exclusive">Luxury & Premium</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style={{fontSize:12,fontWeight:600,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Language</label>
+                                <select style={{width:'100%',padding:'10px 14px',background:'var(--bg-secondary)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text-primary)',fontSize:13}} value={createForm.language} onChange={e=>setCreateForm({...createForm,language:e.target.value})}>
+                                    <option value="English">English</option>
+                                    <option value="Hindi">Hindi</option>
+                                    <option value="Hinglish">Hinglish</option>
+                                    <option value="Arabic">Arabic</option>
+                                    <option value="Spanish">Spanish</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div style={{marginTop:20,padding:14,background:'rgba(212,175,55,0.08)',borderRadius:10,border:'1px solid rgba(212,175,55,0.2)'}}>
+                        <div style={{fontSize:13,fontWeight:600,color:'var(--gold)',marginBottom:6}}>What AI will generate:</div>
+                        <div style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.6}}>
+                            60 WhatsApp messages over 12 months: Month 1 (10 msgs), Month 2 (8 msgs), Month 3 (7 msgs), Months 4-6 (5/mo), Months 7-9 (4/mo), Months 10-12 (3/mo). Mix of educational, social proof, objection handling, authority, offers, check-ins, testimonials, FAQs, lifestyle, and re-engagement messages. All connected to WhatsApp automation.
+                        </div>
+                    </div>
+                    <button className="btn btn-gold" style={{marginTop:20,width:'100%',padding:'12px 24px',fontSize:15}} onClick={generateAISequence} disabled={generating}>
+                        {generating ? <span><span className="spinner" style={{marginRight:8}}></span>Generating 60 messages (takes ~30s)...</span> : 'Generate AI Nurture Sequence (60 msgs, 12 months)'}
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    // Main list view
+    const nTabs = [{id:'all',label:`All (${sequences.length})`},{id:'templates',label:'Pre-built'},{id:'custom',label:'Custom'}];
     return (
         <div className="fade-in">
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24}} className="resp-header">
-                <h1 className="page-title" style={{fontSize:24,fontWeight:700}}>Nurture Sequences</h1>
-                <button className="btn btn-gold" onClick={seedTemplates} disabled={seeding}>{seeding ? <span className="spinner"></span> : '+ Seed Templates'}</button>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8,flexWrap:'wrap',gap:12}} className="resp-header">
+                <div>
+                    <h1 className="page-title" style={{fontSize:24,fontWeight:700}}>Nurture Sequences</h1>
+                    <p style={{fontSize:13,color:'var(--text-muted)',marginTop:4}}>12-month WhatsApp nurture automation. 60 messages per procedure.</p>
+                </div>
+                <div style={{display:'flex',gap:8}}>
+                    <button className="btn btn-gold" onClick={()=>setShowCreate(true)}>+ Custom Procedure</button>
+                    <button className="btn btn-ghost" onClick={seedTemplates} disabled={seeding}>{seeding ? <span className="spinner"></span> : 'Seed Templates'}</button>
+                </div>
             </div>
-            {loading ? <div style={{padding:40,textAlign:'center'}}><span className="spinner"></span></div> : sequences.length === 0 ? (
+            <div style={{display:'flex',gap:0,borderBottom:'1px solid var(--border)',marginBottom:20}}>
+                {nTabs.map(t=>(
+                    <button key={t.id} onClick={()=>setNurtureTab(t.id)} style={{padding:'10px 20px',background:'none',border:'none',borderBottom:nurtureTab===t.id?'2px solid var(--gold)':'2px solid transparent',color:nurtureTab===t.id?'var(--gold)':'var(--text-muted)',fontSize:13,fontWeight:600,cursor:'pointer'}}>{t.label}</button>
+                ))}
+            </div>
+            {loading ? <div style={{padding:40,textAlign:'center'}}><span className="spinner"></span></div> : filteredSeqs.length === 0 ? (
                 <div className="glass" style={{padding:40,borderRadius:12,textAlign:'center'}}>
-                    <p style={{fontSize:15,color:'var(--text-muted)',marginBottom:16}}>No nurture sequences yet. Seed pre-built templates to get started.</p>
-                    <button className="btn btn-gold" onClick={seedTemplates} disabled={seeding}>{seeding ? <span className="spinner"></span> : 'Seed 25+ Pre-built Templates'}</button>
+                    <p style={{fontSize:15,color:'var(--text-muted)',marginBottom:16}}>{nurtureTab==='custom'?'No custom sequences yet. Create one with AI.':'No nurture sequences yet. Seed pre-built templates or create a custom one.'}</p>
+                    <div style={{display:'flex',gap:12,justifyContent:'center'}}>
+                        <button className="btn btn-gold" onClick={()=>setShowCreate(true)}>+ Create Custom Procedure</button>
+                        {nurtureTab !== 'custom' && <button className="btn btn-ghost" onClick={seedTemplates} disabled={seeding}>{seeding ? <span className="spinner"></span> : 'Seed 25+ Templates'}</button>}
+                    </div>
                 </div>
             ) : (
-                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(300px, 1fr))',gap:16}}>
-                    {sequences.map(seq => (
-                        <div key={seq.id} className="glass" style={{padding:20,borderRadius:12,cursor:'pointer'}} onClick={()=>viewSequence(seq)}>
-                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',marginBottom:8}}>
-                                <h3 style={{fontSize:14,fontWeight:600,color:'var(--text-primary)'}}>{seq.name}</h3>
-                                <span className={`badge ${seq.is_active?'badge-green':'badge-red'}`} style={{fontSize:10}}>{seq.is_active?'Active':'Off'}</span>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(300px, 1fr))',gap:14}}>
+                    {filteredSeqs.map(seq => (
+                        <div key={seq.id} className="glass" style={{padding:18,borderRadius:12,cursor:'pointer',position:'relative'}} onClick={()=>viewSequence(seq)}>
+                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',marginBottom:6}}>
+                                <h3 style={{fontSize:14,fontWeight:600,color:'var(--text-primary)',flex:1,paddingRight:8}}>{seq.name}</h3>
+                                <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                                    <span className={`badge ${seq.is_active?'badge-green':'badge-red'}`} style={{fontSize:10}}>{seq.is_active?'Active':'Off'}</span>
+                                    <button onClick={(e)=>toggleSequence(seq.id,e)} style={{background:'none',border:'none',cursor:'pointer',fontSize:14,padding:2}} title={seq.is_active?'Deactivate':'Activate'}>{seq.is_active?'||':'>'}</button>
+                                    {!seq.is_template && <button onClick={(e)=>deleteSequence(seq.id,e)} style={{background:'none',border:'none',cursor:'pointer',fontSize:14,color:'var(--error)',padding:2}} title="Delete">x</button>}
+                                </div>
                             </div>
-                            <p style={{fontSize:12,color:'var(--text-secondary)',marginBottom:8,lineHeight:1.5}}>{(seq.description||'').slice(0,100)}{(seq.description||'').length>100?'...':''}</p>
-                            <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                                {seq.procedure_category && <span className="badge badge-gold">{seq.procedure_category}</span>}
-                                <span className="badge badge-gray">{seq.total_steps} steps</span>
-                                {seq.is_template && <span className="badge badge-blue">Template</span>}
+                            <p style={{fontSize:12,color:'var(--text-secondary)',marginBottom:8,lineHeight:1.5}}>{(seq.description||'').slice(0,120)}{(seq.description||'').length>120?'...':''}</p>
+                            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                                {seq.procedure_category && <span className="badge badge-gold" style={{fontSize:10}}>{seq.procedure_category.replace(/_/g,' ')}</span>}
+                                <span className="badge badge-gray" style={{fontSize:10}}>{seq.total_steps} msgs</span>
+                                {seq.is_template ? <span className="badge badge-blue" style={{fontSize:10}}>Pre-built</span> : <span className="badge" style={{fontSize:10,background:'rgba(212,175,55,0.15)',color:'var(--gold)'}}>AI Custom</span>}
                             </div>
                         </div>
                     ))}
@@ -3943,103 +4192,151 @@ const LegalFinancePage = () => {
 
 // ============ META ADS MANAGEMENT ============
 const MetaAdsPage = () => {
-    const [config, setConfig] = useState(null);
-    const [leads, setLeads] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('overview');
+    const [activeTab, setActiveTab] = useState('scripts');
+    const [loading, setLoading] = useState(false);
+    const [result, setResult] = useState(null);
+    const [form, setForm] = useState({procedure:'',target_audience:'women 25-45',tone:'conversational and warm',language:'Hinglish',num:4,script_type:'talking_head',usp:'',offer:'Free Consultation',doctor_name:'',campaign_objective:'lead_generation',pain_points:'',style:'professional and clean',image_type:'mixed',carousel_type:'educational',monthly_budget:'50000',location:'',procedures:''});
 
-    useEffect(() => {
-        setLoading(true);
-        Promise.all([
-            apiFetch('/meta/config').catch(() => null),
-            apiFetch('/leads?source=meta').catch(() => ({leads:[]}))
-        ]).then(([cfg, ld]) => {
-            if (cfg && !cfg.detail) setConfig(cfg);
-            const ldArr = Array.isArray(ld?.leads) ? ld.leads : Array.isArray(ld) ? ld : [];
-            setLeads(ldArr);
-            setLoading(false);
-        });
-    }, []);
+    const updateForm = (k,v) => setForm(p=>({...p,[k]:v}));
 
-    const tabs = [{id:'overview',label:'Overview'},{id:'leads',label:'Leads'},{id:'setup',label:'Setup Guide'}];
+    const generate = async (endpoint, bodyOverride) => {
+        if (!form.procedure && !bodyOverride?.procedures) { alert('Enter a procedure name'); return; }
+        setLoading(true); setResult(null);
+        try {
+            const body = bodyOverride || {procedure:form.procedure,target_audience:form.target_audience,tone:form.tone,language:form.language,num_scripts:form.num,script_type:form.script_type,usp:form.usp,offer:form.offer,doctor_name:form.doctor_name,campaign_objective:form.campaign_objective,pain_points:form.pain_points,num_variations:form.num,style:form.style,num_prompts:form.num,image_type:form.image_type,num_carousels:form.num > 5 ? 3 : form.num,carousel_type:form.carousel_type,monthly_budget:form.monthly_budget,location:form.location,procedures:form.procedures?form.procedures.split(',').map(s=>s.trim()):[form.procedure]};
+            const res = await apiFetch(`/meta-content/${endpoint}`, {method:'POST', body});
+            setResult(res);
+        } catch(e) { alert('Generation failed. Check API key in Settings.'); }
+        setLoading(false);
+    };
 
-    if (loading) return <div style={{padding:40,textAlign:'center'}}><span className="spinner"></span></div>;
+    const tabs = [{id:'scripts',label:'Video Scripts'},{id:'copy',label:'Ad Copy'},{id:'images',label:'Image Ads'},{id:'carousels',label:'Carousels'},{id:'strategy',label:'Campaign Strategy'},{id:'retargeting',label:'Retargeting'},{id:'setup',label:'Setup Guide'}];
+
+    const InputRow = ({label, field, type, placeholder, options}) => (
+        <div style={{flex:1,minWidth:180}}>
+            <label style={{fontSize:11,color:'var(--text-muted)',display:'block',marginBottom:3}}>{label}</label>
+            {options ? <select className="input" value={form[field]} onChange={e=>updateForm(field,e.target.value)} style={{fontSize:12}}>{options.map(o=><option key={o.value||o} value={o.value||o}>{o.label||o}</option>)}</select>
+            : <input className="input" type={type||'text'} value={form[field]||''} onChange={e=>updateForm(field,e.target.value)} placeholder={placeholder} style={{fontSize:12}}/>}
+        </div>
+    );
+
+    const renderResult = (data) => {
+        if (!data) return null;
+        if (typeof data === 'string') return <pre style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{data}</pre>;
+        if (Array.isArray(data)) return data.map((item, i) => <div key={i} style={{padding:16,border:'1px solid var(--border)',borderRadius:10,marginBottom:12}}>{Object.entries(item).map(([k,v]) => <div key={k} style={{marginBottom:8}}><span style={{fontSize:11,color:'var(--gold)',fontWeight:600,textTransform:'uppercase'}}>{k.replace(/_/g,' ')}: </span>{typeof v === 'string' ? <span style={{fontSize:13,color:'var(--text-secondary)',whiteSpace:'pre-wrap'}}>{v}</span> : Array.isArray(v) ? <div style={{marginTop:4}}>{v.map((vi,vi2)=><div key={vi2} style={{fontSize:12,color:'var(--text-secondary)',padding:'4px 0',borderBottom:'1px solid rgba(255,255,255,0.03)'}}>{typeof vi==='object'?JSON.stringify(vi,null,1):vi}</div>)}</div> : <span style={{fontSize:13,color:'var(--text-secondary)'}}>{JSON.stringify(v)}</span>}</div>)}</div>);
+        if (typeof data === 'object') return Object.entries(data).map(([k,v]) => <div key={k} style={{marginBottom:16}}><h4 style={{fontSize:13,fontWeight:700,color:'var(--gold)',marginBottom:8,textTransform:'uppercase'}}>{k.replace(/_/g,' ')}</h4>{typeof v === 'string' ? <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap'}}>{v}</p> : Array.isArray(v) ? v.map((vi,vi2)=><div key={vi2} style={{padding:12,border:'1px solid var(--border)',borderRadius:8,marginBottom:8,fontSize:12,color:'var(--text-secondary)'}}>{typeof vi==='object'?<div>{Object.entries(vi).map(([vk,vv])=><div key={vk}><strong style={{color:'var(--text-primary)'}}>{vk.replace(/_/g,' ')}:</strong> {typeof vv==='string'?vv:JSON.stringify(vv)}</div>)}</div>:vi}</div>) : <pre style={{fontSize:12,color:'var(--text-secondary)',whiteSpace:'pre-wrap'}}>{JSON.stringify(v,null,2)}</pre>}</div>);
+    };
 
     return (
         <div className="fade-in">
-            <h1 style={{fontSize:24,fontWeight:900,fontFamily:"'Playfair Display',serif",marginBottom:8}}>Meta Ads Manager</h1>
-            <p style={{color:'var(--text-muted)',fontSize:14,marginBottom:24}}>Manage Facebook and Instagram ad leads, track performance, and monitor campaigns</p>
+            <h1 style={{fontSize:24,fontWeight:900,fontFamily:"'Playfair Display',serif",marginBottom:4}}>Meta Ads Creative Studio</h1>
+            <p style={{color:'var(--text-muted)',fontSize:13,marginBottom:20}}>Generate video scripts, ad copy, image prompts, carousel concepts, campaign strategies, and retargeting plans</p>
 
-            <div className="stat-card-row" style={{display:'flex',gap:16,marginBottom:24,flexWrap:'wrap'}}>
-                <StatCard label="Connection" value={config?.is_active ? 'Active' : 'Not Connected'} accent={config?.is_active ? 'var(--success)' : 'var(--danger)'}/>
-                <StatCard label="Total Leads" value={leads.length}/>
-                <StatCard label="Page" value={config?.page_name || 'N/A'}/>
+            <div style={{display:'flex',gap:4,marginBottom:20,overflowX:'auto',paddingBottom:2}}>
+                {tabs.map(t => <button key={t.id} className={`detail-tab ${activeTab===t.id?'active':''}`} onClick={()=>{setActiveTab(t.id);setResult(null);}}>{t.label}</button>)}
             </div>
 
-            <div style={{display:'flex',gap:4,marginBottom:24,overflowX:'auto',paddingBottom:2}}>
-                {tabs.map(t => <button key={t.id} className={`detail-tab ${activeTab===t.id?'active':''}`} onClick={()=>setActiveTab(t.id)}>{t.label}</button>)}
-            </div>
-
-            {activeTab === 'overview' && (
+            {activeTab === 'scripts' && (
                 <div>
-                    {!config?.is_active ? (
-                        <div className="glass" style={{padding:40,borderRadius:12,textAlign:'center'}}>
-                            <h3 style={{fontSize:18,fontWeight:700,marginBottom:12}}>Connect Meta Ads</h3>
-                            <p style={{fontSize:14,color:'var(--text-secondary)',marginBottom:20,maxWidth:500,margin:'0 auto 20px'}}>
-                                Go to Settings to connect your Meta (Facebook/Instagram) ad account and start auto-importing leads from your ad campaigns.
-                            </p>
-                            <button className="btn btn-gold" onClick={()=>window.dispatchEvent(new CustomEvent('navigate',{detail:'settings'}))}>Go to Settings</button>
+                    <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
+                        <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>Video Ad Script Generator</h3>
+                        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
+                            <InputRow label="Procedure" field="procedure" placeholder="e.g. Hair Transplant"/>
+                            <InputRow label="Doctor Name" field="doctor_name" placeholder="Dr. Sharma"/>
+                            <InputRow label="Target Audience" field="target_audience" placeholder="men 25-45"/>
+                            <InputRow label="Language" field="language" options={['Hinglish','English','Hindi']}/>
                         </div>
-                    ) : (
-                        <div className="glass" style={{padding:24,borderRadius:12}}>
-                            <h3 style={{fontSize:16,fontWeight:600,marginBottom:16}}>Connected Account</h3>
-                            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
-                                <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
-                                    <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Page Name</div>
-                                    <div style={{fontSize:15,fontWeight:600}}>{config.page_name || 'N/A'}</div>
-                                </div>
-                                <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
-                                    <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Page ID</div>
-                                    <div style={{fontSize:15,fontWeight:600,fontFamily:'monospace'}}>{config.page_id || 'N/A'}</div>
-                                </div>
-                                <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
-                                    <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Webhook URL</div>
-                                    <code style={{fontSize:12,color:'var(--gold)'}}>https://callcoachsba.com/api/meta/webhook</code>
-                                </div>
-                                <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
-                                    <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Auto-Import</div>
-                                    <span className="badge badge-green">Active</span>
-                                </div>
-                            </div>
+                        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
+                            <InputRow label="Script Type" field="script_type" options={[{value:'talking_head',label:'Talking Head (Doctor)'},{value:'testimonial',label:'Patient Testimonial'},{value:'educational',label:'Educational'},{value:'before_after',label:'Before/After Story'}]}/>
+                            <InputRow label="Tone" field="tone" options={['conversational and warm','professional and authoritative','friendly and casual','luxury and premium']}/>
+                            <InputRow label="USP" field="usp" placeholder="What makes this clinic special"/>
+                            <InputRow label="Offer" field="offer" placeholder="Free Consultation"/>
                         </div>
-                    )}
+                        <div style={{display:'flex',gap:10,alignItems:'end'}}>
+                            <InputRow label="Number of Scripts" field="num" type="number" placeholder="4"/>
+                            <button className="btn btn-gold" onClick={()=>generate('video-scripts')} disabled={loading} style={{height:36,minWidth:160}}>{loading?'Generating...':'Generate Scripts'}</button>
+                        </div>
+                    </div>
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Scripts</h3>{renderResult(result.scripts)}</div>}
                 </div>
             )}
 
-            {activeTab === 'leads' && (
-                <div className="glass" style={{padding:24,borderRadius:12}}>
-                    <h3 style={{fontSize:16,fontWeight:600,marginBottom:16}}>Meta Ad Leads</h3>
-                    {leads.length === 0 ? (
-                        <p style={{textAlign:'center',padding:20,color:'var(--text-muted)',fontSize:13}}>No leads from Meta Ads yet. Leads will appear here when they submit your ad forms.</p>
-                    ) : (
-                        <div style={{overflowX:'auto'}}>
-                            <table style={{width:'100%',borderCollapse:'collapse'}}>
-                                <thead><tr style={{borderBottom:'1px solid var(--border)'}}>
-                                    {['Name','Phone','Email','Campaign','Status','Date'].map(h => <th key={h} style={{padding:'10px 14px',textAlign:'left',fontSize:12,fontWeight:600,color:'var(--text-muted)'}}>{h}</th>)}
-                                </tr></thead>
-                                <tbody>{leads.slice(0,50).map(l => (
-                                    <tr key={l.id} style={{borderBottom:'1px solid var(--border)'}}>
-                                        <td style={{padding:'10px 14px',fontSize:13,fontWeight:600}}>{l.name||'Unknown'}</td>
-                                        <td style={{padding:'10px 14px',fontSize:13}}>{l.phone||'-'}</td>
-                                        <td style={{padding:'10px 14px',fontSize:13}}>{l.email||'-'}</td>
-                                        <td style={{padding:'10px 14px',fontSize:13}}>{l.campaign_name||'-'}</td>
-                                        <td style={{padding:'10px 14px'}}><span className={`badge ${l.status==='converted'?'badge-green':l.status==='new'?'badge-blue':'badge-gold'}`} style={{fontSize:10}}>{l.status||'new'}</span></td>
-                                        <td style={{padding:'10px 14px',fontSize:12,color:'var(--text-muted)'}}>{l.created_at ? new Date(l.created_at).toLocaleDateString() : '-'}</td>
-                                    </tr>
-                                ))}</tbody>
-                            </table>
+            {activeTab === 'copy' && (
+                <div>
+                    <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
+                        <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>Ad Copy Generator</h3>
+                        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
+                            <InputRow label="Procedure" field="procedure" placeholder="e.g. Botox"/>
+                            <InputRow label="Target Audience" field="target_audience" placeholder="women 30-50"/>
+                            <InputRow label="Language" field="language" options={['English','Hinglish','Hindi']}/>
+                            <InputRow label="Objective" field="campaign_objective" options={[{value:'lead_generation',label:'Lead Generation'},{value:'awareness',label:'Brand Awareness'},{value:'traffic',label:'Website Traffic'},{value:'engagement',label:'Engagement'}]}/>
                         </div>
-                    )}
+                        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
+                            <InputRow label="Offer" field="offer" placeholder="20% off first visit"/>
+                            <InputRow label="Pain Points" field="pain_points" placeholder="aging skin, wrinkles, confidence"/>
+                            <InputRow label="Variations" field="num" type="number" placeholder="5"/>
+                            <div style={{display:'flex',alignItems:'end'}}><button className="btn btn-gold" onClick={()=>generate('ad-copy')} disabled={loading} style={{height:36,minWidth:140}}>{loading?'Generating...':'Generate Copy'}</button></div>
+                        </div>
+                    </div>
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Ad Copy</h3>{renderResult(result.ad_copy)}</div>}
+                </div>
+            )}
+
+            {activeTab === 'images' && (
+                <div>
+                    <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
+                        <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>AI Image Ad Prompt Generator</h3>
+                        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
+                            <InputRow label="Procedure" field="procedure" placeholder="e.g. Laser Hair Removal"/>
+                            <InputRow label="Visual Style" field="style" options={['professional and clean','luxury and premium','warm and welcoming','modern and minimalist','clinical and trustworthy','vibrant and energetic']}/>
+                            <InputRow label="Image Type" field="image_type" options={[{value:'mixed',label:'Mixed (All Types)'},{value:'lifestyle',label:'Lifestyle'},{value:'clinical',label:'Clinical'},{value:'infographic',label:'Infographic'},{value:'offer_announcement',label:'Offer Announcement'},{value:'doctor_authority',label:'Doctor Authority'}]}/>
+                            <InputRow label="Number of Prompts" field="num" type="number" placeholder="6"/>
+                        </div>
+                        <button className="btn btn-gold" onClick={()=>generate('image-prompts')} disabled={loading} style={{minWidth:160}}>{loading?'Generating...':'Generate Image Prompts'}</button>
+                    </div>
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Image Prompts</h3>{renderResult(result.prompts)}</div>}
+                </div>
+            )}
+
+            {activeTab === 'carousels' && (
+                <div>
+                    <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
+                        <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>Carousel Ad Generator</h3>
+                        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
+                            <InputRow label="Procedure" field="procedure" placeholder="e.g. PRP Hair Treatment"/>
+                            <InputRow label="Language" field="language" options={['English','Hinglish','Hindi']}/>
+                            <InputRow label="Carousel Type" field="carousel_type" options={[{value:'educational',label:'Educational'},{value:'before_after_journey',label:'Before/After Journey'},{value:'faq',label:'FAQ'},{value:'process_steps',label:'Process Steps'},{value:'benefits',label:'Benefits'},{value:'social_proof',label:'Social Proof'},{value:'comparison',label:'Comparison'}]}/>
+                            <InputRow label="Number" field="num" type="number" placeholder="3"/>
+                        </div>
+                        <button className="btn btn-gold" onClick={()=>generate('carousel-prompts')} disabled={loading} style={{minWidth:160}}>{loading?'Generating...':'Generate Carousels'}</button>
+                    </div>
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Carousels</h3>{renderResult(result.carousels)}</div>}
+                </div>
+            )}
+
+            {activeTab === 'strategy' && (
+                <div>
+                    <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
+                        <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>Campaign Strategy Generator</h3>
+                        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
+                            <InputRow label="Procedures (comma-separated)" field="procedures" placeholder="Hair Transplant, Botox, PRP"/>
+                            <InputRow label="Monthly Budget (INR)" field="monthly_budget" type="number" placeholder="50000"/>
+                            <InputRow label="Location" field="location" placeholder="Mumbai, Delhi, etc."/>
+                        </div>
+                        <button className="btn btn-gold" onClick={()=>generate('campaign-strategy',{procedures:form.procedures?form.procedures.split(',').map(s=>s.trim()):[form.procedure||'aesthetic treatments'],monthly_budget:form.monthly_budget,location:form.location,goals:'lead generation and brand awareness'})} disabled={loading} style={{minWidth:180}}>{loading?'Generating...':'Generate Strategy'}</button>
+                    </div>
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Campaign Strategy</h3>{renderResult(result.strategy)}</div>}
+                </div>
+            )}
+
+            {activeTab === 'retargeting' && (
+                <div>
+                    <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
+                        <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>Retargeting Plan Generator</h3>
+                        <p style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>Generate a complete retargeting strategy including custom audiences, ad sequences, scripts, and copy for warm leads.</p>
+                        <button className="btn btn-gold" onClick={()=>generate('retargeting-plan',{})} disabled={loading} style={{minWidth:180}}>{loading?'Generating...':'Generate Retargeting Plan'}</button>
+                    </div>
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Retargeting Plan</h3>{renderResult(result.plan)}</div>}
                 </div>
             )}
 
@@ -4047,30 +4344,13 @@ const MetaAdsPage = () => {
                 <div className="glass" style={{padding:24,borderRadius:12}}>
                     <h3 style={{fontSize:16,fontWeight:600,marginBottom:16,color:'var(--gold)'}}>Meta Ads Setup Guide</h3>
                     <div style={{display:'flex',flexDirection:'column',gap:16}}>
-                        <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
-                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Step 1: Create a Meta Business Account</div>
-                            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:8}}>If you do not have one, create a Meta Business account at business.facebook.com. This is required to manage ads and access the API.</p>
-                            <a href="https://business.facebook.com/" target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline'}}>Go to Meta Business Suite</a>
-                        </div>
-                        <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
-                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Step 2: Create a System User and Generate Token</div>
-                            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:8}}>Go to Business Settings &gt; Users &gt; System Users. Create a system user, assign the "ads_management" and "leads_retrieval" permissions. Then generate a permanent token.</p>
-                            <a href="https://business.facebook.com/settings/system-users" target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline'}}>Meta System Users Settings</a>
-                        </div>
-                        <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
-                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Step 3: Get Your Page ID</div>
-                            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:8}}>Go to your Facebook Page &gt; About &gt; Page Transparency &gt; Page ID. Or use the Meta Business Suite to find it under Page Settings.</p>
-                            <a href="https://www.facebook.com/business/help/1199464373557428" target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline'}}>How to Find Page ID (Meta Help)</a>
-                        </div>
-                        <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
-                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Step 4: Configure Lead Form Webhook</div>
-                            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:8}}>In Meta App Dashboard &gt; Webhooks, subscribe to the "leadgen" event. Use the webhook URL and verify token shown in your Settings page.</p>
-                            <a href="https://developers.facebook.com/docs/marketing-api/guides/lead-ads/" target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline'}}>Meta Lead Ads API Documentation</a>
-                        </div>
-                        <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
-                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Step 5: Enter Credentials in Settings</div>
-                            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6}}>Go to Settings &gt; Meta Ads section. Enter your Page ID, Page Name, and Access Token. Click "Connect Meta" to activate lead syncing.</p>
-                        </div>
+                        {[{title:'Step 1: Create a Meta Business Account',desc:'Create a Meta Business account at business.facebook.com. This is required to manage ads and access the API.',link:'https://business.facebook.com/'},{title:'Step 2: Create System User and Token',desc:'Go to Business Settings > Users > System Users. Create a system user with ads_management and leads_retrieval permissions.',link:'https://business.facebook.com/settings/system-users'},{title:'Step 3: Get Your Page ID',desc:'Go to your Facebook Page > About > Page Transparency > Page ID.',link:'https://www.facebook.com/business/help/1199464373557428'},{title:'Step 4: Configure Webhook',desc:'In Meta App Dashboard > Webhooks, subscribe to "leadgen" event with your webhook URL.',link:'https://developers.facebook.com/docs/marketing-api/guides/lead-ads/'},{title:'Step 5: Enter Credentials',desc:'Go to Settings > Meta Ads section. Enter Page ID, Page Name, and Access Token.'}].map((s,i) => (
+                            <div key={i} style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>{s.title}</div>
+                                <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6}}>{s.desc}</p>
+                                {s.link && <a href={s.link} target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline',marginTop:6,display:'inline-block'}}>Open Link</a>}
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}
@@ -4080,132 +4360,108 @@ const MetaAdsPage = () => {
 
 // ============ GOOGLE ADS MANAGEMENT ============
 const GoogleAdsPage = () => {
-    const [config, setConfig] = useState(null);
+    const [activeTab, setActiveTab] = useState('search-ads');
+    const [loading, setLoading] = useState(false);
+    const [result, setResult] = useState(null);
+    const [form, setForm] = useState({procedure:'',location:'',num_ads:3,usp:'',doctor_name:'',procedures:'',monthly_budget:'50000'});
     const [perf, setPerf] = useState(null);
-    const [leads, setLeads] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('overview');
-    const [recommendations, setRecommendations] = useState('');
-    const [recsLoading, setRecsLoading] = useState(false);
 
-    useEffect(() => {
-        setLoading(true);
-        Promise.all([
-            apiFetch('/google-ads/config').catch(() => null),
-            apiFetch('/google-ads/performance').catch(() => null),
-            apiFetch('/google-ads/leads').catch(() => ({leads:[]}))
-        ]).then(([cfg, p, ld]) => {
-            if (cfg && !cfg.detail) setConfig(cfg);
-            if (p && !p.detail) setPerf(p);
-            const ldArr = Array.isArray(ld?.leads) ? ld.leads : [];
-            setLeads(ldArr);
-            setLoading(false);
-        });
-    }, []);
+    useEffect(() => { apiFetch('/google-ads/performance').then(p => { if(p&&!p.detail) setPerf(p); }).catch(()=>{}); }, []);
 
-    const getAIRecs = async () => {
-        setRecsLoading(true);
+    const updateForm = (k,v) => setForm(p=>({...p,[k]:v}));
+
+    const generate = async (endpoint, body) => {
+        setLoading(true); setResult(null);
         try {
-            const res = await apiFetch('/google-ads/ai-recommendations', {method:'POST'});
-            setRecommendations(res.recommendations || '');
-        } catch(e) {} finally { setRecsLoading(false); }
+            const res = await apiFetch(`/google-ads/${endpoint}`, {method:'POST', body});
+            setResult(res);
+        } catch(e) { alert('Generation failed. Check API key in Settings.'); }
+        setLoading(false);
     };
 
-    const tabs = [{id:'overview',label:'Overview'},{id:'leads',label:'Leads'},{id:'ai',label:'AI Optimization'},{id:'setup',label:'Setup Guide'}];
+    const tabs = [{id:'search-ads',label:'Search Ads'},{id:'keywords',label:'Keyword Research'},{id:'landing-page',label:'Landing Page Copy'},{id:'campaign',label:'Campaign Structure'},{id:'performance',label:'Performance'},{id:'setup',label:'Setup Guide'}];
 
-    if (loading) return <div style={{padding:40,textAlign:'center'}}><span className="spinner"></span></div>;
+    const InputRow = ({label, field, type, placeholder}) => (
+        <div style={{flex:1,minWidth:180}}>
+            <label style={{fontSize:11,color:'var(--text-muted)',display:'block',marginBottom:3}}>{label}</label>
+            <input className="input" type={type||'text'} value={form[field]||''} onChange={e=>updateForm(field,e.target.value)} placeholder={placeholder} style={{fontSize:12}}/>
+        </div>
+    );
+
+    const renderResult = (data) => {
+        if (!data) return null;
+        if (typeof data === 'string') return <pre style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{data}</pre>;
+        if (Array.isArray(data)) return data.map((item, i) => <div key={i} style={{padding:16,border:'1px solid var(--border)',borderRadius:10,marginBottom:12}}>{Object.entries(item).map(([k,v]) => <div key={k} style={{marginBottom:8}}><span style={{fontSize:11,color:'var(--gold)',fontWeight:600,textTransform:'uppercase'}}>{k.replace(/_/g,' ')}: </span>{typeof v === 'string' ? <span style={{fontSize:13,color:'var(--text-secondary)',whiteSpace:'pre-wrap'}}>{v}</span> : Array.isArray(v) ? <div style={{marginTop:4}}>{v.map((vi,vi2)=><div key={vi2} style={{fontSize:12,color:'var(--text-secondary)',padding:'4px 0'}}>{typeof vi==='object'?JSON.stringify(vi,null,1):vi}</div>)}</div> : <span style={{fontSize:13,color:'var(--text-secondary)'}}>{JSON.stringify(v)}</span>}</div>)}</div>);
+        if (typeof data === 'object') return Object.entries(data).map(([k,v]) => <div key={k} style={{marginBottom:16}}><h4 style={{fontSize:13,fontWeight:700,color:'var(--gold)',marginBottom:8,textTransform:'uppercase'}}>{k.replace(/_/g,' ')}</h4>{typeof v === 'string' ? <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap'}}>{v}</p> : Array.isArray(v) ? v.map((vi,vi2)=><div key={vi2} style={{padding:12,border:'1px solid var(--border)',borderRadius:8,marginBottom:8,fontSize:12,color:'var(--text-secondary)'}}>{typeof vi==='object'?<div>{Object.entries(vi).map(([vk,vv])=><div key={vk}><strong style={{color:'var(--text-primary)'}}>{vk.replace(/_/g,' ')}:</strong> {typeof vv==='string'?vv:JSON.stringify(vv)}</div>)}</div>:vi}</div>) : <pre style={{fontSize:12,color:'var(--text-secondary)',whiteSpace:'pre-wrap'}}>{JSON.stringify(v,null,2)}</pre>}</div>);
+    };
 
     return (
         <div className="fade-in">
-            <h1 style={{fontSize:24,fontWeight:900,fontFamily:"'Playfair Display',serif",marginBottom:8}}>Google Ads Manager</h1>
-            <p style={{color:'var(--text-muted)',fontSize:14,marginBottom:24}}>Track Google Ads performance, manage leads, and get AI optimization tips</p>
+            <h1 style={{fontSize:24,fontWeight:900,fontFamily:"'Playfair Display',serif",marginBottom:4}}>Google Ads Creative Studio</h1>
+            <p style={{color:'var(--text-muted)',fontSize:13,marginBottom:16}}>Generate search ads, keywords, landing page copy, and campaign structures</p>
 
-            {perf && (
-                <div className="stat-card-row" style={{display:'flex',gap:16,marginBottom:24,flexWrap:'wrap'}}>
-                    <StatCard label="Spend" value={`Rs.${(perf.spend||0).toLocaleString('en-IN')}`} accent="var(--gold)"/>
-                    <StatCard label="Clicks" value={perf.clicks||0}/>
-                    <StatCard label="Conversions" value={perf.conversions||0} accent="var(--success)"/>
-                    <StatCard label="CPA" value={`Rs.${(perf.cpa||0).toFixed(0)}`}/>
-                    <StatCard label="CTR" value={`${(perf.ctr||0).toFixed(2)}%`}/>
-                </div>
-            )}
+            {perf && <div className="stat-card-row" style={{display:'flex',gap:16,marginBottom:20,flexWrap:'wrap'}}><StatCard label="Spend" value={`Rs.${(perf.spend||0).toLocaleString('en-IN')}`} accent="var(--gold)"/><StatCard label="Clicks" value={perf.clicks||0}/><StatCard label="Conversions" value={perf.conversions||0} accent="var(--success)"/><StatCard label="CPA" value={`Rs.${(perf.cpa||0).toFixed(0)}`}/></div>}
 
-            <div style={{display:'flex',gap:4,marginBottom:24,overflowX:'auto',paddingBottom:2}}>
-                {tabs.map(t => <button key={t.id} className={`detail-tab ${activeTab===t.id?'active':''}`} onClick={()=>setActiveTab(t.id)}>{t.label}</button>)}
+            <div style={{display:'flex',gap:4,marginBottom:20,overflowX:'auto',paddingBottom:2}}>
+                {tabs.map(t => <button key={t.id} className={`detail-tab ${activeTab===t.id?'active':''}`} onClick={()=>{setActiveTab(t.id);setResult(null);}}>{t.label}</button>)}
             </div>
 
-            {activeTab === 'overview' && (
+            {activeTab === 'search-ads' && (
                 <div>
-                    {!config?.connected ? (
-                        <div className="glass" style={{padding:40,borderRadius:12,textAlign:'center'}}>
-                            <h3 style={{fontSize:18,fontWeight:700,marginBottom:12}}>Connect Google Ads</h3>
-                            <p style={{fontSize:14,color:'var(--text-secondary)',marginBottom:20,maxWidth:500,margin:'0 auto 20px'}}>
-                                Configure your Google Ads API credentials in Settings to start tracking campaigns and syncing leads.
-                            </p>
-                            <button className="btn btn-gold" onClick={()=>window.dispatchEvent(new CustomEvent('navigate',{detail:'settings'}))}>Go to Settings</button>
+                    <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
+                        <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>Responsive Search Ad Generator</h3>
+                        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
+                            <InputRow label="Procedure" field="procedure" placeholder="e.g. Hair Transplant"/><InputRow label="Location" field="location" placeholder="Mumbai"/><InputRow label="USP" field="usp" placeholder="Board certified surgeons"/><InputRow label="Number of Ads" field="num_ads" type="number" placeholder="3"/>
                         </div>
-                    ) : (
-                        <div className="glass" style={{padding:24,borderRadius:12}}>
-                            <h3 style={{fontSize:16,fontWeight:600,marginBottom:16}}>Connection Status</h3>
-                            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
-                                <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
-                                    <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Customer ID</div>
-                                    <div style={{fontSize:15,fontWeight:600,fontFamily:'monospace'}}>{config.customer_id}</div>
-                                </div>
-                                <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
-                                    <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Status</div>
-                                    <span className="badge badge-green">Connected</span>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {activeTab === 'leads' && (
-                <div className="glass" style={{padding:24,borderRadius:12}}>
-                    <h3 style={{fontSize:16,fontWeight:600,marginBottom:16}}>Google Ads Leads</h3>
-                    {leads.length === 0 ? (
-                        <p style={{textAlign:'center',padding:20,color:'var(--text-muted)',fontSize:13}}>No leads from Google Ads yet. Set up lead form extensions or configure the webhook to capture form submissions.</p>
-                    ) : (
-                        <div style={{overflowX:'auto'}}>
-                            <table style={{width:'100%',borderCollapse:'collapse'}}>
-                                <thead><tr style={{borderBottom:'1px solid var(--border)'}}>
-                                    {['Name','Phone','Email','Campaign','Status','Score','Date'].map(h => <th key={h} style={{padding:'10px 14px',textAlign:'left',fontSize:12,fontWeight:600,color:'var(--text-muted)'}}>{h}</th>)}
-                                </tr></thead>
-                                <tbody>{leads.slice(0,50).map(l => (
-                                    <tr key={l.id} style={{borderBottom:'1px solid var(--border)'}}>
-                                        <td style={{padding:'10px 14px',fontSize:13,fontWeight:600}}>{l.name||'Unknown'}</td>
-                                        <td style={{padding:'10px 14px',fontSize:13}}>{l.phone||'-'}</td>
-                                        <td style={{padding:'10px 14px',fontSize:13}}>{l.email||'-'}</td>
-                                        <td style={{padding:'10px 14px',fontSize:13}}>{l.campaign_name||'-'}</td>
-                                        <td style={{padding:'10px 14px'}}><span className={`badge ${l.status==='converted'?'badge-green':l.status==='new'?'badge-blue':'badge-gold'}`} style={{fontSize:10}}>{l.status||'new'}</span></td>
-                                        <td style={{padding:'10px 14px',fontSize:13,fontWeight:600,color:l.lead_score>=70?'var(--success)':l.lead_score>=40?'var(--gold)':'var(--text-muted)'}}>{l.lead_score||0}</td>
-                                        <td style={{padding:'10px 14px',fontSize:12,color:'var(--text-muted)'}}>{l.created_at ? new Date(l.created_at).toLocaleDateString() : '-'}</td>
-                                    </tr>
-                                ))}</tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {activeTab === 'ai' && (
-                <div className="glass" style={{padding:24,borderRadius:12}}>
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-                        <h3 style={{fontSize:16,fontWeight:600}}>AI Optimization Recommendations</h3>
-                        <button className="btn btn-gold btn-sm" onClick={getAIRecs} disabled={recsLoading}>
-                            {recsLoading ? <span className="spinner"></span> : null}
-                            <span>{recsLoading ? 'Analyzing...' : 'Get AI Recommendations'}</span>
-                        </button>
+                        <button className="btn btn-gold" onClick={()=>generate('generate-search-ads',{procedure:form.procedure,location:form.location,usp:form.usp,num_ads:parseInt(form.num_ads)||3})} disabled={loading}>{loading?'Generating...':'Generate Search Ads'}</button>
                     </div>
-                    {recommendations ? (
-                        <div style={{padding:16,background:'rgba(255,255,255,0.02)',border:'1px solid var(--border)',borderRadius:10}}>
-                            <pre style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{recommendations}</pre>
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Search Ads</h3>{renderResult(result.ads)}</div>}
+                </div>
+            )}
+
+            {activeTab === 'keywords' && (
+                <div>
+                    <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
+                        <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>Keyword Research Generator</h3>
+                        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
+                            <InputRow label="Procedures (comma-separated)" field="procedures" placeholder="Hair Transplant, Botox, PRP"/><InputRow label="Location" field="location" placeholder="Delhi, Mumbai"/>
                         </div>
-                    ) : (
-                        <p style={{textAlign:'center',padding:30,color:'var(--text-muted)',fontSize:13}}>Click "Get AI Recommendations" to receive optimization suggestions based on your campaign data.</p>
-                    )}
+                        <button className="btn btn-gold" onClick={()=>generate('generate-keywords',{procedures:form.procedures?form.procedures.split(',').map(s=>s.trim()):[form.procedure||'aesthetic treatment'],location:form.location})} disabled={loading}>{loading?'Generating...':'Generate Keywords'}</button>
+                    </div>
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Keyword Research</h3>{renderResult(result.keywords)}</div>}
+                </div>
+            )}
+
+            {activeTab === 'landing-page' && (
+                <div>
+                    <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
+                        <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>Landing Page Copy Generator</h3>
+                        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
+                            <InputRow label="Procedure" field="procedure" placeholder="e.g. Rhinoplasty"/><InputRow label="Doctor Name" field="doctor_name" placeholder="Dr. Sharma"/>
+                        </div>
+                        <button className="btn btn-gold" onClick={()=>generate('generate-landing-page',{procedure:form.procedure,doctor_name:form.doctor_name})} disabled={loading}>{loading?'Generating...':'Generate Landing Page Copy'}</button>
+                    </div>
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Landing Page Copy</h3>{renderResult(result.landing_page)}</div>}
+                </div>
+            )}
+
+            {activeTab === 'campaign' && (
+                <div>
+                    <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
+                        <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>Campaign Structure Generator</h3>
+                        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
+                            <InputRow label="Procedures (comma-separated)" field="procedures" placeholder="Hair Transplant, Botox, PRP"/><InputRow label="Monthly Budget (INR)" field="monthly_budget" type="number" placeholder="50000"/><InputRow label="Location" field="location" placeholder="Mumbai"/>
+                        </div>
+                        <button className="btn btn-gold" onClick={()=>generate('generate-campaign-structure',{procedures:form.procedures?form.procedures.split(',').map(s=>s.trim()):[form.procedure||'aesthetic treatments'],monthly_budget:form.monthly_budget,location:form.location})} disabled={loading}>{loading?'Generating...':'Generate Structure'}</button>
+                    </div>
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Campaign Structure</h3>{renderResult(result.structure)}</div>}
+                </div>
+            )}
+
+            {activeTab === 'performance' && (
+                <div className="glass" style={{padding:24,borderRadius:12}}>
+                    <h3 style={{fontSize:16,fontWeight:600,marginBottom:16}}>Performance Overview</h3>
+                    {perf ? <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:16}}>{Object.entries(perf).map(([k,v])=><div key={k} style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}><div style={{fontSize:11,color:'var(--text-muted)',marginBottom:4,textTransform:'uppercase'}}>{k.replace(/_/g,' ')}</div><div style={{fontSize:18,fontWeight:700}}>{typeof v==='number'?v.toLocaleString():v}</div></div>)}</div> : <p style={{color:'var(--text-muted)',textAlign:'center',padding:30}}>Connect Google Ads in Settings to see performance data</p>}
                 </div>
             )}
 
@@ -4213,32 +4469,13 @@ const GoogleAdsPage = () => {
                 <div className="glass" style={{padding:24,borderRadius:12}}>
                     <h3 style={{fontSize:16,fontWeight:600,marginBottom:16,color:'var(--gold)'}}>Google Ads Setup Guide</h3>
                     <div style={{display:'flex',flexDirection:'column',gap:16}}>
-                        <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
-                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Step 1: Get Your Google Ads Customer ID</div>
-                            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:8}}>Log in to Google Ads. Your Customer ID is the 10-digit number shown in the top-right corner (format: XXX-XXX-XXXX).</p>
-                            <a href="https://ads.google.com/" target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline'}}>Open Google Ads Dashboard</a>
-                        </div>
-                        <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
-                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Step 2: Create a Google Ads API Developer Token</div>
-                            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:8}}>Go to Google Ads &gt; Tools &gt; API Center. Apply for a developer token. For basic access, approval is usually fast.</p>
-                            <a href="https://developers.google.com/google-ads/api/docs/first-call/dev-token" target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline'}}>Google Ads API Developer Token Guide</a>
-                        </div>
-                        <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
-                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Step 3: Set Up OAuth Credentials</div>
-                            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:8}}>In Google Cloud Console, create OAuth 2.0 credentials (Client ID and Client Secret). Set the redirect URI. Then generate a refresh token using the OAuth playground.</p>
-                            <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline'}}>Google Cloud Console - Credentials</a>
-                            <span style={{margin:'0 8px',color:'var(--text-muted)'}}>|</span>
-                            <a href="https://developers.google.com/google-ads/api/docs/oauth/overview" target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline'}}>OAuth Setup Guide</a>
-                        </div>
-                        <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
-                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Step 4: Set Up Lead Form Webhook (Optional)</div>
-                            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:8}}>For landing page form submissions, point your form action to the webhook URL shown in your Settings page. Include hidden fields for utm_source, utm_campaign, etc.</p>
-                            <a href="https://developers.google.com/google-ads/api/docs/leads/overview" target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline'}}>Google Ads Lead Forms API</a>
-                        </div>
-                        <div style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
-                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Step 5: Enter Credentials in Settings</div>
-                            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6}}>Go to Settings &gt; Google Ads section. Enter your Customer ID, Developer Token, Client ID, Client Secret, and Refresh Token. Click Save.</p>
-                        </div>
+                        {[{title:'Step 1: Get Your Customer ID',desc:'Log in to Google Ads. Your Customer ID is the 10-digit number in the top-right corner.',link:'https://ads.google.com/'},{title:'Step 2: Create Developer Token',desc:'Go to Google Ads > Tools > API Center. Apply for a developer token.',link:'https://developers.google.com/google-ads/api/docs/first-call/dev-token'},{title:'Step 3: Set Up OAuth Credentials',desc:'In Google Cloud Console, create OAuth 2.0 credentials and generate a refresh token.',link:'https://console.cloud.google.com/apis/credentials'},{title:'Step 4: Set Up Webhook (Optional)',desc:'Point your landing page form to the webhook URL in Settings.'},{title:'Step 5: Enter Credentials',desc:'Go to Settings > Google Ads. Enter Customer ID, Developer Token, Client ID, Client Secret, and Refresh Token.'}].map((s,i) => (
+                            <div key={i} style={{padding:16,border:'1px solid var(--border)',borderRadius:10}}>
+                                <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>{s.title}</div>
+                                <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6}}>{s.desc}</p>
+                                {s.link && <a href={s.link} target="_blank" rel="noopener" style={{fontSize:12,color:'var(--gold)',textDecoration:'underline',marginTop:6,display:'inline-block'}}>Open Link</a>}
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}
@@ -4428,7 +4665,7 @@ const SEOPage = () => {
     const [auditUrl, setAuditUrl] = useState('');
     const [gmbPlan, setGmbPlan] = useState('');
     const [gmbLoading, setGmbLoading] = useState(false);
-    const [gmbPosts, setGmbPosts] = useState('');
+    const [gmbPosts, setGmbPosts] = useState(null);
     const [gmbPostsLoading, setGmbPostsLoading] = useState(false);
     const [backlinks, setBacklinks] = useState([]);
     const [blIdeas, setBlIdeas] = useState('');
@@ -4473,7 +4710,9 @@ const SEOPage = () => {
         setGmbPostsLoading(true);
         try {
             const res = await apiFetch('/seo/gmb/generate-posts', {method:'POST'});
-            setGmbPosts(res.posts || '');
+            const posts = res.posts;
+            if (typeof posts === 'string') { try { setGmbPosts(JSON.parse(posts)); } catch(e) { setGmbPosts(posts); } }
+            else { setGmbPosts(posts || null); }
         } catch(e) {} finally { setGmbPostsLoading(false); }
     };
 
@@ -4596,9 +4835,28 @@ const SEOPage = () => {
                             </button>
                         </div>
                         {gmbPosts ? (
-                            <div style={{padding:16,background:'rgba(255,255,255,0.02)',border:'1px solid var(--border)',borderRadius:10}}>
-                                <pre style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{gmbPosts}</pre>
-                            </div>
+                            Array.isArray(gmbPosts) ? (
+                                <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                                    {gmbPosts.map((post,idx) => (
+                                        <div key={idx} style={{padding:16,background:'rgba(255,255,255,0.03)',border:'1px solid var(--border)',borderRadius:10}}>
+                                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',marginBottom:10}}>
+                                                <h4 style={{fontSize:14,fontWeight:700,color:'var(--gold)'}}>{post.title || `Post ${idx+1}`}</h4>
+                                                {post.cta_type && <span className="badge badge-gold" style={{fontSize:10}}>{post.cta_type}</span>}
+                                            </div>
+                                            <div style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',marginBottom:10}}>{post.content}</div>
+                                            {post.suggested_image_description && (
+                                                <div style={{fontSize:11,color:'var(--text-muted)',padding:8,background:'rgba(212,175,55,0.06)',borderRadius:6,borderLeft:'3px solid var(--gold)'}}>
+                                                    <strong>Image idea:</strong> {post.suggested_image_description}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div style={{padding:16,background:'rgba(255,255,255,0.02)',border:'1px solid var(--border)',borderRadius:10}}>
+                                    <pre style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{typeof gmbPosts === 'string' ? gmbPosts : JSON.stringify(gmbPosts, null, 2)}</pre>
+                                </div>
+                            )
                         ) : (
                             <p style={{color:'var(--text-muted)',fontSize:13}}>Generate ready-to-publish Google Business Profile posts with AI.</p>
                         )}
@@ -4761,6 +5019,230 @@ const App = () => {
         {id:'settings',label:'Settings',icon:Icons.settings},
     ];
 
+
+// ============ HR MANAGEMENT ============
+const HRPage = () => {
+    const [activeTab, setActiveTab] = useState('team');
+    const [team, setTeam] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [showAdd, setShowAdd] = useState(false);
+    const [newMember, setNewMember] = useState({name:'',role:'',department:'',email:'',phone:'',salary:0,verticals:[],reporting_to:''});
+    const [aiResult, setAiResult] = useState(null);
+    const [aiLoading, setAiLoading] = useState(false);
+    const [attendance, setAttendance] = useState([]);
+    const [leaves, setLeaves] = useState([]);
+    const [payroll, setPayroll] = useState([]);
+
+    useEffect(() => {
+        Promise.all([
+            apiFetch('/hr/team').catch(()=>({team:[]})),
+            apiFetch('/hr/attendance').catch(()=>({attendance:[]})),
+            apiFetch('/hr/leaves').catch(()=>({leaves:[]})),
+            apiFetch('/hr/payroll').catch(()=>({payroll:[]}))
+        ]).then(([t,a,l,p]) => {
+            setTeam(t.team||[]);
+            setAttendance(a.attendance||[]);
+            setLeaves(l.leaves||[]);
+            setPayroll(p.payroll||[]);
+            setLoading(false);
+        });
+    }, []);
+
+    const addMember = async () => {
+        if (!newMember.name) return;
+        const res = await apiFetch('/hr/team', {method:'POST', body:newMember});
+        if (res.member) setTeam(prev=>[...prev,res.member]);
+        setShowAdd(false); setNewMember({name:'',role:'',department:'',email:'',phone:'',salary:0,verticals:[],reporting_to:''});
+    };
+
+    const removeMember = async (id) => {
+        if (!confirm('Remove this team member?')) return;
+        await apiFetch(`/hr/team/${id}`, {method:'DELETE'});
+        setTeam(prev=>prev.filter(m=>m.id!==id));
+    };
+
+    const generateAI = async (type, data) => {
+        setAiLoading(true); setAiResult(null);
+        try {
+            const res = await apiFetch(`/hr/${type}`, {method:'POST', body:data});
+            setAiResult(res);
+        } catch(e) { alert('Generation failed'); }
+        setAiLoading(false);
+    };
+
+    const renderObj = (data) => {
+        if (!data) return null;
+        if (typeof data === 'string') return <pre style={{fontSize:12,color:'var(--text-secondary)',whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{data}</pre>;
+        return Object.entries(data).map(([k,v]) => <div key={k} style={{marginBottom:14}}><h4 style={{fontSize:12,fontWeight:700,color:'var(--gold)',marginBottom:6,textTransform:'uppercase'}}>{k.replace(/_/g,' ')}</h4>{typeof v === 'string' ? <p style={{fontSize:13,color:'var(--text-secondary)',whiteSpace:'pre-wrap'}}>{v}</p> : Array.isArray(v) ? v.map((vi,i)=><div key={i} style={{padding:10,border:'1px solid var(--border)',borderRadius:8,marginBottom:6,fontSize:12,color:'var(--text-secondary)'}}>{typeof vi==='object'?Object.entries(vi).map(([vk,vv])=><div key={vk}><strong>{vk.replace(/_/g,' ')}:</strong> {typeof vv==='string'?vv:JSON.stringify(vv)}</div>):vi}</div>) : <pre style={{fontSize:12,color:'var(--text-secondary)',whiteSpace:'pre-wrap'}}>{JSON.stringify(v,null,2)}</pre>}</div>);
+    };
+
+    const tabs = [{id:'team',label:'Team'},{id:'attendance',label:'Attendance'},{id:'leaves',label:'Leaves'},{id:'payroll',label:'Payroll'},{id:'jd',label:'Generate JD'},{id:'interview',label:'Interview Qs'},{id:'onboarding',label:'Onboarding Plan'},{id:'review',label:'Performance Review'}];
+
+    if (loading) return <div style={{padding:40,textAlign:'center'}}><span className="spinner"></span></div>;
+
+    return (
+        <div className="fade-in">
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+                <div><h1 style={{fontSize:24,fontWeight:900,fontFamily:"'Playfair Display',serif"}}>HR Management</h1><p style={{color:'var(--text-muted)',fontSize:13,marginTop:4}}>Team, attendance, payroll, hiring tools, and performance management</p></div>
+                {activeTab==='team' && <button className="btn btn-gold" onClick={()=>setShowAdd(true)}>+ Add Member</button>}
+            </div>
+
+            <div className="stat-card-row" style={{display:'flex',gap:16,marginBottom:20,flexWrap:'wrap'}}>
+                <StatCard label="Team Size" value={team.length}/><StatCard label="Active" value={team.filter(m=>m.status==='active').length} accent="var(--success)"/><StatCard label="Pending Leaves" value={leaves.filter(l=>l.status==='pending').length} accent="var(--warning)"/><StatCard label="Monthly Payroll" value={`Rs.${team.reduce((s,m)=>s+(m.salary||0),0).toLocaleString('en-IN')}`} accent="var(--gold)"/>
+            </div>
+
+            <div style={{display:'flex',gap:4,marginBottom:20,overflowX:'auto',paddingBottom:2}}>
+                {tabs.map(t => <button key={t.id} className={`detail-tab ${activeTab===t.id?'active':''}`} onClick={()=>{setActiveTab(t.id);setAiResult(null);}}>{t.label}</button>)}
+            </div>
+
+            {activeTab === 'team' && (
+                <div>
+                    {showAdd && (
+                        <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
+                            <h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Add Team Member</h3>
+                            <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
+                                {[['Name','name'],['Role','role'],['Department','department'],['Email','email'],['Phone','phone'],['Salary (INR)','salary'],['Reports To','reporting_to']].map(([l,f])=>(
+                                    <div key={f} style={{flex:1,minWidth:160}}><label style={{fontSize:11,color:'var(--text-muted)',display:'block',marginBottom:3}}>{l}</label><input className="input" value={newMember[f]||''} onChange={e=>setNewMember({...newMember,[f]:f==='salary'?parseInt(e.target.value)||0:e.target.value})} style={{fontSize:12}}/></div>
+                                ))}
+                            </div>
+                            <div style={{display:'flex',gap:8}}><button className="btn btn-gold" onClick={addMember}>Add</button><button className="btn btn-ghost" onClick={()=>setShowAdd(false)}>Cancel</button></div>
+                        </div>
+                    )}
+                    <div className="glass" style={{borderRadius:12,overflow:'hidden'}}>
+                        <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+                            <thead><tr style={{borderBottom:'1px solid var(--border)'}}>{['Name','Role','Department','Email','Salary','Status',''].map(h=><th key={h} style={{padding:'10px 14px',textAlign:'left',fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase'}}>{h}</th>)}</tr></thead>
+                            <tbody>{team.map(m=>(
+                                <tr key={m.id} style={{borderBottom:'1px solid var(--border)'}}>
+                                    <td style={{padding:'10px 14px',fontWeight:600}}>{m.name}</td>
+                                    <td style={{padding:'10px 14px',color:'var(--text-secondary)'}}>{m.role}</td>
+                                    <td style={{padding:'10px 14px'}}><span className="badge badge-gold" style={{fontSize:10}}>{m.department}</span></td>
+                                    <td style={{padding:'10px 14px',fontSize:12,color:'var(--text-muted)'}}>{m.email}</td>
+                                    <td style={{padding:'10px 14px'}}>Rs.{(m.salary||0).toLocaleString('en-IN')}</td>
+                                    <td style={{padding:'10px 14px'}}><span className={`badge ${m.status==='active'?'badge-green':'badge-red'}`} style={{fontSize:10}}>{m.status}</span></td>
+                                    <td style={{padding:'10px 14px'}}><button className="btn btn-danger btn-xs" onClick={()=>removeMember(m.id)}>Remove</button></td>
+                                </tr>
+                            ))}</tbody>
+                        </table>
+                        {team.length===0 && <p style={{textAlign:'center',padding:30,color:'var(--text-muted)',fontSize:13}}>No team members added yet.</p>}
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'attendance' && <div className="glass" style={{padding:24,borderRadius:12}}><h3 style={{fontSize:16,fontWeight:600,marginBottom:16}}>Attendance Tracker</h3>{attendance.length===0?<p style={{color:'var(--text-muted)',textAlign:'center',padding:20}}>No attendance records yet.</p>:<div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}><thead><tr style={{borderBottom:'1px solid var(--border)'}}>{['Member','Date','Status','Check In','Check Out'].map(h=><th key={h} style={{padding:'10px 14px',textAlign:'left',fontSize:11,fontWeight:600,color:'var(--text-muted)'}}>{h}</th>)}</tr></thead><tbody>{attendance.map((a,i)=><tr key={i} style={{borderBottom:'1px solid var(--border)'}}><td style={{padding:'10px 14px'}}>{a.member_name}</td><td style={{padding:'10px 14px'}}>{a.date}</td><td style={{padding:'10px 14px'}}><span className={`badge ${a.status==='present'?'badge-green':a.status==='leave'?'badge-red':'badge-gold'}`}>{a.status}</span></td><td style={{padding:'10px 14px'}}>{a.check_in||'-'}</td><td style={{padding:'10px 14px'}}>{a.check_out||'-'}</td></tr>)}</tbody></table></div>}</div>}
+
+            {activeTab === 'leaves' && <div className="glass" style={{padding:24,borderRadius:12}}><h3 style={{fontSize:16,fontWeight:600,marginBottom:16}}>Leave Management</h3>{leaves.length===0?<p style={{color:'var(--text-muted)',textAlign:'center',padding:20}}>No leave requests.</p>:<div style={{display:'flex',flexDirection:'column',gap:12}}>{leaves.map((l,i)=><div key={i} style={{padding:16,border:'1px solid var(--border)',borderRadius:10,display:'flex',justifyContent:'space-between',alignItems:'center'}}><div><div style={{fontWeight:600,fontSize:14}}>{l.member_name}</div><div style={{fontSize:12,color:'var(--text-muted)'}}>Type: {l.type} | {l.from_date} to {l.to_date}</div>{l.reason && <div style={{fontSize:12,color:'var(--text-secondary)',marginTop:4}}>{l.reason}</div>}</div><span className={`badge ${l.status==='approved'?'badge-green':l.status==='rejected'?'badge-red':'badge-gold'}`}>{l.status}</span></div>)}</div>}</div>}
+
+            {activeTab === 'payroll' && <div className="glass" style={{padding:24,borderRadius:12}}><h3 style={{fontSize:16,fontWeight:600,marginBottom:16}}>Payroll</h3>{payroll.length===0?<p style={{color:'var(--text-muted)',textAlign:'center',padding:20}}>No payroll records.</p>:<div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}><thead><tr style={{borderBottom:'1px solid var(--border)'}}>{['Member','Month','Base','Bonus','Deductions','Net Pay','Status'].map(h=><th key={h} style={{padding:'10px 14px',textAlign:'left',fontSize:11,fontWeight:600,color:'var(--text-muted)'}}>{h}</th>)}</tr></thead><tbody>{payroll.map((p,i)=><tr key={i} style={{borderBottom:'1px solid var(--border)'}}><td style={{padding:'10px 14px'}}>{p.member_name}</td><td style={{padding:'10px 14px'}}>{p.month}</td><td style={{padding:'10px 14px'}}>Rs.{(p.base_salary||0).toLocaleString()}</td><td style={{padding:'10px 14px'}}>Rs.{(p.bonus||0).toLocaleString()}</td><td style={{padding:'10px 14px'}}>Rs.{(p.deductions||0).toLocaleString()}</td><td style={{padding:'10px 14px',fontWeight:700}}>Rs.{(p.net_pay||0).toLocaleString()}</td><td style={{padding:'10px 14px'}}><span className={`badge ${p.status==='paid'?'badge-green':'badge-gold'}`}>{p.status}</span></td></tr>)}</tbody></table></div>}</div>}
+
+            {['jd','interview','onboarding','review'].includes(activeTab) && (
+                <div>
+                    <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
+                        <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>
+                            {activeTab==='jd'?'AI Job Description Generator':activeTab==='interview'?'AI Interview Question Generator':activeTab==='onboarding'?'AI Onboarding Plan Generator':'AI Performance Review Generator'}
+                        </h3>
+                        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
+                            <div style={{flex:1,minWidth:200}}><label style={{fontSize:11,color:'var(--text-muted)',display:'block',marginBottom:3}}>Role</label><select className="input" id="hr-role" defaultValue="Meta Ads Specialist" style={{fontSize:12}}><option>Meta Ads Specialist</option><option>Google Ads Specialist</option><option>Content Strategist</option><option>Social Media Manager</option><option>Backend Strategist</option><option>Operations Manager</option><option>Sales Closer</option><option>Video Editor</option><option>Graphic Designer</option><option>Intern</option></select></div>
+                            <div style={{flex:1,minWidth:200}}><label style={{fontSize:11,color:'var(--text-muted)',display:'block',marginBottom:3}}>Department</label><select className="input" id="hr-dept" defaultValue="Marketing" style={{fontSize:12}}><option>Marketing</option><option>Sales</option><option>Operations</option><option>Creative</option><option>Technology</option></select></div>
+                            {activeTab==='interview' && <div style={{flex:1,minWidth:200}}><label style={{fontSize:11,color:'var(--text-muted)',display:'block',marginBottom:3}}>Round Type</label><select className="input" id="hr-round" defaultValue="technical" style={{fontSize:12}}><option value="screening">Screening</option><option value="technical">Technical</option><option value="practical_task">Practical Task</option><option value="culture_fit">Culture Fit</option><option value="final">Final</option></select></div>}
+                        </div>
+                        <button className="btn btn-gold" onClick={()=>{
+                            const role = document.getElementById('hr-role')?.value || 'Marketing Executive';
+                            const dept = document.getElementById('hr-dept')?.value || 'Marketing';
+                            const round = document.getElementById('hr-round')?.value || 'technical';
+                            if(activeTab==='jd') generateAI('generate-jd',{role,department:dept});
+                            else if(activeTab==='interview') generateAI('generate-interview',{role,round_type:round});
+                            else if(activeTab==='onboarding') generateAI('generate-onboarding',{role,department:dept});
+                            else generateAI('generate-performance-review',{role,period:'quarterly'});
+                        }} disabled={aiLoading}>{aiLoading?'Generating...':'Generate'}</button>
+                    </div>
+                    {aiResult && <div className="glass" style={{padding:20,borderRadius:12}}>{renderObj(aiResult.jd||aiResult.interview||aiResult.onboarding||aiResult.review)}</div>}
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ============ MIS DAILY SYNC ============
+const MISPage = () => {
+    const [reports, setReports] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [showSubmit, setShowSubmit] = useState(false);
+    const [analysis, setAnalysis] = useState(null);
+    const [analyzing, setAnalyzing] = useState(false);
+    const [newReport, setNewReport] = useState({member_name:'',department:'',tasks_completed:'',tasks_pending:'',blockers:'',channels_worked:'',clients_worked:'',hours_worked:8,notes:''});
+
+    useEffect(() => { apiFetch('/hr/mis/reports').then(r=>setReports(r.reports||[])).catch(()=>{}).finally(()=>setLoading(false)); }, []);
+
+    const submitReport = async () => {
+        if (!newReport.member_name) return;
+        const body = {...newReport, tasks_completed: newReport.tasks_completed.split(',').map(s=>s.trim()).filter(Boolean), tasks_pending: newReport.tasks_pending.split(',').map(s=>s.trim()).filter(Boolean), channels_worked: newReport.channels_worked.split(',').map(s=>s.trim()).filter(Boolean), clients_worked: newReport.clients_worked.split(',').map(s=>s.trim()).filter(Boolean)};
+        const res = await apiFetch('/hr/mis/reports', {method:'POST', body});
+        if (res.report) setReports(prev=>[...prev,res.report]);
+        setShowSubmit(false);
+    };
+
+    const analyzeReports = async () => {
+        setAnalyzing(true);
+        try { const res = await apiFetch('/hr/mis/analyze', {method:'POST', body:{}}); setAnalysis(res.analysis); } catch(e) { alert('Analysis failed'); }
+        setAnalyzing(false);
+    };
+
+    if (loading) return <div style={{padding:40,textAlign:'center'}}><span className="spinner"></span></div>;
+
+    return (
+        <div className="fade-in">
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+                <div><h1 style={{fontSize:24,fontWeight:900,fontFamily:"'Playfair Display',serif"}}>MIS Daily Sync</h1><p style={{color:'var(--text-muted)',fontSize:13,marginTop:4}}>Daily reports, team sync, and AI-powered performance analysis</p></div>
+                <div style={{display:'flex',gap:8}}><button className="btn btn-ghost" onClick={analyzeReports} disabled={analyzing}>{analyzing?'Analyzing...':'AI Analysis'}</button><button className="btn btn-gold" onClick={()=>setShowSubmit(true)}>+ Submit Report</button></div>
+            </div>
+
+            <div className="stat-card-row" style={{display:'flex',gap:16,marginBottom:20,flexWrap:'wrap'}}>
+                <StatCard label="Reports Today" value={reports.filter(r=>r.date===new Date().toISOString().split('T')[0]).length}/><StatCard label="Total Reports" value={reports.length}/><StatCard label="Team Members Reporting" value={[...new Set(reports.map(r=>r.member_name))].length} accent="var(--gold)"/>
+            </div>
+
+            {showSubmit && (
+                <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
+                    <h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Submit Daily Report</h3>
+                    <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
+                        {[['Team Member','member_name','text','e.g. Rahul Sharma'],['Department','department','text','Marketing'],['Tasks Completed (comma-separated)','tasks_completed','text','Launched campaign, wrote scripts'],['Tasks Pending','tasks_pending','text','Review report, client call'],['Blockers','blockers','text','Any issues faced'],['Channels Worked (comma-separated)','channels_worked','text','Meta Ads, Google Ads'],['Clients Worked','clients_worked','text','Clinic A, Clinic B'],['Hours Worked','hours_worked','number','8']].map(([l,f,t,p])=>(
+                            <div key={f} style={{flex:1,minWidth:200}}><label style={{fontSize:11,color:'var(--text-muted)',display:'block',marginBottom:3}}>{l}</label><input className="input" type={t} value={newReport[f]||''} onChange={e=>setNewReport({...newReport,[f]:t==='number'?parseInt(e.target.value)||0:e.target.value})} placeholder={p} style={{fontSize:12}}/></div>
+                        ))}
+                    </div>
+                    <div style={{display:'flex',gap:8}}><button className="btn btn-gold" onClick={submitReport}>Submit</button><button className="btn btn-ghost" onClick={()=>setShowSubmit(false)}>Cancel</button></div>
+                </div>
+            )}
+
+            {analysis && (
+                <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16,borderLeft:'3px solid var(--gold)'}}>
+                    <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>AI Performance Analysis</h3>
+                    {typeof analysis === 'string' ? <pre style={{fontSize:12,color:'var(--text-secondary)',whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{analysis}</pre> : Object.entries(analysis).map(([k,v]) => <div key={k} style={{marginBottom:12}}><h4 style={{fontSize:12,fontWeight:700,color:'var(--gold)',marginBottom:4,textTransform:'uppercase'}}>{k.replace(/_/g,' ')}</h4>{typeof v === 'string' || typeof v === 'number' ? <p style={{fontSize:13,color:'var(--text-secondary)'}}>{v}</p> : <pre style={{fontSize:12,color:'var(--text-secondary)',whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{JSON.stringify(v,null,2)}</pre>}</div>)}
+                </div>
+            )}
+
+            <div className="glass" style={{borderRadius:12,overflow:'hidden'}}>
+                <h3 style={{fontSize:15,fontWeight:600,padding:'16px 20px',borderBottom:'1px solid var(--border)'}}>Recent Reports</h3>
+                {reports.length===0 ? <p style={{textAlign:'center',padding:30,color:'var(--text-muted)',fontSize:13}}>No reports submitted yet.</p> : (
+                    <div style={{display:'flex',flexDirection:'column'}}>
+                        {reports.slice().reverse().slice(0,20).map((r,i) => (
+                            <div key={i} style={{padding:16,borderBottom:'1px solid var(--border)'}}>
+                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                                    <div><span style={{fontWeight:600,fontSize:14}}>{r.member_name}</span><span style={{fontSize:11,color:'var(--text-muted)',marginLeft:8}}>{r.department}</span></div>
+                                    <div style={{display:'flex',gap:8,alignItems:'center'}}><span style={{fontSize:11,color:'var(--text-muted)'}}>{r.date}</span><span className="badge badge-gold" style={{fontSize:10}}>{r.hours_worked}h</span></div>
+                                </div>
+                                {r.tasks_completed && r.tasks_completed.length > 0 && <div style={{fontSize:12,color:'var(--success)',marginBottom:4}}>Done: {Array.isArray(r.tasks_completed)?r.tasks_completed.join(', '):r.tasks_completed}</div>}
+                                {r.tasks_pending && r.tasks_pending.length > 0 && <div style={{fontSize:12,color:'var(--warning)',marginBottom:4}}>Pending: {Array.isArray(r.tasks_pending)?r.tasks_pending.join(', '):r.tasks_pending}</div>}
+                                {r.blockers && <div style={{fontSize:12,color:'var(--danger)'}}>Blockers: {r.blockers}</div>}
+                                {r.channels_worked && r.channels_worked.length > 0 && <div style={{fontSize:11,color:'var(--text-muted)',marginTop:4}}>Channels: {Array.isArray(r.channels_worked)?r.channels_worked.join(', '):r.channels_worked}</div>}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+
     const renderPage = () => {
         if (selectedCall) return <CallDetailPage callId={selectedCall} onBack={()=>setSelectedCall(null)}/>;
         switch(page) {
@@ -4768,7 +5250,8 @@ const App = () => {
             case 'calls': return <CallsPage onSelect={id=>{setSelectedCall(id);}} onRecord={()=>setPage('record')}/>;
             case 'record': return <RecordCallPage onBack={()=>setPage('calls')} onDone={(id)=>{setSelectedCall(id);setPage('calls');}}/>;
             case 'pipeline': return <PipelinePage/>;
-            case 'leads': return <LeadsPage/>;
+            case 'hr': return <HRPage/>;
+            case 'mis': return <MISPage/>;
             case 'contacts': return <ContactsPage/>;
             case 'unified-inbox': return <UnifiedInboxPage/>;
             case 'inbox': return <WhatsAppInboxPage/>;

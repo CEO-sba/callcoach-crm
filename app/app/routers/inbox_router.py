@@ -5,7 +5,7 @@ Includes contact activities, reminders, tasks, and AI-assisted replies.
 """
 import logging
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, or_
 from typing import Optional
@@ -13,6 +13,7 @@ from typing import Optional
 from app.database import get_db
 from app.auth import get_current_user
 from app.models import User
+from app.services.activity_logger import log_activity as log_platform_activity
 from app.models_expanded import (
     UnifiedConversation,
     UnifiedMessage,
@@ -218,7 +219,7 @@ async def get_conversation(
 
 @router.post("/conversations")
 async def create_conversation(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -259,6 +260,9 @@ async def create_conversation(
 
     db.commit()
     db.refresh(conversation)
+    log_platform_activity(db, current_user.clinic_id, "lead", "inbox_conversation_created",
+                          {"contact": data["contact_name"], "platform": data["platform"]},
+                          current_user.email)
 
     return {"status": "created", "conversation_id": conversation.id}
 
@@ -270,7 +274,7 @@ async def create_conversation(
 @router.post("/conversations/{conversation_id}/messages")
 async def send_message(
     conversation_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -324,6 +328,9 @@ async def send_message(
 
     db.commit()
     db.refresh(message)
+    log_platform_activity(db, current_user.clinic_id, "lead", "inbox_message_sent",
+                          {"conversation_id": conversation_id, "platform": conversation.platform,
+                           "content_preview": (content or "[Media]")[:80]}, current_user.email)
 
     return {
         "status": "sent",
@@ -335,7 +342,7 @@ async def send_message(
 @router.post("/conversations/{conversation_id}/ai-reply")
 async def generate_ai_reply(
     conversation_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -380,6 +387,9 @@ What would be the best response to move this conversation forward and build trus
         context={"platform": conversation.platform, "tone": tone, "language": language},
     )
 
+    log_platform_activity(db, current_user.clinic_id, "ai_employee", "inbox_ai_reply_generated",
+                          {"conversation_id": conversation_id, "platform": conversation.platform,
+                           "tone": tone, "language": language}, current_user.email)
     return {
         "conversation_id": conversation_id,
         "suggested_reply": result.get("answer", ""),
@@ -395,7 +405,7 @@ What would be the best response to move this conversation forward and build trus
 @router.put("/conversations/{conversation_id}/assign")
 async def assign_conversation(
     conversation_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -420,6 +430,9 @@ async def assign_conversation(
 
     conversation.assigned_agent_id = agent_id
     db.commit()
+    log_platform_activity(db, current_user.clinic_id, "lead", "inbox_conversation_assigned",
+                          {"conversation_id": conversation_id, "agent_id": agent_id,
+                           "agent_name": agent.full_name}, current_user.email)
 
     return {"status": "assigned", "conversation_id": conversation.id, "agent_id": agent_id}
 
@@ -427,7 +440,7 @@ async def assign_conversation(
 @router.put("/conversations/{conversation_id}/status")
 async def update_conversation_status(
     conversation_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -458,7 +471,7 @@ async def update_conversation_status(
 @router.put("/conversations/{conversation_id}/tags")
 async def update_conversation_tags(
     conversation_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -543,7 +556,7 @@ async def get_contact_activities(
 
 @router.post("/activities")
 async def log_activity(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -616,7 +629,7 @@ async def list_reminders(
 
 @router.post("/reminders")
 async def create_reminder(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -639,6 +652,9 @@ async def create_reminder(
     db.add(reminder)
     db.commit()
     db.refresh(reminder)
+    log_platform_activity(db, current_user.clinic_id, "lead", "reminder_created",
+                          {"lead_id": data["lead_id"], "title": data["title"], "priority": data.get("priority", "medium")},
+                          current_user.email)
 
     return {"status": "created", "reminder_id": reminder.id}
 
@@ -742,7 +758,7 @@ async def list_tasks(
 
 @router.post("/tasks")
 async def create_task(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -764,6 +780,9 @@ async def create_task(
     db.add(task)
     db.commit()
     db.refresh(task)
+    log_platform_activity(db, current_user.clinic_id, "lead", "task_created",
+                          {"title": data["title"], "category": data.get("category", "sales"),
+                           "priority": data.get("priority", "medium")}, current_user.email)
 
     return {"status": "created", "task_id": task.id}
 
@@ -771,7 +790,7 @@ async def create_task(
 @router.put("/tasks/{task_id}")
 async def update_task(
     task_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):

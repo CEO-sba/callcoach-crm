@@ -16,6 +16,8 @@ from app.schemas_whatsapp import LeadCreate, LeadUpdate, LeadOut, NurtureEnrollm
 from app.services.lead_scoring import calculate_lead_score, update_lead_score
 from app.services.nurture_service import auto_enroll_lead, enroll_lead_in_sequence, _build_enrollment_metadata
 
+from app.services.activity_logger import log_activity
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/leads", tags=["leads"])
@@ -134,6 +136,14 @@ async def lead_webhook(api_key: str, request: Request, db: Session = Depends(get
         auto_enroll_lead(db, lead)
     except Exception as e:
         logger.error(f"Auto-enrollment failed for lead {lead.id}: {e}")
+
+    try:
+        log_activity(db, clinic_id, "lead", "lead_captured_webhook",
+                     {"name": name, "phone": phone, "source": source,
+                      "procedure": procedure, "campaign": utm_campaign,
+                      "is_duplicate": bool(existing_lead), "score": lead.lead_score})
+    except Exception:
+        pass
 
     return {
         "status": "success",
@@ -263,6 +273,10 @@ def update_lead(
     lead.lead_score = calculate_lead_score(db, lead)
     db.commit()
     db.refresh(lead)
+    log_activity(db, current_user.clinic_id, "lead", "lead_updated",
+                 {"lead_id": lead_id, "fields_updated": list(update_data.keys()),
+                  "new_score": lead.lead_score},
+                 current_user.email, related_id=lead_id, related_type="lead")
     return lead
 
 
@@ -289,6 +303,10 @@ def enroll_in_sequence(
 
     metadata = data.metadata or _build_enrollment_metadata(db, lead)
     enrollment = enroll_lead_in_sequence(db, lead.id, seq.id, current_user.clinic_id, metadata)
+    log_activity(db, current_user.clinic_id, "nurture", "lead_enrolled_in_sequence",
+                 {"lead_id": lead_id, "lead_name": lead.name,
+                  "sequence_id": str(data.sequence_id)},
+                 current_user.email, related_id=enrollment.id, related_type="enrollment")
     return {"status": "enrolled", "enrollment_id": enrollment.id}
 
 
@@ -307,6 +325,9 @@ def rescore_lead(
         raise HTTPException(status_code=404, detail="Lead not found")
 
     new_score = update_lead_score(db, lead)
+    log_activity(db, current_user.clinic_id, "lead", "lead_rescored",
+                 {"lead_id": lead_id, "new_score": new_score},
+                 current_user.email, related_id=lead_id, related_type="lead")
     return {"lead_id": lead.id, "new_score": new_score}
 
 

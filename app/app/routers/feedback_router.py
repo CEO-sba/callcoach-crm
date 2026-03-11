@@ -5,12 +5,13 @@ Stores ratings, feedback, and edited versions to improve
 AI coaching quality over time.
 """
 import logging
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.auth import get_current_user
 from app.models import User
+from app.services.activity_logger import log_activity
 from app.services.self_learning import (
     store_feedback,
     get_feedback_stats,
@@ -33,7 +34,7 @@ VALID_MODULES = [
 
 @router.post("/submit")
 async def submit_feedback(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -74,6 +75,10 @@ async def submit_feedback(
         edited_version=data.get("edited_version", ""),
     )
 
+    log_activity(db, current_user.clinic_id, "system", "ai_feedback_submitted",
+                 {"module": module, "action_type": action_type, "rating": rating,
+                  "was_useful": data.get("was_useful"), "was_edited": data.get("was_edited")},
+                 current_user.email)
     return {
         "status": "feedback_stored",
         "feedback_id": feedback.id,

@@ -4,7 +4,7 @@ Legal documents, invoices, financial records, and AI financial analysis.
 """
 import logging
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, or_
 from typing import Optional
@@ -12,6 +12,7 @@ from typing import Optional
 from app.database import get_db
 from app.auth import get_current_user
 from app.models import User
+from app.services.activity_logger import log_activity
 from app.models_expanded import (
     ClinicDocument,
     FinanceRecord,
@@ -73,7 +74,7 @@ async def list_legal_documents(
 
 @router.post("/legal/documents")
 async def create_document(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -97,13 +98,18 @@ async def create_document(
     db.commit()
     db.refresh(document)
 
+    log_activity(db, current_user.clinic_id, "user_action", "legal_document_created",
+                 {"title": data["title"], "type": data["document_type"],
+                  "status": data.get("status", "draft")}, current_user.email,
+                 related_id=document.id, related_type="legal_document")
+
     return {"status": "created", "document_id": document.id}
 
 
 @router.put("/legal/documents/{document_id}")
 async def update_document(
     document_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -242,7 +248,7 @@ async def list_invoices(
 
 @router.post("/finance/invoices")
 async def create_invoice(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -291,6 +297,11 @@ async def create_invoice(
     db.commit()
     db.refresh(invoice)
 
+    log_activity(db, current_user.clinic_id, "user_action", "invoice_created",
+                 {"invoice_number": data["invoice_number"], "patient": data["patient_name"],
+                  "total": invoice.total, "items_count": len(items)}, current_user.email,
+                 related_id=invoice.id, related_type="invoice")
+
     return {"status": "created", "invoice_id": invoice.id, "total": invoice.total}
 
 
@@ -336,7 +347,7 @@ async def get_invoice(
 @router.put("/finance/invoices/{invoice_id}")
 async def update_invoice(
     invoice_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -407,6 +418,11 @@ async def mark_invoice_paid(
     db.add(record)
     db.commit()
 
+    log_activity(db, current_user.clinic_id, "user_action", "invoice_marked_paid",
+                 {"invoice_number": invoice.invoice_number, "patient": invoice.patient_name,
+                  "total": invoice.total, "payment_method": invoice.payment_method},
+                 current_user.email, related_id=invoice.id, related_type="invoice")
+
     return {"status": "paid", "invoice_id": invoice.id, "paid_at": str(invoice.paid_at)}
 
 
@@ -470,7 +486,7 @@ async def list_finance_records(
 
 @router.post("/finance/records")
 async def create_finance_record(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -496,6 +512,11 @@ async def create_finance_record(
     db.add(record)
     db.commit()
     db.refresh(record)
+
+    log_activity(db, current_user.clinic_id, "user_action", "finance_record_created",
+                 {"type": data["record_type"], "category": data["category"],
+                  "amount": data["amount"], "description": data.get("description", "")[:80]},
+                 current_user.email, related_id=record.id, related_type="finance_record")
 
     return {"status": "created", "record_id": record.id}
 

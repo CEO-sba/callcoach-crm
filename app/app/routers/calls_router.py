@@ -20,6 +20,7 @@ from app.config import UPLOAD_DIR, ALLOWED_AUDIO_EXTENSIONS
 from app.services.transcription import transcribe_audio, get_transcription_status
 from app.services.ai_coach import analyze_call
 from app.services.storage import upload_recording, get_recording_url, get_local_path_for_transcription
+from app.services.activity_logger import log_activity
 
 logger = logging.getLogger(__name__)
 
@@ -157,6 +158,14 @@ def _process_call_recording_sync(call_id: str, recording_path: str):
 
                 db.commit()
                 logger.info(f"AI analysis completed for call {call_id}, score: {call.overall_score}")
+
+                # Log the coaching interaction
+                try:
+                    log_activity(db, call.clinic_id, "coaching", "call_analyzed",
+                                 {"call_id": call_id, "overall_score": call.overall_score,
+                                  "sentiment": call.ai_sentiment, "intent": call.ai_intent})
+                except Exception:
+                    pass
 
                 # Step 3: Auto-create pipeline deal if no deal linked and we have contact info
                 try:
@@ -408,6 +417,10 @@ async def record_call(
 
     # Process in background (transcribe + AI analyze) - use SYNC version
     background_tasks.add_task(_process_call_recording_sync, call.id, recording_path)
+
+    log_activity(db, current_user.clinic_id, "coaching", "call_recorded",
+                 {"call_id": call.id, "caller_name": caller_name, "call_type": call_type, "direction": direction},
+                 current_user.email)
 
     db.refresh(call)
     return call
@@ -781,4 +794,7 @@ async def ask_coach(
         what_to_improve=call.ai_action_items or [],
         call_type=call.call_type or "inbound",
     )
+    log_activity(db, current_user.clinic_id, "coaching", "ask_coach_question",
+                 {"call_id": call_id, "question": body.question[:200]},
+                 current_user.email)
     return result

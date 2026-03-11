@@ -5,7 +5,7 @@ Powered by SBA Consultation AI Coach.
 """
 import logging
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Body, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from typing import Optional
@@ -13,6 +13,7 @@ from typing import Optional
 from app.database import get_db
 from app.auth import get_current_user
 from app.models import User
+from app.services.activity_logger import log_activity
 from app.models_expanded import (
     VideoConsultation,
     ConsultationTranscription,
@@ -230,7 +231,7 @@ async def get_consultation(
 
 @router.post("")
 async def schedule_consultation(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -260,6 +261,11 @@ async def schedule_consultation(
     db.commit()
     db.refresh(consultation)
 
+    log_activity(db, current_user.clinic_id, "user_action", "consultation_scheduled",
+                 {"patient": data["patient_name"], "doctor": data.get("doctor_name"),
+                  "scheduled_at": data["scheduled_at"]}, current_user.email,
+                 related_id=consultation.id, related_type="consultation")
+
     return {
         "status": "scheduled",
         "consultation_id": consultation.id,
@@ -271,7 +277,7 @@ async def schedule_consultation(
 @router.put("/{consultation_id}")
 async def update_consultation(
     consultation_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -302,7 +308,7 @@ async def update_consultation(
 @router.put("/{consultation_id}/status")
 async def update_status(
     consultation_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -368,7 +374,7 @@ async def delete_consultation(
 @router.post("/{consultation_id}/transcribe")
 async def add_transcription(
     consultation_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -417,6 +423,11 @@ async def add_transcription(
 
     db.commit()
     db.refresh(transcription)
+
+    log_activity(db, current_user.clinic_id, "user_action", "transcription_added",
+                 {"consultation_id": consultation_id, "word_count": len(transcript_text.split()),
+                  "language": data.get("language", "en")}, current_user.email,
+                 related_id=consultation_id, related_type="consultation")
 
     return {
         "status": "transcribed",
@@ -604,6 +615,12 @@ async def analyze_consultation_endpoint(
         db.commit()
         db.refresh(analysis)
 
+        log_activity(db, current_user.clinic_id, "coaching", "consultation_analyzed",
+                     {"consultation_id": consultation_id, "overall_score": overall_score,
+                      "sentiment": sentiment, "patient": consultation.patient_name,
+                      "doctor": consultation.doctor_name}, current_user.email,
+                     related_id=consultation_id, related_type="consultation")
+
         return {
             "status": "analyzed",
             "analysis_id": analysis.id,
@@ -653,7 +670,7 @@ async def analyze_consultation_endpoint(
 @router.post("/{consultation_id}/coach/ask")
 async def ask_coach(
     consultation_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -706,6 +723,10 @@ async def ask_coach(
         context=context,
     )
 
+    log_activity(db, current_user.clinic_id, "coaching", "consultation_coach_asked",
+                 {"consultation_id": consultation_id, "question": question[:100]},
+                 current_user.email, related_id=consultation_id, related_type="consultation")
+
     return {
         "consultation_id": consultation_id,
         "question": question,
@@ -715,7 +736,7 @@ async def ask_coach(
 
 @router.post("/coach/general")
 async def ask_general_coach(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
 ):
     """
@@ -788,6 +809,11 @@ async def generate_patient_summary(
         doctor_name=consultation.doctor_name or "Your Doctor",
     )
 
+    log_activity(db, current_user.clinic_id, "coaching", "patient_summary_generated",
+                 {"consultation_id": consultation_id, "patient": consultation.patient_name,
+                  "procedures_count": len(procedures)}, current_user.email,
+                 related_id=consultation_id, related_type="consultation")
+
     return {
         "consultation_id": consultation_id,
         "patient_name": consultation.patient_name,
@@ -856,8 +882,8 @@ async def get_summary(
 
 @router.post("/bulk-analyze")
 async def bulk_analyze(
-    data: dict,
     background_tasks: BackgroundTasks,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -925,6 +951,11 @@ async def bulk_analyze(
     db.commit()
 
     analyzed = sum(1 for r in results if r["status"] == "analyzed")
+
+    log_activity(db, current_user.clinic_id, "coaching", "bulk_consultation_analysis",
+                 {"total_requested": len(ids), "analyzed": analyzed,
+                  "failed": len(ids) - analyzed}, current_user.email)
+
     return {
         "total": len(ids),
         "analyzed": analyzed,
@@ -969,7 +1000,7 @@ async def get_patient_procedure_history(
 @router.post("/patients/{patient_id}/history")
 async def add_procedure_to_history(
     patient_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -992,5 +1023,10 @@ async def add_procedure_to_history(
     db.add(record)
     db.commit()
     db.refresh(record)
+
+    log_activity(db, current_user.clinic_id, "user_action", "procedure_added_to_history",
+                 {"patient_id": patient_id, "procedure": data["procedure_name"],
+                  "date": data["procedure_date"], "cost": data.get("cost")},
+                 current_user.email, related_id=record.id, related_type="procedure_history")
 
     return {"status": "added", "id": record.id}

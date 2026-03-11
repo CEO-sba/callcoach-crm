@@ -11,6 +11,7 @@ from app.schemas import UserCreate, UserLogin, Token, UserOut, ClinicCreate, Cli
 from app.auth import hash_password, verify_password, create_access_token, get_current_user, create_password_reset_token, verify_password_reset_token
 from app.config import APP_BASE_URL
 from app.services.email_service import send_password_reset_email
+from app.services.activity_logger import log_activity
 import logging
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,10 @@ def register(data: ClinicCreate, user: UserCreate, db: Session = Depends(get_db)
         "role": new_user.role,
         "is_super_admin": False
     })
+    log_activity(db, clinic.id, "system", "clinic_registered",
+                 {"clinic_name": data.name, "admin_email": user.email,
+                  "city": data.city, "specialty": data.specialty},
+                 user.email)
     return Token(access_token=token, user_id=new_user.id, clinic_id=clinic.id, role=new_user.role, is_super_admin=False)
 
 
@@ -87,6 +92,9 @@ def register_simple(data: SimpleRegister, db: Session = Depends(get_db)):
         "role": new_user.role,
         "is_super_admin": False
     })
+    log_activity(db, clinic.id, "system", "clinic_registered_simple",
+                 {"clinic_name": data.clinic_name, "admin_email": data.email},
+                 data.email)
     return Token(access_token=token, user_id=new_user.id, clinic_id=clinic.id, role=new_user.role, is_super_admin=False)
 
 
@@ -105,6 +113,14 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         "role": user.role,
         "is_super_admin": user.is_super_admin
     })
+    if user.clinic_id:
+        try:
+            log_activity(db, user.clinic_id, "system", "user_login",
+                         {"email": user.email, "role": user.role},
+                         user.email)
+        except Exception:
+            pass
+
     return Token(
         access_token=token,
         user_id=user.id,
@@ -141,6 +157,9 @@ def add_team_member(user: UserCreate, db: Session = Depends(get_db),
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    log_activity(db, current_user.clinic_id, "system", "team_member_added",
+                 {"email": user.email, "full_name": user.full_name, "role": user.role},
+                 current_user.email, related_id=new_user.id, related_type="user")
     return new_user
 
 
@@ -200,6 +219,13 @@ def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_db)):
 
     user.hashed_password = hash_password(data.new_password)
     db.commit()
+
+    if user.clinic_id:
+        try:
+            log_activity(db, user.clinic_id, "system", "password_reset_completed",
+                         {"email": user.email}, user.email)
+        except Exception:
+            pass
 
     logger.info(f"Password reset completed for user {user.email}")
     return {"message": "Password has been reset successfully. You can now log in with your new password."}

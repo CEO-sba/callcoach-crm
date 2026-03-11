@@ -15,6 +15,7 @@ from typing import Optional, List
 
 from app.database import get_db
 from app.auth import get_current_user
+from app.services.activity_logger import log_activity
 from app.models import User, LearningProgress, Certification
 from app.services.learning_content import (
     get_all_modules,
@@ -261,6 +262,11 @@ def submit_quiz(
             prog.completed_at = datetime.utcnow()
 
     db.commit()
+    log_activity(db, current_user.clinic_id, "user_action", "quiz_submitted",
+                 {"module_id": module_id, "score": result.get("percentage", 0),
+                  "passed": result.get("passed", False),
+                  "attempt": prog.quiz_attempts},
+                 current_user.email, related_type="learning")
 
     return result
 
@@ -330,7 +336,7 @@ Evaluate their performance and return JSON:
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=1500,
-            system="You are an SBA Sales Trainer evaluating mock call performance. Be specific, constructive, and reference exact phrases from the transcript. Score fairly but push for improvement.",
+            system="You are an SBA Sales Trainer evaluating mock call performance. Be specific, constructive, and reference exact phrases from the transcript. Score fairly but push for improvement.\n\nWRITING STYLE: Write like a real coach talking to a team member. Be direct, use their exact words as examples, and give concrete alternatives they can use on their next call. No corporate fluff. No filler phrases like 'It is important to note'. Active voice only. Short paragraphs.",
             messages=[{"role": "user", "content": eval_prompt}]
         )
 
@@ -378,6 +384,11 @@ Evaluate their performance and return JSON:
         prog.completed_at = datetime.utcnow()
 
     db.commit()
+    log_activity(db, current_user.clinic_id, "coaching", "mock_call_evaluated",
+                 {"module_id": module_id, "scenario_id": submission.scenario_id,
+                  "score": evaluation.get("overall_score", 0),
+                  "attempt": prog.mock_attempts},
+                 current_user.email, related_type="learning")
 
     return {"module_id": module_id, "scenario_id": submission.scenario_id, "evaluation": evaluation}
 
@@ -518,6 +529,12 @@ def claim_certification(
     )
     db.add(cert)
     db.commit()
+    log_activity(db, current_user.clinic_id, "user_action", "certification_claimed",
+                 {"cert_id": cert_id, "title": cert_title,
+                  "quiz_score": user_data["avg_quiz_score"],
+                  "mock_score": user_data["avg_mock_score"],
+                  "modules_completed": len(completed_ids)},
+                 current_user.email, related_type="certification")
 
     return {"status": "certified", "certification": cert_title, "earned_at": cert.earned_at.isoformat()}
 

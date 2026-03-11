@@ -86,6 +86,15 @@ app.include_router(feedback_router.router)
 app.include_router(google_ads_router.router)
 app.include_router(seo_router.router)
 
+# v2.3 - Meta Ads Content, HR & MIS
+from app.routers import meta_ads_content_router, hr_mis_router
+app.include_router(meta_ads_content_router.router)
+app.include_router(hr_mis_router.router)
+
+# v2.4 - Activity Logging
+from app.routers import activity_router
+app.include_router(activity_router.router)
+
 # Static files (frontend)
 static_dir = Path(__file__).parent / "static"
 if static_dir.exists():

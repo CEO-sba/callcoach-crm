@@ -5,7 +5,7 @@ market research, script approval, campaign workspaces, AI coach, self-learning.
 """
 import logging
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
 from sqlalchemy import func
@@ -28,6 +28,7 @@ from app.models_marketing import (
     MarketingCoachChat
 )
 from app.services import marketing_ai_coach
+from app.services.activity_logger import log_activity
 
 logger = logging.getLogger(__name__)
 
@@ -209,7 +210,7 @@ async def get_ad_performance(
 
 @router.post("/ad-performance")
 async def create_ad_performance(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -239,12 +240,16 @@ async def create_ad_performance(
     db.add(record)
     db.commit()
     db.refresh(record)
+    log_activity(db, current_user.clinic_id, "ads", "ad_performance_added",
+                 {"platform": data["platform"], "campaign": data.get("campaign_name"),
+                  "date": data["date"], "spend": data.get("spend", 0)},
+                 current_user.email, related_id=record.id, related_type="ad_performance")
     return {"status": "created", "id": record.id, "record": record}
 
 
 @router.post("/ad-performance/bulk")
 async def bulk_create_ad_performance(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -279,6 +284,9 @@ async def bulk_create_ad_performance(
             logger.warning(f"Skipping record: {e}")
 
     db.commit()
+    log_activity(db, current_user.clinic_id, "ads", "ad_performance_bulk_imported",
+                 {"created": created, "total_submitted": len(records)},
+                 current_user.email)
     return {"status": "imported", "created": created, "total_submitted": len(records)}
 
 
@@ -339,7 +347,7 @@ async def get_ai_insights(
 
 @router.post("/reports/generate")
 async def generate_report(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -402,6 +410,11 @@ async def generate_report(
     db.add(db_report)
     db.commit()
     db.refresh(db_report)
+    log_activity(db, current_user.clinic_id, "report", "ad_report_generated",
+                 {"report_type": report_type, "platform": platform_filter,
+                  "period_days": days, "total_spend": total_spend,
+                  "total_conversions": total_conversions},
+                 current_user.email, related_id=db_report.id, related_type="ad_report")
 
     return {
         "report_id": db_report.id,
@@ -441,7 +454,7 @@ async def list_reports(
 
 @router.post("/content/generate")
 async def generate_content(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -492,6 +505,12 @@ async def generate_content(
     db.add(content_record)
     db.commit()
     db.refresh(content_record)
+    log_activity(db, current_user.clinic_id, "content", "content_generated",
+                 {"content_type": data["content_type"], "procedure": data["procedure"],
+                  "platform": data.get("platform", "instagram"),
+                  "language": data.get("language", "english"),
+                  "learning_applied": bool(learning_context)},
+                 current_user.email, related_id=content_record.id, related_type="content")
 
     return {
         "status": "generated",
@@ -503,7 +522,7 @@ async def generate_content(
 
 @router.post("/content/generate-batch")
 async def generate_content_batch(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -541,6 +560,11 @@ async def generate_content_batch(
             results.append({"error": str(e), "status": "failed"})
 
     db.commit()
+    successful = sum(1 for r in results if r.get("status") == "success")
+    log_activity(db, current_user.clinic_id, "content", "content_batch_generated",
+                 {"total_requested": len(items[:10]), "successful": successful,
+                  "failed": len(results) - successful},
+                 current_user.email)
     return {"status": "batch_complete", "results": results, "total": len(results)}
 
 
@@ -589,7 +613,7 @@ async def get_content(
 @router.put("/content/{content_id}")
 async def update_content(
     content_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -645,6 +669,10 @@ async def score_content(
         content.status = "approved"
     content.updated_at = datetime.utcnow()
     db.commit()
+    log_activity(db, current_user.clinic_id, "content", "content_scored",
+                 {"content_id": content_id, "score": result.get("total_score", 0),
+                  "verdict": result.get("verdict"), "auto_status": content.status},
+                 current_user.email, related_id=content_id, related_type="content")
 
     return {
         "content_id": content_id,
@@ -655,7 +683,7 @@ async def score_content(
 
 @router.post("/scripts/score")
 async def score_custom_script(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user)
 ):
     """Score any script text without saving it first."""
@@ -679,7 +707,7 @@ async def score_custom_script(
 
 @router.post("/ad-angles/generate")
 async def generate_ad_angles(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -708,6 +736,10 @@ async def generate_ad_angles(
         target_platform=data.get("platform", "meta")
     )
 
+    log_activity(db, current_user.clinic_id, "content", "ad_angles_generated",
+                 {"procedure": data["procedure"], "platform": data.get("platform", "meta"),
+                  "angles_count": len(result.get("angles", []))},
+                 current_user.email)
     return {"angles": result.get("angles", []), "procedure": data["procedure"]}
 
 
@@ -717,7 +749,7 @@ async def generate_ad_angles(
 
 @router.post("/calendar/generate")
 async def generate_content_calendar(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -774,6 +806,11 @@ async def generate_content_calendar(
                 logger.warning(f"Skipping calendar post: {e}")
 
     db.commit()
+    log_activity(db, current_user.clinic_id, "content", "content_calendar_generated",
+                 {"month": data.get("month"), "posts_created": post_count,
+                  "platforms": data.get("platforms", []),
+                  "posts_per_week": data.get("posts_per_week", 4)},
+                 current_user.email, related_id=calendar.id, related_type="content_calendar")
 
     return {
         "status": "generated",
@@ -819,7 +856,7 @@ async def get_calendar(
 @router.put("/calendar/{calendar_id}")
 async def update_calendar(
     calendar_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -842,7 +879,7 @@ async def update_calendar(
 @router.put("/calendar/posts/{post_id}")
 async def update_calendar_post(
     post_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -880,7 +917,7 @@ async def update_calendar_post(
 
 @router.post("/research")
 async def conduct_research(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -915,6 +952,11 @@ async def conduct_research(
     db.add(research)
     db.commit()
     db.refresh(research)
+    log_activity(db, current_user.clinic_id, "report", "market_research_conducted",
+                 {"city": data["city"], "procedures": data.get("procedures", []),
+                  "competitors": len(data.get("competitors", [])),
+                  "focus": data.get("research_focus", "full")},
+                 current_user.email, related_id=research.id, related_type="market_research")
 
     return {"status": "completed", "research_id": research.id, "research": result}
 
@@ -953,7 +995,7 @@ async def get_research(
 
 @router.post("/campaigns")
 async def create_campaign(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -975,6 +1017,12 @@ async def create_campaign(
     db.add(campaign)
     db.commit()
     db.refresh(campaign)
+    log_activity(db, current_user.clinic_id, "ads", "campaign_created",
+                 {"name": data["name"], "platform": data["platform"],
+                  "objective": data.get("objective", "lead_generation"),
+                  "procedure": data.get("procedure_focus"),
+                  "budget": data.get("total_budget", 0)},
+                 current_user.email, related_id=campaign.id, related_type="campaign")
     return {"status": "created", "campaign": campaign}
 
 
@@ -1017,7 +1065,7 @@ async def get_campaign(
 @router.put("/campaigns/{campaign_id}")
 async def update_campaign(
     campaign_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -1048,7 +1096,7 @@ async def update_campaign(
 @router.post("/campaigns/{campaign_id}/generate-scripts")
 async def generate_campaign_scripts(
     campaign_id: str,
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -1082,6 +1130,11 @@ async def generate_campaign_scripts(
     campaign.scripts = existing_scripts
     campaign.updated_at = datetime.utcnow()
     db.commit()
+    log_activity(db, current_user.clinic_id, "script_generation", "campaign_scripts_generated",
+                 {"campaign_id": campaign_id, "campaign_name": campaign.name,
+                  "content_types": content_types, "scripts_count": len(scripts),
+                  "procedure": campaign.procedure_focus},
+                 current_user.email, related_id=campaign_id, related_type="campaign")
 
     return {"campaign_id": campaign_id, "scripts_generated": len(scripts), "scripts": scripts}
 
@@ -1092,7 +1145,7 @@ async def generate_campaign_scripts(
 
 @router.post("/coach/ask")
 async def ask_marketing_coach(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -1141,6 +1194,10 @@ async def ask_marketing_coach(
     chat.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(chat)
+    log_activity(db, current_user.clinic_id, "coaching", "marketing_coach_asked",
+                 {"question": question[:100], "context_type": data.get("context_type", "general"),
+                  "message_count": chat.message_count},
+                 current_user.email, related_id=chat.id, related_type="marketing_coach_chat")
 
     return {
         "chat_id": chat.id,
@@ -1183,7 +1240,7 @@ async def get_coach_chat(
 
 @router.post("/feedback")
 async def submit_feedback(
-    data: dict,
+    data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -1230,6 +1287,11 @@ async def submit_feedback(
     db.add(feedback)
     db.commit()
     db.refresh(feedback)
+    log_activity(db, current_user.clinic_id, "system", "marketing_feedback_submitted",
+                 {"content_id": content_id, "content_type": content.content_type,
+                  "rating": rating, "was_used": data.get("was_used", False),
+                  "was_edited": data.get("was_edited", False)},
+                 current_user.email, related_id=feedback.id, related_type="marketing_feedback")
 
     return {
         "status": "feedback_recorded",

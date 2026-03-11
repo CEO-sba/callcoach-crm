@@ -17,6 +17,7 @@ from sqlalchemy import func, desc
 from app.models import Call, User, CallScore, PipelineDeal
 from app.services.ai_coach import get_client
 from app.config import ANTHROPIC_MODEL
+from app.services.prompt_quality import enhance_system_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -438,7 +439,7 @@ def generate_weekly_report(
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=3000,
-            system=WEEKLY_REPORT_SYSTEM,
+            system=enhance_system_prompt(WEEKLY_REPORT_SYSTEM),
             messages=[{"role": "user", "content": ai_prompt}]
         )
 

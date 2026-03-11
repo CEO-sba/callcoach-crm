@@ -13,6 +13,7 @@ from app.services.ai_coach import analyze_agent_growth
 from app.services.comparison_service import (
     compare_agents, get_dimension_leaderboard, get_platform_benchmarks
 )
+from app.services.activity_logger import log_activity
 
 router = APIRouter(prefix="/api", tags=["coaching"])
 
@@ -127,6 +128,9 @@ async def generate_growth_plan(
         db.add(insight)
 
     db.commit()
+    log_activity(db, current_user.clinic_id, "coaching", "growth_plan_generated",
+                 {"target_user": target.full_name, "total_calls": perf["total_calls"], "avg_score": perf["avg_score"]},
+                 current_user.email)
     return growth
 
 

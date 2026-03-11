@@ -11,6 +11,7 @@ from typing import Optional
 from app.database import get_db
 from app.auth import get_current_user
 from app.models import User
+from app.services.activity_logger import log_activity
 from app.models_whatsapp import SocialAccount, SocialPost, MarketingInsight
 from app.schemas_whatsapp import (
     SocialAccountConnect, SocialAccountOut,
@@ -62,6 +63,8 @@ def connect_account(
         existing.updated_at = datetime.utcnow()
         db.commit()
         db.refresh(existing)
+        log_activity(db, current_user.clinic_id, "content", "social_account_reconnected",
+                     {"platform": data.platform, "account": data.account_name}, current_user.email)
         return existing
 
     account = SocialAccount(
@@ -77,6 +80,8 @@ def connect_account(
     db.add(account)
     db.commit()
     db.refresh(account)
+    log_activity(db, current_user.clinic_id, "content", "social_account_connected",
+                 {"platform": data.platform, "account": data.account_name}, current_user.email)
     return account
 
 
@@ -96,6 +101,8 @@ def disconnect_account(
 
     account.is_active = False
     db.commit()
+    log_activity(db, current_user.clinic_id, "content", "social_account_disconnected",
+                 {"platform": account.platform, "account": account.account_name}, current_user.email)
     return {"status": "disconnected"}
 
 
@@ -142,6 +149,9 @@ def create_post(
     db.add(post)
     db.commit()
     db.refresh(post)
+    log_activity(db, current_user.clinic_id, "content", "social_post_created",
+                 {"platforms": data.platforms, "status": post.status, "content_preview": data.content[:80]},
+                 current_user.email)
     return post
 
 
@@ -245,6 +255,9 @@ Format as JSON array with objects having: title, outline, cta, hashtags"""
             max_tokens=1500,
             messages=[{"role": "user", "content": prompt}]
         )
+        log_activity(db, current_user.clinic_id, "script_generation", "content_ideas_generated",
+                     {"platform": data.platform, "content_type": data.content_type, "num_ideas": data.num_ideas},
+                     current_user.email)
         return {"ideas": response.content[0].text}
     except Exception as e:
         logger.error(f"Content generation failed: {e}")
@@ -301,6 +314,9 @@ Format as JSON array."""
             max_tokens=1500,
             messages=[{"role": "user", "content": prompt}]
         )
+        log_activity(db, current_user.clinic_id, "script_generation", "ad_angles_generated",
+                     {"num_angles": data.num_angles, "procedure": data.procedure_category},
+                     current_user.email)
         return {"angles": response.content[0].text}
     except Exception as e:
         logger.error(f"Ad angle generation failed: {e}")

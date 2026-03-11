@@ -11,6 +11,7 @@ from typing import Optional
 from app.database import get_db
 from app.auth import get_current_user
 from app.models import User
+from app.services.activity_logger import log_activity
 from app.models_whatsapp import (
     WhatsAppConfig, AIEmployee, WhatsAppConversation, WhatsAppMessage, Lead
 )
@@ -171,6 +172,13 @@ async def _handle_incoming_message(db: Session, config: WhatsAppConfig, parsed: 
 
     db.commit()
 
+    # Log incoming message
+    try:
+        log_activity(db, config.clinic_id, "ai_employee", "whatsapp_message_received",
+                     {"phone": from_phone, "type": message_type, "content_preview": content[:80]})
+    except Exception:
+        pass
+
     # Mark as read (blue ticks)
     if wa_message_id:
         await mark_message_read(config.phone_number_id, config.access_token, wa_message_id)
@@ -217,8 +225,20 @@ async def _handle_incoming_message(db: Session, config: WhatsAppConfig, parsed: 
                         conversation.is_ai_handling = False
                         conversation.status = "handed_off"
                         logger.info(f"Conversation {conversation.id} handed off after {conversation.ai_message_count} AI messages")
+                        try:
+                            log_activity(db, config.clinic_id, "ai_employee", "conversation_handed_off",
+                                         {"conversation_id": conversation.id, "ai_messages": conversation.ai_message_count,
+                                          "phone": from_phone})
+                        except Exception:
+                            pass
 
                     db.commit()
+                    try:
+                        log_activity(db, config.clinic_id, "ai_employee", "ai_reply_sent",
+                                     {"conversation_id": conversation.id, "reply_preview": ai_reply[:80],
+                                      "phone": from_phone})
+                    except Exception:
+                        pass
             except Exception as e:
                 logger.error(f"AI reply failed for conversation {conversation.id}: {e}")
 
@@ -273,6 +293,8 @@ def save_whatsapp_config(
 
     db.commit()
     db.refresh(config)
+    log_activity(db, current_user.clinic_id, "ai_employee", "whatsapp_config_saved",
+                 {"business_name": data.business_name, "phone": data.business_phone}, current_user.email)
 
     # Auto-create AI Employee if not exists
     ai_emp = db.query(AIEmployee).filter(
@@ -298,6 +320,8 @@ def disconnect_whatsapp(
     if config:
         config.is_active = False
         db.commit()
+        log_activity(db, current_user.clinic_id, "ai_employee", "whatsapp_disconnected",
+                     {}, current_user.email)
     return {"status": "disconnected"}
 
 
@@ -338,6 +362,8 @@ def update_ai_employee(
 
     db.commit()
     db.refresh(ai)
+    log_activity(db, current_user.clinic_id, "ai_employee", "ai_employee_config_updated",
+                 {"fields_updated": list(update_data.keys())}, current_user.email)
     return ai
 
 
@@ -444,6 +470,9 @@ async def send_message(
 
     db.commit()
     db.refresh(message)
+    log_activity(db, current_user.clinic_id, "ai_employee", "agent_message_sent",
+                 {"conversation_id": conversation_id, "phone": convo.wa_phone,
+                  "content_preview": data.content[:80]}, current_user.email)
 
     return {"status": "sent" if wa_msg_id else "failed", "message_id": message.id, "wa_message_id": wa_msg_id}
 
@@ -471,6 +500,9 @@ def toggle_ai_handling(
         convo.status = "handed_off"
 
     db.commit()
+    log_activity(db, current_user.clinic_id, "ai_employee", "ai_handling_toggled",
+                 {"conversation_id": conversation_id, "is_ai_handling": convo.is_ai_handling},
+                 current_user.email)
 
     return {"is_ai_handling": convo.is_ai_handling, "status": convo.status}
 
@@ -493,5 +525,7 @@ def close_conversation(
     convo.status = "closed"
     convo.is_ai_handling = False
     db.commit()
+    log_activity(db, current_user.clinic_id, "ai_employee", "conversation_closed",
+                 {"conversation_id": conversation_id}, current_user.email)
 
     return {"status": "closed"}

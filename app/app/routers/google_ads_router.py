@@ -4,7 +4,7 @@ Google Ads management, lead sync, campaign monitoring, and reporting.
 """
 import logging
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
 from pydantic import BaseModel
@@ -12,6 +12,8 @@ from pydantic import BaseModel
 from app.database import get_db
 from app.auth import get_current_user
 from app.models import User
+from app.services.activity_logger import log_activity
+from app.services.prompt_quality import WRITING_QUALITY_DIRECTIVE
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +108,9 @@ def update_config(
     settings["google_ads"] = gads
     clinic.settings = settings
     db.commit()
+    log_activity(db, current_user.clinic_id, "ads", "google_ads_config_updated",
+                 {"connected": bool(gads.get("customer_id") and gads.get("refresh_token"))},
+                 current_user.email)
     return {"status": "updated", "connected": bool(gads.get("customer_id") and gads.get("refresh_token"))}
 
 
@@ -166,7 +171,7 @@ def list_google_leads(
 @router.post("/leads/webhook/{api_key}")
 def google_ads_lead_webhook(
     api_key: str,
-    lead_data: dict,
+    lead_data: dict = Body(...),
     db: Session = Depends(get_db)
 ):
     """Webhook for Google Ads lead form submissions."""
@@ -190,6 +195,8 @@ def google_ads_lead_webhook(
     )
     db.add(lead)
     db.commit()
+    log_activity(db, clinic.id, "lead", "google_ads_lead_received",
+                 {"campaign_name": lead_data.get("campaign_name", ""), "name": lead_data.get("name", "")})
     return {"status": "lead_created", "lead_id": str(lead.id)}
 
 
@@ -271,9 +278,216 @@ Format as JSON array with objects: {{title, description, priority (high/medium/l
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=1200,
+            system=WRITING_QUALITY_DIRECTIVE.strip(),
             messages=[{"role": "user", "content": prompt}]
         )
+        log_activity(db, current_user.clinic_id, "ads", "google_ads_ai_recommendations_generated",
+                     {}, current_user.email)
         return {"recommendations": response.content[0].text}
     except Exception as e:
         logger.error(f"Google Ads AI recommendations failed: {e}")
         raise HTTPException(status_code=500, detail="AI recommendations failed")
+
+
+def _call_claude_gads(prompt: str, max_tokens: int = 3000) -> str:
+    from app.config import ANTHROPIC_API_KEY, ANTHROPIC_MODEL
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(status_code=400, detail="Anthropic API key not configured")
+    from anthropic import Anthropic
+    import json as _json
+    client = Anthropic(api_key=ANTHROPIC_API_KEY)
+    response = client.messages.create(model=ANTHROPIC_MODEL, max_tokens=max_tokens, system=WRITING_QUALITY_DIRECTIVE.strip(), messages=[{"role": "user", "content": prompt}])
+    text = response.content[0].text.strip()
+    if text.startswith("```"):
+        text = text.split("```")[1]
+        if text.startswith("json"): text = text[4:]
+        text = text.strip()
+    try:
+        return _json.loads(text)
+    except:
+        return text
+
+
+# ---------------------------------------------------------------------------
+# Google Ads Content Generation
+# ---------------------------------------------------------------------------
+
+@router.post("/generate-search-ads")
+def generate_search_ads(
+    data: dict = Body(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Generate responsive search ad copy for Google Ads."""
+    from app.models import Clinic
+    clinic = db.query(Clinic).filter(Clinic.id == current_user.clinic_id).first()
+
+    procedure = data.get("procedure", "aesthetic treatment")
+    location = data.get("location", "")
+    num_ads = data.get("num_ads", 3)
+    usp = data.get("usp", "")
+
+    prompt = f"""You are a Google Ads search campaign expert for aesthetic and medical clinics.
+
+Clinic: {clinic.name if clinic else 'Aesthetic Clinic'}
+Procedure: {procedure}
+Location: {location or 'India'}
+USP: {usp or 'Expert doctors, advanced technology, trusted results'}
+
+Generate {num_ads} Responsive Search Ads. Each ad must include:
+
+1. headlines: Array of 15 headlines (max 30 characters each). Mix of:
+   - Procedure name keywords
+   - Location-based ("Best [Procedure] in [City]")
+   - Benefit-focused ("Natural Looking Results")
+   - Trust signals ("Board Certified Doctors")
+   - Offer-based ("Free Consultation Today")
+   - Urgency ("Limited Slots Available")
+2. descriptions: Array of 4 descriptions (max 90 characters each). Focus on benefits, social proof, CTA.
+3. sitelink_extensions: 4 sitelinks with title (max 25 chars) and description (max 35 chars each line, 2 lines)
+4. callout_extensions: 6 callouts (max 25 chars each)
+5. structured_snippets: header and values for structured snippet extensions
+6. keyword_suggestions: 10 high-intent keywords to target with this ad
+
+Format as JSON array of ad objects."""
+
+    try:
+        parsed = _call_claude_gads(prompt, 4000)
+        log_activity(db, current_user.clinic_id, "script_generation", "google_search_ads_generated",
+                     {"procedure": procedure, "location": location, "num_ads": num_ads},
+                     current_user.email)
+        return {"ads": parsed, "count": num_ads}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Search ad generation failed")
+
+
+@router.post("/generate-keywords")
+def generate_keywords(
+    data: dict = Body(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Generate keyword research for Google Ads campaigns."""
+    from app.models import Clinic
+    clinic = db.query(Clinic).filter(Clinic.id == current_user.clinic_id).first()
+
+    procedures = data.get("procedures", ["aesthetic treatment"])
+    location = data.get("location", "")
+
+    prompt = f"""You are a Google Ads keyword research expert for aesthetic and medical clinics.
+
+Clinic: {clinic.name if clinic else 'Aesthetic Clinic'}
+Procedures: {', '.join(procedures) if isinstance(procedures, list) else procedures}
+Location: {location or 'India'}
+
+For each procedure, provide:
+
+1. high_intent_keywords: 10 transactional keywords (people ready to book)
+2. research_keywords: 10 informational keywords (people researching)
+3. competitor_keywords: 5 competitor-related keywords
+4. negative_keywords: 10 negative keywords to exclude
+5. long_tail_keywords: 10 long-tail keywords with lower competition
+6. local_keywords: 5 location-specific keywords
+7. estimated_cpc_range: Low and high CPC estimate in INR
+8. match_type_recommendation: Which match type to use for each group
+
+Format as JSON object with procedure names as keys."""
+
+    try:
+        parsed = _call_claude_gads(prompt, 3000)
+        log_activity(db, current_user.clinic_id, "ads", "google_keyword_research_generated",
+                     {"procedures": procedures, "location": location},
+                     current_user.email)
+        return {"keywords": parsed}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Keyword research failed")
+
+
+@router.post("/generate-landing-page")
+def generate_landing_page_copy(
+    data: dict = Body(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Generate landing page copy optimized for Google Ads conversions."""
+    from app.models import Clinic
+    clinic = db.query(Clinic).filter(Clinic.id == current_user.clinic_id).first()
+
+    procedure = data.get("procedure", "aesthetic treatment")
+    doctor_name = data.get("doctor_name", "")
+
+    prompt = f"""You are a landing page conversion expert for aesthetic clinics.
+
+Clinic: {clinic.name if clinic else 'Aesthetic Clinic'}
+Doctor: {doctor_name}
+Procedure: {procedure}
+
+Generate complete landing page copy sections:
+
+1. hero_section: headline (max 10 words), subheadline (max 20 words), cta_button_text
+2. problem_section: 3 pain points the patient experiences
+3. solution_section: How this procedure solves their problem
+4. process_section: 3-5 steps of the treatment process
+5. benefits_section: 6 key benefits with icons suggestions
+6. social_proof_section: 3 testimonial templates, stats to showcase
+7. doctor_section: Doctor bio template, credentials to highlight
+8. faq_section: 8 frequently asked questions with answers
+9. urgency_section: Offer text, countdown suggestion, limited slots messaging
+10. form_section: Form headline, form fields to include, submit button text
+
+Format as JSON object."""
+
+    try:
+        parsed = _call_claude_gads(prompt, 3500)
+        log_activity(db, current_user.clinic_id, "content", "google_landing_page_copy_generated",
+                     {"procedure": procedure, "doctor_name": doctor_name},
+                     current_user.email)
+        return {"landing_page": parsed}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Landing page copy generation failed")
+
+
+@router.post("/generate-campaign-structure")
+def generate_campaign_structure(
+    data: dict = Body(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Generate a complete Google Ads campaign structure."""
+    from app.models import Clinic
+    clinic = db.query(Clinic).filter(Clinic.id == current_user.clinic_id).first()
+
+    procedures = data.get("procedures", ["aesthetic treatments"])
+    budget = data.get("monthly_budget", "50000")
+    location = data.get("location", "")
+
+    prompt = f"""You are a Google Ads campaign architect for aesthetic clinics following SBA methodology.
+
+Clinic: {clinic.name if clinic else 'Aesthetic Clinic'}
+Procedures: {', '.join(procedures) if isinstance(procedures, list) else procedures}
+Monthly Budget: Rs. {budget}
+Location: {location or 'India'}
+
+Create a complete Google Ads campaign structure:
+
+1. campaigns: Array of campaigns, each with name, type (Search/Display/PMax), daily_budget, bidding_strategy
+2. ad_groups: For each campaign, list ad groups with name, keywords, negative_keywords
+3. budget_split: How to allocate budget across campaigns (percentages)
+4. bidding_strategy: Recommended bidding for each campaign stage (learning, optimization, scaling)
+5. conversion_tracking: What conversions to track (form_submit, phone_call, whatsapp_click, booking)
+6. audience_signals: For PMax campaigns, audience signals to use
+7. geo_targeting: Location targeting recommendations
+8. schedule: Ad scheduling recommendations (best hours and days)
+9. first_month_plan: Week-by-week plan for the first 30 days
+10. scaling_triggers: When to increase budget, add campaigns, or pause underperformers
+
+Format as JSON object."""
+
+    try:
+        parsed = _call_claude_gads(prompt, 4000)
+        log_activity(db, current_user.clinic_id, "ads", "google_campaign_structure_generated",
+                     {"procedures": procedures, "budget": budget, "location": location},
+                     current_user.email)
+        return {"structure": parsed}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Campaign structure generation failed")

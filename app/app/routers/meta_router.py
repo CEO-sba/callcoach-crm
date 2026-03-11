@@ -15,6 +15,7 @@ from app.models_whatsapp import MetaConfig, Lead, SocialAccount
 from app.schemas_whatsapp import MetaConnectRequest, MetaConfigOut
 from app.services.lead_scoring import calculate_lead_score
 from app.services.nurture_service import auto_enroll_lead
+from app.services.activity_logger import log_activity
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,9 @@ def connect_meta(
 
     db.commit()
     db.refresh(config)
+    log_activity(db, current_user.clinic_id, "system", "meta_account_connected",
+                 {"page_id": data.page_id, "page_name": data.page_name},
+                 current_user.email)
     return config
 
 
@@ -82,6 +86,8 @@ def disconnect_meta(
     if config:
         config.is_active = False
         db.commit()
+    log_activity(db, current_user.clinic_id, "system", "meta_account_disconnected",
+                 {}, current_user.email)
     return {"status": "disconnected"}
 
 
@@ -213,5 +219,14 @@ async def _process_meta_lead(db: Session, lead_data: dict):
         auto_enroll_lead(db, lead)
     except Exception as e:
         logger.error(f"Meta lead auto-enroll failed: {e}")
+
+    try:
+        log_activity(db, config.clinic_id, "lead", "meta_lead_form_received",
+                     {"lead_id": lead.id, "name": name, "phone": phone,
+                      "campaign": data.get("campaign_name", ""),
+                      "form_id": str(form_id), "is_duplicate": bool(existing),
+                      "score": lead.lead_score})
+    except Exception:
+        pass
 
     logger.info(f"Meta lead created/updated: {lead.id} from form {form_id}")
