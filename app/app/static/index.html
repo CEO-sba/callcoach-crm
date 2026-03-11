@@ -2711,7 +2711,7 @@ const UnifiedInboxPage = () => {
         try {
             const detail = await apiFetch(`/inbox/conversations/${convo.id}`);
             setMessages(detail.messages || []);
-        } catch { setMessages([]); }
+        } catch(e) { setMessages([]); }
     };
 
     const sendMessage = async () => {
@@ -3030,7 +3030,7 @@ const ConsultationsPage = () => {
         try {
             const d = await apiFetch(`/consultations/${c.id}`);
             setDetail(d);
-        } catch { setDetail(null); }
+        } catch(e) { setDetail(null); }
     };
 
     const scheduleNew = async () => {
