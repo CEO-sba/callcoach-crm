@@ -47,4 +47,16 @@ def init_db():
         WhatsAppMessage, NurtureSequence, NurtureStep, NurtureEnrollment,
         ClinicApiKey, MetaConfig, SocialAccount, SocialPost, MarketingInsight
     )
+    from app.models_expanded import (
+        UnifiedConversation, UnifiedMessage, ContactActivity, ContactTag,
+        ContactReminder, ContactTask, HiringPosition, HiringCandidate,
+        HiringInterview, VideoConsultation, Invoice, InventoryItem,
+        PatientRecord, AdPerformance, WeeklyAdReport, AIContentGeneration,
+        ClinicDocument, FinanceRecord, ConsultationTranscription,
+        ConsultationAnalysis, PatientProcedureHistory
+    )
+    from app.models_marketing import (
+        ContentCalendar, ContentCalendarPost, MarketResearch,
+        CampaignWorkspace, MarketingAIFeedback, MarketingCoachChat
+    )
     Base.metadata.create_all(bind=engine)

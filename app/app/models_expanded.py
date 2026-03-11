@@ -662,3 +662,40 @@ GeneratedContent = AIContentGeneration
 
 # Alias for legal_finance_router.py compatibility
 LegalDocument = ClinicDocument
+
+
+# ============================================================================
+# UNIVERSAL AI FEEDBACK (Self-Learning Across All Modules)
+# ============================================================================
+
+class AIFeedback(Base):
+    __tablename__ = "ai_feedback"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    clinic_id = Column(String, ForeignKey("clinics.id"), nullable=False)
+
+    # Module identification
+    module = Column(String(50), nullable=False)  # consultations, hiring, operations, inbox, marketing
+    action_type = Column(String(100), nullable=False)  # analyze, coach_qa, generate_jd, evaluate_candidate, etc.
+
+    # What was asked
+    input_summary = Column(Text)  # summary of the user's request
+    input_data = Column(JSON, default=dict)  # full input parameters
+
+    # What was generated
+    output_summary = Column(Text)  # summary of the AI response
+    output_data = Column(JSON, default=dict)  # full AI output
+
+    # Feedback
+    rating = Column(Integer)  # 1-5 stars
+    feedback_text = Column(Text)  # user's written feedback
+    was_useful = Column(Boolean, default=True)  # thumbs up/down
+    was_edited = Column(Boolean, default=False)  # did they edit the output?
+    edited_version = Column(Text)  # if edited, what did they change it to?
+
+    # Performance tracking (filled later)
+    performance_metrics = Column(JSON, default=dict)  # any downstream metrics
+    outcome = Column(String(50))  # positive, neutral, negative
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
