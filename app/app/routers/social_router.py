@@ -293,10 +293,11 @@ Format as JSON array with objects having: title, outline, cta, hashtags"""
             max_tokens=1500,
             messages=[{"role": "user", "content": prompt}]
         )
+        output = {"ideas": response.content[0].text}
         log_activity(db, current_user.clinic_id, "script_generation", "content_ideas_generated",
-                     {"platform": data.platform, "content_type": data.content_type, "num_ideas": data.num_ideas},
+                     {"platform": data.platform, "content_type": data.content_type, "num_ideas": data.num_ideas, "output": output},
                      current_user.email)
-        return {"ideas": response.content[0].text}
+        return output
     except Exception as e:
         logger.error(f"Content generation failed: {e}")
         raise HTTPException(status_code=500, detail="Content generation failed")
@@ -354,10 +355,11 @@ Format as JSON array."""
             max_tokens=1500,
             messages=[{"role": "user", "content": prompt}]
         )
+        output = {"angles": response.content[0].text}
         log_activity(db, current_user.clinic_id, "script_generation", "ad_angles_generated",
-                     {"num_angles": data.num_angles, "procedure": data.procedure_category},
+                     {"num_angles": data.num_angles, "procedure": data.procedure_category, "output": output},
                      current_user.email)
-        return {"angles": response.content[0].text}
+        return output
     except Exception as e:
         logger.error(f"Ad angle generation failed: {e}")
         raise HTTPException(status_code=500, detail="Ad angle generation failed")

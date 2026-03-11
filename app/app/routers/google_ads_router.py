@@ -314,9 +314,10 @@ Format as JSON array with objects: {{title, description, priority (high/medium/l
             system=WRITING_QUALITY_DIRECTIVE.strip(),
             messages=[{"role": "user", "content": prompt}]
         )
+        result_data = {"recommendations": response.content[0].text}
         log_activity(db, current_user.clinic_id, "ads", "google_ads_ai_recommendations_generated",
-                     {}, current_user.email)
-        return {"recommendations": response.content[0].text}
+                     {"output": result_data}, current_user.email)
+        return result_data
     except Exception as e:
         logger.error(f"Google Ads AI recommendations failed: {e}")
         raise HTTPException(status_code=500, detail="AI recommendations failed")
@@ -387,10 +388,11 @@ Format as JSON array of ad objects."""
     try:
         prompt = _apply_regenerate_changes(prompt, data)
         parsed = _call_claude_gads(prompt, 4000)
+        result_data = {"ads": parsed, "count": num_ads}
         log_activity(db, current_user.clinic_id, "script_generation", "google_search_ads_generated",
-                     {"procedure": procedure, "location": location, "num_ads": num_ads},
+                     {"procedure": procedure, "location": location, "num_ads": num_ads, "output": result_data},
                      current_user.email)
-        return {"ads": parsed, "count": num_ads}
+        return result_data
     except Exception as e:
         raise HTTPException(status_code=500, detail="Search ad generation failed")
 
@@ -430,10 +432,11 @@ Format as JSON object with procedure names as keys."""
     try:
         prompt = _apply_regenerate_changes(prompt, data)
         parsed = _call_claude_gads(prompt, 3000)
+        result_data = {"keywords": parsed}
         log_activity(db, current_user.clinic_id, "ads", "google_keyword_research_generated",
-                     {"procedures": procedures, "location": location},
+                     {"procedures": procedures, "location": location, "output": result_data},
                      current_user.email)
-        return {"keywords": parsed}
+        return result_data
     except Exception as e:
         raise HTTPException(status_code=500, detail="Keyword research failed")
 
@@ -475,10 +478,11 @@ Format as JSON object."""
     try:
         prompt = _apply_regenerate_changes(prompt, data)
         parsed = _call_claude_gads(prompt, 3500)
+        result_data = {"landing_page": parsed}
         log_activity(db, current_user.clinic_id, "content", "google_landing_page_copy_generated",
-                     {"procedure": procedure, "doctor_name": doctor_name},
+                     {"procedure": procedure, "doctor_name": doctor_name, "output": result_data},
                      current_user.email)
-        return {"landing_page": parsed}
+        return result_data
     except Exception as e:
         raise HTTPException(status_code=500, detail="Landing page copy generation failed")
 
@@ -522,9 +526,10 @@ Format as JSON object."""
     try:
         prompt = _apply_regenerate_changes(prompt, data)
         parsed = _call_claude_gads(prompt, 4000)
+        result_data = {"structure": parsed}
         log_activity(db, current_user.clinic_id, "ads", "google_campaign_structure_generated",
-                     {"procedures": procedures, "budget": budget, "location": location},
+                     {"procedures": procedures, "budget": budget, "location": location, "output": result_data},
                      current_user.email)
-        return {"structure": parsed}
+        return result_data
     except Exception as e:
         raise HTTPException(status_code=500, detail="Campaign structure generation failed")

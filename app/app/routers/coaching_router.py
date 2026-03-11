@@ -151,7 +151,7 @@ async def generate_growth_plan(
 
     db.commit()
     log_activity(db, current_user.clinic_id, "coaching", "growth_plan_generated",
-                 {"target_user": target.full_name, "total_calls": perf["total_calls"], "avg_score": perf["avg_score"]},
+                 {"target_user": target.full_name, "total_calls": perf["total_calls"], "avg_score": perf["avg_score"], "output": growth},
                  current_user.email)
     return growth
 

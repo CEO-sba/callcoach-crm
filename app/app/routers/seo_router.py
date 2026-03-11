@@ -193,9 +193,10 @@ Format as JSON with sections as keys."""
             system=WRITING_QUALITY_DIRECTIVE.strip(),
             messages=[{"role": "user", "content": prompt}]
         )
+        output = {"optimization_plan": response.content[0].text}
         log_activity(db, current_user.clinic_id, "content", "gmb_optimization_generated",
-                     {"clinic": clinic.name if clinic else "unknown"}, current_user.email)
-        return {"optimization_plan": response.content[0].text}
+                     {"clinic": clinic.name if clinic else "unknown", "output": output}, current_user.email)
+        return output
     except Exception as e:
         logger.error(f"GMB optimization failed: {e}")
         raise HTTPException(status_code=500, detail="GMB optimization failed")
@@ -249,13 +250,15 @@ Format as JSON array: [{{title, content, cta_type, suggested_image_description}}
                 ai_text = ai_text[4:]
             ai_text = ai_text.strip()
         posts = _json.loads(ai_text)
+        output = {"posts": posts}
         log_activity(db, current_user.clinic_id, "content", "gmb_posts_generated",
-                     {"num_posts": num_posts}, current_user.email)
-        return {"posts": posts}
+                     {"num_posts": num_posts, "output": output}, current_user.email)
+        return output
     except _json.JSONDecodeError:
+        output = {"posts": response.content[0].text}
         log_activity(db, current_user.clinic_id, "content", "gmb_posts_generated",
-                     {"num_posts": num_posts, "parse_fallback": True}, current_user.email)
-        return {"posts": response.content[0].text}
+                     {"num_posts": num_posts, "parse_fallback": True, "output": output}, current_user.email)
+        return output
     except Exception as e:
         raise HTTPException(status_code=500, detail="Post generation failed")
 
@@ -310,9 +313,10 @@ Format as JSON with each section as a key. Include actionable, specific recommen
             system=WRITING_QUALITY_DIRECTIVE.strip(),
             messages=[{"role": "user", "content": prompt}]
         )
+        output = {"audit": response.content[0].text}
         log_activity(db, current_user.clinic_id, "content", "seo_audit_generated",
-                     {"website": data.website_url, "keywords": data.focus_keywords}, current_user.email)
-        return {"audit": response.content[0].text}
+                     {"website": data.website_url, "keywords": data.focus_keywords, "output": output}, current_user.email)
+        return output
     except Exception as e:
         raise HTTPException(status_code=500, detail="SEO audit failed")
 
@@ -415,9 +419,10 @@ Format as JSON."""
             system=WRITING_QUALITY_DIRECTIVE.strip(),
             messages=[{"role": "user", "content": prompt}]
         )
+        output = {"ideas": response.content[0].text}
         log_activity(db, current_user.clinic_id, "content", "backlink_ideas_generated",
-                     {"clinic": clinic.name if clinic else "unknown"}, current_user.email)
-        return {"ideas": response.content[0].text}
+                     {"clinic": clinic.name if clinic else "unknown", "output": output}, current_user.email)
+        return output
     except Exception as e:
         raise HTTPException(status_code=500, detail="Backlink idea generation failed")
 
@@ -469,9 +474,10 @@ Keep responses focused and practical."""
             system=enhance_system_prompt(system_prompt),
             messages=[{"role": "user", "content": data.message}]
         )
+        output = {"response": response.content[0].text}
         log_activity(db, current_user.clinic_id, "content", "seo_coach_query",
-                     {"query": data.message[:100]}, current_user.email)
-        return {"response": response.content[0].text}
+                     {"query": data.message[:100], "output": output}, current_user.email)
+        return output
     except Exception as e:
         logger.error(f"SEO coach failed: {e}")
         raise HTTPException(status_code=500, detail="SEO coach failed")
@@ -527,8 +533,9 @@ Format as JSON."""
             system=WRITING_QUALITY_DIRECTIVE.strip(),
             messages=[{"role": "user", "content": prompt}]
         )
+        output = {"keywords": response.content[0].text}
         log_activity(db, current_user.clinic_id, "content", "keyword_research_generated",
-                     {"procedures": procedures, "location": location}, current_user.email)
-        return {"keywords": response.content[0].text}
+                     {"procedures": procedures, "location": location, "output": output}, current_user.email)
+        return output
     except Exception as e:
         raise HTTPException(status_code=500, detail="Keyword research failed")

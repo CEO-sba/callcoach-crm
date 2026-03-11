@@ -151,7 +151,7 @@ Format as JSON array."""
         result = _call_claude(prompt, 4000)
         parsed = _parse_json_response(result)
         log_activity(db, current_user.clinic_id, "script_generation", "meta_video_scripts_generated",
-                     {"procedure": procedure, "language": language, "num_scripts": num_scripts, "script_type": script_type},
+                     {"procedure": procedure, "language": language, "num_scripts": num_scripts, "script_type": script_type, "output": {"scripts": parsed, "count": num_scripts}},
                      current_user.email)
         return {"scripts": parsed, "count": num_scripts}
     except Exception as e:
@@ -207,7 +207,7 @@ Format as JSON array. Make each variation distinctly different in approach."""
         result = _call_claude(prompt, 3000)
         parsed = _parse_json_response(result)
         log_activity(db, current_user.clinic_id, "script_generation", "meta_ad_copy_generated",
-                     {"procedure": procedure, "language": language, "num_variations": num_variations, "objective": campaign_objective},
+                     {"procedure": procedure, "language": language, "num_variations": num_variations, "objective": campaign_objective, "output": {"ad_copy": parsed, "count": num_variations}},
                      current_user.email)
         return {"ad_copy": parsed, "count": num_variations}
     except Exception as e:
@@ -264,7 +264,7 @@ Format as JSON array."""
         result = _call_claude(prompt, 4000)
         parsed = _parse_json_response(result)
         log_activity(db, current_user.clinic_id, "script_generation", "meta_image_prompts_generated",
-                     {"procedure": procedure, "num_prompts": num_prompts, "image_type": image_type},
+                     {"procedure": procedure, "num_prompts": num_prompts, "image_type": image_type, "output": {"prompts": parsed, "count": num_prompts}},
                      current_user.email)
         return {"prompts": parsed, "count": num_prompts}
     except Exception as e:
@@ -323,7 +323,7 @@ Format as JSON array."""
         result = _call_claude(prompt, 5000)
         parsed = _parse_json_response(result)
         log_activity(db, current_user.clinic_id, "script_generation", "meta_carousel_prompts_generated",
-                     {"procedure": procedure, "num_carousels": num_carousels, "carousel_type": carousel_type},
+                     {"procedure": procedure, "num_carousels": num_carousels, "carousel_type": carousel_type, "output": {"carousels": parsed, "count": num_carousels}},
                      current_user.email)
         return {"carousels": parsed, "count": num_carousels}
     except Exception as e:
@@ -367,6 +367,7 @@ SBA CORE PRINCIPLES YOU MUST FOLLOW:
    - NEVER recommend direct Meta lead forms as primary. They generate low-quality leads. Always recommend WhatsApp-first or progressive forms.
 
 2. CAMPAIGN STRUCTURE (SBA SOP):
+   - ONLY use Leads and Sales campaign objectives. Leads is the primary objective for 90% of campaigns. Sales can be used for retargeting high-intent audiences. NEVER recommend Awareness, Traffic, Engagement, or Reach as campaign objectives.
    - Separate campaigns by procedure category, not by audience
    - Use Advantage+ placements, let Meta optimize
    - Set campaign budget optimization (CBO) at campaign level
@@ -386,13 +387,13 @@ SBA CORE PRINCIPLES YOU MUST FOLLOW:
    - Hinglish scripts for North India, regional language for South India
 
 5. BUDGET ALLOCATION (SBA SOP):
-   - 70% on prospecting (cold audiences, WhatsApp click-to-chat)
-   - 20% on retargeting (video viewers, page visitors, form abandoners)
-   - 10% on brand awareness (reach campaigns for local area)
+   - 70% on prospecting (cold audiences, WhatsApp click-to-chat, Leads objective)
+   - 30% on retargeting (video viewers, page visitors, form abandoners, Sales objective)
+   - NEVER allocate budget to Awareness, Reach, Traffic, or Engagement campaigns
 
 Create a complete Meta Ads campaign strategy covering:
 
-1. campaign_structure: Array of campaigns with name, objective, daily_budget, procedures_covered, funnel_type (whatsapp_click/progressive_form/landing_page)
+1. campaign_structure: Array of campaigns with name, objective (ONLY 'Leads' or 'Sales' - never awareness/traffic/engagement), daily_budget, procedures_covered, funnel_type (whatsapp_click/progressive_form/landing_page)
 2. ad_set_strategy: Targeting for each ad set including age, gender, location radius, interest layers (if applicable), custom audiences, lookalike setup
 3. funnel_recommendation: Detailed funnel architecture explaining WhatsApp click-to-chat as primary, progressive forms as secondary, and when to use Google landing pages. Include WhatsApp auto-reply setup notes.
 4. creative_mix: Exact split with specific creative types for each campaign
@@ -412,7 +413,7 @@ Format as JSON object with each section as a key."""
         result = _call_claude(prompt, 6000)
         parsed = _parse_json_response(result)
         log_activity(db, current_user.clinic_id, "ads", "meta_campaign_strategy_generated",
-                     {"procedures": procedures, "budget": budget, "goals": goals, "location": location},
+                     {"procedures": procedures, "budget": budget, "goals": goals, "location": location, "output": {"strategy": parsed}},
                      current_user.email)
         return {"strategy": parsed}
     except Exception as e:
@@ -515,7 +516,7 @@ Format as JSON object."""
         result = _call_claude(prompt, 5000)
         parsed = _parse_json_response(result)
         log_activity(db, current_user.clinic_id, "ads", "meta_retargeting_plan_generated",
-                     {"procedure": procedure, "budget": monthly_budget, "location": location},
+                     {"procedure": procedure, "budget": monthly_budget, "location": location, "output": {"plan": parsed}},
                      current_user.email)
         return {"plan": parsed}
     except Exception as e:

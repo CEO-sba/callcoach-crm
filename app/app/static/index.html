@@ -1553,7 +1553,7 @@ const CoachingPage = () => {
                             <p style={{fontSize:14}}>Generate a personalized AI growth plan based on your recent call performance.</p>
                         </div>
                     )}
-                    <GenerationHistory endpoint="coaching" filterAction="growth_plan"/>
+                    <GenerationHistory endpoint="coaching" filterAction="growth_plan" onRestore={(o)=>setGrowthPlan(o)}/>
                 </div>
             )}
         </div>
@@ -4233,7 +4233,7 @@ const DeepRender = ({data, depth=0}) => {
 };
 
 // ============ SHARED GENERATION HISTORY PANEL ============
-const GenerationHistory = ({endpoint, filterAction}) => {
+const GenerationHistory = ({endpoint, filterAction, onRestore}) => {
     const [history, setHistory] = useState([]);
     const [showHistory, setShowHistory] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -4249,6 +4249,12 @@ const GenerationHistory = ({endpoint, filterAction}) => {
         setLoading(false);
     };
 
+    const handleRestore = (h) => {
+        if (h.details?.output && onRestore) {
+            onRestore(h.details.output);
+        }
+    };
+
     return (
         <div style={{marginTop:16}}>
             <button onClick={loadHistory} style={{background:'none',border:'1px solid var(--border)',borderRadius:8,padding:'6px 14px',color:'var(--text-muted)',fontSize:12,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
@@ -4257,8 +4263,9 @@ const GenerationHistory = ({endpoint, filterAction}) => {
             {showHistory && history.length > 0 && (
                 <div style={{marginTop:10,maxHeight:300,overflowY:'auto',border:'1px solid var(--border)',borderRadius:10,padding:12}}>
                     {history.map((h,i) => (
-                        <div key={i} style={{padding:'8px 0',borderBottom:i<history.length-1?'1px solid rgba(255,255,255,0.04)':'none',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                            <div>
+                        <div key={i} onClick={()=>handleRestore(h)} style={{padding:'8px 0',borderBottom:i<history.length-1?'1px solid rgba(255,255,255,0.04)':'none',display:'flex',justifyContent:'space-between',alignItems:'center',cursor:h.details?.output?'pointer':'default',borderRadius:6,paddingLeft:6,paddingRight:6,transition:'background 0.15s'}} onMouseEnter={e=>{if(h.details?.output)e.currentTarget.style.background='rgba(212,175,55,0.08)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
+                            <div style={{display:'flex',alignItems:'center',gap:6}}>
+                                {h.details?.output && <span style={{fontSize:10,color:'var(--gold)'}}>&#9654;</span>}
                                 <span style={{fontSize:12,fontWeight:600,color:'var(--text-primary)'}}>{(h.action||'').replace(/_/g,' ').replace('meta ','').replace('google ','')}</span>
                                 {h.details?.procedure && <span style={{fontSize:11,color:'var(--text-muted)',marginLeft:8}}>({h.details.procedure})</span>}
                                 {h.details?.language && <span style={{fontSize:10,color:'var(--gold)',marginLeft:6,background:'rgba(212,175,55,0.1)',padding:'1px 6px',borderRadius:3}}>{h.details.language}</span>}
@@ -4354,7 +4361,7 @@ const MetaAdsPage = () => {
                         </div>
                     </div>
                     {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Scripts</h3><DeepRender data={result.scripts}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('video-scripts',null,changes)}/></div>}
-                    <GenerationHistory endpoint="meta-content" filterAction="video_scripts"/>
+                    <GenerationHistory endpoint="meta-content" filterAction="video_scripts" onRestore={(o)=>setResult(o)}/>
                 </div>
             )}
 
@@ -4366,7 +4373,7 @@ const MetaAdsPage = () => {
                             <StableInput label="Procedure" value={form.procedure} onChange={e=>updateForm('procedure',e.target.value)} placeholder="e.g. Botox"/>
                             <StableInput label="Target Audience" value={form.target_audience} onChange={e=>updateForm('target_audience',e.target.value)} placeholder="women 30-50"/>
                             <StableSelect label="Language" value={form.language} onChange={e=>updateForm('language',e.target.value)} options={['English','Hinglish','Hindi']}/>
-                            <StableSelect label="Objective" value={form.campaign_objective} onChange={e=>updateForm('campaign_objective',e.target.value)} options={[{value:'lead_generation',label:'Lead Generation'},{value:'awareness',label:'Brand Awareness'},{value:'traffic',label:'Website Traffic'},{value:'engagement',label:'Engagement'}]}/>
+                            <StableSelect label="Objective" value={form.campaign_objective} onChange={e=>updateForm('campaign_objective',e.target.value)} options={[{value:'lead_generation',label:'Leads'},{value:'sales',label:'Sales'}]}/>
                         </div>
                         <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
                             <StableInput label="Offer" value={form.offer} onChange={e=>updateForm('offer',e.target.value)} placeholder="20% off first visit"/>
@@ -4376,7 +4383,7 @@ const MetaAdsPage = () => {
                         </div>
                     </div>
                     {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Ad Copy</h3><DeepRender data={result.ad_copy}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('ad-copy',null,changes)}/></div>}
-                    <GenerationHistory endpoint="meta-content" filterAction="ad_copy"/>
+                    <GenerationHistory endpoint="meta-content" filterAction="ad_copy" onRestore={(o)=>setResult(o)}/>
                 </div>
             )}
 
@@ -4394,7 +4401,7 @@ const MetaAdsPage = () => {
                         <button className="btn btn-gold" onClick={()=>generate('image-prompts')} disabled={loading} style={{minWidth:160}}>{loading?'Generating...':'Generate Image Prompts'}</button>
                     </div>
                     {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Image Prompts (with Usage Guides)</h3><DeepRender data={result.prompts}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('image-prompts',null,changes)}/></div>}
-                    <GenerationHistory endpoint="meta-content" filterAction="image_prompts"/>
+                    <GenerationHistory endpoint="meta-content" filterAction="image_prompts" onRestore={(o)=>setResult(o)}/>
                 </div>
             )}
 
@@ -4412,7 +4419,7 @@ const MetaAdsPage = () => {
                         <button className="btn btn-gold" onClick={()=>generate('carousel-prompts')} disabled={loading} style={{minWidth:160}}>{loading?'Generating...':'Generate Carousels'}</button>
                     </div>
                     {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Carousels (with Design Guide)</h3><DeepRender data={result.carousels}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('carousel-prompts',null,changes)}/></div>}
-                    <GenerationHistory endpoint="meta-content" filterAction="carousel"/>
+                    <GenerationHistory endpoint="meta-content" filterAction="carousel" onRestore={(o)=>setResult(o)}/>
                 </div>
             )}
 
@@ -4429,7 +4436,7 @@ const MetaAdsPage = () => {
                         <button className="btn btn-gold" onClick={()=>generate('campaign-strategy',{procedures:form.procedures?form.procedures.split(',').map(s=>s.trim()):[form.procedure||'aesthetic treatments'],monthly_budget:form.monthly_budget,location:form.location,goals:'lead generation and brand awareness'})} disabled={loading} style={{minWidth:180}}>{loading?'Generating...':'Generate Strategy'}</button>
                     </div>
                     {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Campaign Strategy</h3><DeepRender data={result.strategy}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('campaign-strategy',{procedures:form.procedures?form.procedures.split(',').map(s=>s.trim()):[form.procedure||'aesthetic treatments'],monthly_budget:form.monthly_budget,location:form.location,goals:'lead generation and brand awareness'},changes)}/></div>}
-                    <GenerationHistory endpoint="meta-content" filterAction="strategy"/>
+                    <GenerationHistory endpoint="meta-content" filterAction="strategy" onRestore={(o)=>setResult(o)}/>
                 </div>
             )}
 
@@ -4452,7 +4459,7 @@ const MetaAdsPage = () => {
                         <button className="btn btn-gold" onClick={()=>generate('retargeting-plan',{procedure:form.procedure||'aesthetic treatments',monthly_budget:form.retarget_budget,location:form.location,language:form.language,pixel_installed:form.pixel_installed,website_traffic:form.website_traffic,current_campaigns:form.current_campaigns})} disabled={loading} style={{minWidth:180}}>{loading?'Generating...':'Generate Retargeting Plan'}</button>
                     </div>
                     {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Retargeting Plan</h3><DeepRender data={result.plan}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('retargeting-plan',{procedure:form.procedure||'aesthetic treatments',monthly_budget:form.retarget_budget,location:form.location,language:form.language,pixel_installed:form.pixel_installed,website_traffic:form.website_traffic,current_campaigns:form.current_campaigns},changes)}/></div>}
-                    <GenerationHistory endpoint="meta-content" filterAction="retargeting"/>
+                    <GenerationHistory endpoint="meta-content" filterAction="retargeting" onRestore={(o)=>setResult(o)}/>
                 </div>
             )}
 
@@ -4537,7 +4544,7 @@ const GoogleAdsPage = () => {
                         <button className="btn btn-gold" onClick={()=>generate('generate-search-ads',{procedure:form.procedure,location:form.location,usp:form.usp,num_ads:parseInt(form.num_ads)||3})} disabled={loading}>{loading?'Generating...':'Generate Search Ads'}</button>
                     </div>
                     {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Search Ads</h3><DeepRender data={result.ads}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('generate-search-ads',{procedure:form.procedure,location:form.location,usp:form.usp,num_ads:parseInt(form.num_ads)||3},changes)}/></div>}
-                    <GenerationHistory endpoint="google-ads" filterAction="search_ads"/>
+                    <GenerationHistory endpoint="google-ads" filterAction="search_ads" onRestore={(o)=>setResult(o)}/>
                 </div>
             )}
 
@@ -4552,7 +4559,7 @@ const GoogleAdsPage = () => {
                         <button className="btn btn-gold" onClick={()=>generate('generate-keywords',{procedures:form.procedures?form.procedures.split(',').map(s=>s.trim()):[form.procedure||'aesthetic treatment'],location:form.location})} disabled={loading}>{loading?'Generating...':'Generate Keywords'}</button>
                     </div>
                     {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Keyword Research</h3><DeepRender data={result.keywords}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('generate-keywords',{procedures:form.procedures?form.procedures.split(',').map(s=>s.trim()):[form.procedure||'aesthetic treatment'],location:form.location},changes)}/></div>}
-                    <GenerationHistory endpoint="google-ads" filterAction="keywords"/>
+                    <GenerationHistory endpoint="google-ads" filterAction="keywords" onRestore={(o)=>setResult(o)}/>
                 </div>
             )}
 
@@ -4567,7 +4574,7 @@ const GoogleAdsPage = () => {
                         <button className="btn btn-gold" onClick={()=>generate('generate-landing-page',{procedure:form.procedure,doctor_name:form.doctor_name})} disabled={loading}>{loading?'Generating...':'Generate Landing Page Copy'}</button>
                     </div>
                     {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Landing Page Copy</h3><DeepRender data={result.landing_page}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('generate-landing-page',{procedure:form.procedure,doctor_name:form.doctor_name},changes)}/></div>}
-                    <GenerationHistory endpoint="google-ads" filterAction="landing_page"/>
+                    <GenerationHistory endpoint="google-ads" filterAction="landing_page" onRestore={(o)=>setResult(o)}/>
                 </div>
             )}
 
@@ -4583,7 +4590,7 @@ const GoogleAdsPage = () => {
                         <button className="btn btn-gold" onClick={()=>generate('generate-campaign-structure',{procedures:form.procedures?form.procedures.split(',').map(s=>s.trim()):[form.procedure||'aesthetic treatments'],monthly_budget:form.monthly_budget,location:form.location})} disabled={loading}>{loading?'Generating...':'Generate Structure'}</button>
                     </div>
                     {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Campaign Structure</h3><DeepRender data={result.structure}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('generate-campaign-structure',{procedures:form.procedures?form.procedures.split(',').map(s=>s.trim()):[form.procedure||'aesthetic treatments'],monthly_budget:form.monthly_budget,location:form.location},changes)}/></div>}
-                    <GenerationHistory endpoint="google-ads" filterAction="campaign_structure"/>
+                    <GenerationHistory endpoint="google-ads" filterAction="campaign_structure" onRestore={(o)=>setResult(o)}/>
                 </div>
             )}
 
@@ -4773,7 +4780,7 @@ const SocialSchedulingPage = () => {
                     ) : (
                         <p style={{textAlign:'center',padding:30,color:'var(--text-muted)',fontSize:13}}>Generate AI-powered content ideas based on your clinic data and patient insights.</p>
                     )}
-                    <GenerationHistory endpoint="social" filterAction="content_ideas"/>
+                    <GenerationHistory endpoint="social" filterAction="content_ideas" onRestore={(o)=>setAiIdeas(o.ideas||'')}/>
                 </div>
             )}
 
@@ -4965,7 +4972,7 @@ const SEOPage = () => {
                             <RegenerateWithChanges loading={auditLoading} onRegenerate={(changes)=>runAudit(changes)}/>
                         </div>
                     )}
-                    <GenerationHistory endpoint="seo" filterAction="seo_audit"/>
+                    <GenerationHistory endpoint="seo" filterAction="seo_audit" onRestore={(o)=>setAuditResult(o.audit||'')}/>
                 </div>
             )}
 
@@ -5042,7 +5049,7 @@ const SEOPage = () => {
                             </div>
                         </div>
                     </div>
-                    <GenerationHistory endpoint="seo" filterAction="gmb"/>
+                    <GenerationHistory endpoint="seo" filterAction="gmb" onRestore={(o)=>{if(o.optimization_plan)setGmbPlan(o.optimization_plan);if(o.posts)setGmbPosts(o.posts);}}/>
                 </div>
             )}
 
@@ -5062,7 +5069,7 @@ const SEOPage = () => {
                     ) : (
                         <p style={{textAlign:'center',padding:30,color:'var(--text-muted)',fontSize:13}}>Click "Research Keywords" to get AI-powered keyword research for your clinic's procedures and location.</p>
                     )}
-                    <GenerationHistory endpoint="seo" filterAction="keyword_research"/>
+                    <GenerationHistory endpoint="seo" filterAction="keyword_research" onRestore={(o)=>setKeywords(o.keywords||'')}/>
                 </div>
             )}
 
@@ -5109,7 +5116,7 @@ const SEOPage = () => {
                             <RegenerateWithChanges loading={blLoading} onRegenerate={(changes)=>getBlIdeas(changes)}/>
                         </div>
                     )}
-                    <GenerationHistory endpoint="seo" filterAction="backlink_ideas"/>
+                    <GenerationHistory endpoint="seo" filterAction="backlink_ideas" onRestore={(o)=>setBlIdeas(o.ideas||'')}/>
                 </div>
             )}
 

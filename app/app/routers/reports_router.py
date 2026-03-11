@@ -204,7 +204,8 @@ async def manually_generate_report(
                   "avg_score": report_data["avg_score"],
                   "conversion_rate": report_data["conversion_rate"],
                   "top_agent": report_data.get("best_agent_name", "N/A"),
-                  "status": "created" if created else "updated"},
+                  "status": "created" if created else "updated",
+                  "output": report_data},
                  current_user.email, related_id=report_record.id, related_type="weekly_report")
 
     return {
