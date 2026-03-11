@@ -569,3 +569,96 @@ class FinanceRecord(Base):
 
     # Relationships
     clinic = relationship("Clinic", backref="finance_records")
+
+
+# ============================================================================
+# MISSING MODELS & ALIASES FOR V2.1 ROUTERS
+# ============================================================================
+
+import enum
+
+class ConversationPlatform(str, enum.Enum):
+    WHATSAPP = "whatsapp"
+    EMAIL = "email"
+    SMS = "sms"
+    INSTAGRAM = "instagram"
+    FACEBOOK = "facebook"
+    LINKEDIN = "linkedin"
+    X = "x"
+    SNAPCHAT = "snapchat"
+
+# Aliases for inbox_router.py compatibility
+Conversation = UnifiedConversation
+ConversationMessage = UnifiedMessage
+
+
+# ============================================================================
+# CONSULTATION TRANSCRIPTION & ANALYSIS (consultations_router.py)
+# ============================================================================
+
+class ConsultationTranscription(Base):
+    __tablename__ = "consultation_transcriptions"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    consultation_id = Column(String, ForeignKey("video_consultations.id"), nullable=False)
+    content = Column(Text)
+    language = Column(String(10), default="en")
+    duration_seconds = Column(Integer)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    consultation = relationship("VideoConsultation", backref="transcriptions")
+
+
+class ConsultationAnalysis(Base):
+    __tablename__ = "consultation_analyses"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    consultation_id = Column(String, ForeignKey("video_consultations.id"), nullable=False)
+    summary = Column(Text)
+    key_concerns = Column(JSON, default=list)
+    recommended_procedures = Column(JSON, default=list)
+    follow_up_actions = Column(JSON, default=list)
+    sentiment_score = Column(Float)
+    ai_notes = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    consultation = relationship("VideoConsultation", backref="analyses")
+
+
+# ============================================================================
+# PATIENT PROCEDURE HISTORY (operations_router.py)
+# ============================================================================
+
+class PatientProcedureHistory(Base):
+    __tablename__ = "patient_procedure_history"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    patient_id = Column(String, ForeignKey("patient_records.id"), nullable=False)
+    clinic_id = Column(String, ForeignKey("clinics.id"), nullable=False)
+    procedure_name = Column(String(200), nullable=False)
+    procedure_date = Column(DateTime, nullable=False)
+    doctor_name = Column(String(200))
+    notes = Column(Text)
+    cost = Column(Float)
+    outcome = Column(String(100))  # successful, follow_up_needed, complications
+    before_photos = Column(JSON, default=list)
+    after_photos = Column(JSON, default=list)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    patient = relationship("PatientRecord", backref="procedure_history")
+
+
+# ============================================================================
+# GENERATED CONTENT / AI CONTENT (marketing_router.py)
+# ============================================================================
+
+# Alias for marketing_router.py compatibility
+GeneratedContent = AIContentGeneration
+
+
+# ============================================================================
+# LEGAL DOCUMENT (legal_finance_router.py)
+# ============================================================================
+
+# Alias for legal_finance_router.py compatibility
+LegalDocument = ClinicDocument
