@@ -263,7 +263,7 @@ class NurtureEnrollment(Base):
     next_send_at = Column(DateTime)
 
     # Personalization data
-    metadata = Column(JSON, default=dict)  # {name, procedure, clinic_name, doctor_name, booking_link, phone}
+    personalization_data = Column(JSON, default=dict)  # {name, procedure, clinic_name, doctor_name, booking_link, phone}
 
     enrolled_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime)

@@ -54,7 +54,7 @@ def enroll_lead_in_sequence(
         current_step=0,
         status="active",
         next_send_at=next_send,
-        metadata=metadata or {}
+        personalization_data=metadata or {}
     )
     db.add(enrollment)
     db.commit()
@@ -128,7 +128,7 @@ async def _process_single_enrollment(db: Session, enrollment: NurtureEnrollment)
         return
 
     # Prepare message
-    message_text = _fill_template(step.message_template, enrollment.metadata or {})
+    message_text = _fill_template(step.message_template, enrollment.personalization_data or {})
 
     # If AI-generated, personalize with Claude
     if step.is_ai_generated:
