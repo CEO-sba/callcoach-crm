@@ -95,6 +95,11 @@ app.include_router(hr_mis_router.router)
 from app.routers import activity_router
 app.include_router(activity_router.router)
 
+# v2.5 - Telephony & Contact Notes
+from app.routers import telephony_router, contact_notes_router
+app.include_router(telephony_router.router)
+app.include_router(contact_notes_router.router)
+
 # Static files (frontend)
 static_dir = Path(__file__).parent / "static"
 if static_dir.exists():

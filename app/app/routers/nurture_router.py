@@ -376,6 +376,7 @@ LANGUAGE: {language}
 REQUIREMENTS:
 - Generate EXACTLY 60 messages spread over 12 months (365 days)
 - Messages should be sent via WhatsApp, so keep them concise (max 300 characters each)
+- CRITICAL TONE RULE: Write like a real human, NOT like an AI. Messages should feel like they come from a friendly clinic coordinator, not a marketing bot. Use casual language, short sentences, natural pauses. Avoid overly polished or corporate-sounding phrases. No "I hope this message finds you well" or "We are delighted to inform you" type language. Think WhatsApp chat, not email newsletter.
 - Use these placeholders in messages: {{name}}, {{procedure}}, {{clinic_name}}, {{doctor_name}}, {{booking_link}}, {{phone}}
 - Message schedule distribution:
   * Month 1 (Days 1-30): 10 messages (high frequency for warm leads)

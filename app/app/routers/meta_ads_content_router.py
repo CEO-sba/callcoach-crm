@@ -129,10 +129,12 @@ Generate {num_scripts} video ad scripts. Each script should be:
 
 1. Written for {script_type} format (talking_head = doctor speaking to camera, testimonial = patient story, educational = teaching about procedure, before_after = transformation story)
 2. 30-60 seconds long when spoken naturally
-3. In {language} (if Hinglish, use natural conversational Hinglish in Roman script)
+3. In {language} (if Hinglish, use natural conversational Hinglish in Roman script that sounds like a real person talking, not translated text. Use common Hindi words mixed with English naturally, the way urban Indians actually speak.)
 4. Follow the AIDA framework: Attention hook (first 3 seconds), Interest (problem/pain point), Desire (solution/transformation), Action (clear CTA)
 5. Include stage directions in [brackets]
 6. Include text overlay suggestions in {{curly braces}}
+7. CRITICAL: The script must sound HUMAN and CONVERSATIONAL, not like a corporate ad. Use pauses, natural sentence breaks, and the way a doctor or patient would actually speak. Avoid advertising clichés like "world-class", "state-of-the-art", "premium quality". Instead use specific, tangible details about the procedure and outcomes.
+8. Each script must have a DIFFERENT angle and hook. Do not repeat the same structure across scripts.
 
 For each script provide:
 - script_number

@@ -19,7 +19,7 @@ from app.auth import get_current_user
 from app.config import UPLOAD_DIR, ALLOWED_AUDIO_EXTENSIONS
 from app.services.transcription import transcribe_audio, get_transcription_status
 from app.services.ai_coach import analyze_call
-from app.services.storage import upload_recording, get_recording_url, get_local_path_for_transcription
+from app.services.storage import upload_recording as storage_upload_recording, get_recording_url, get_local_path_for_transcription
 from app.services.activity_logger import log_activity
 
 logger = logging.getLogger(__name__)
@@ -403,7 +403,7 @@ async def record_call(
         ".wav": "audio/wav", ".m4a": "audio/mp4", ".flac": "audio/flac",
         ".aac": "audio/aac", ".mp4": "audio/mp4",
     }
-    recording_path = upload_recording(
+    recording_path = storage_upload_recording(
         file_content=content,
         clinic_id=current_user.clinic_id,
         call_id=call.id,
@@ -483,7 +483,7 @@ async def upload_recording(
         ".wav": "audio/wav", ".m4a": "audio/mp4", ".flac": "audio/flac",
         ".aac": "audio/aac", ".mp4": "audio/mp4",
     }
-    recording_path = upload_recording(
+    recording_path = storage_upload_recording(
         file_content=content,
         clinic_id=current_user.clinic_id,
         call_id=call_id,
@@ -798,3 +798,50 @@ async def ask_coach(
                  {"call_id": call_id, "question": body.question[:200]},
                  current_user.email)
     return result
+
+
+# ---------------------------------------------------------------------------
+# Manual Call Logging (no recording required)
+# ---------------------------------------------------------------------------
+
+@router.post("/manual-log")
+async def manual_log_call(
+    data: dict = Body(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Manually log a call without a recording. For tracking calls that were not recorded."""
+    import uuid
+
+    call = Call(
+        id=str(uuid.uuid4()),
+        clinic_id=current_user.clinic_id,
+        caller_name=data.get("caller_name", "Unknown"),
+        caller_phone=data.get("caller_phone", ""),
+        caller_email=data.get("caller_email", ""),
+        call_type=data.get("call_type", "inbound"),
+        call_date=datetime.fromisoformat(data["call_date"]) if data.get("call_date") else datetime.utcnow(),
+        duration_seconds=data.get("duration_seconds", 0),
+        ai_summary=data.get("summary", ""),
+        ai_sentiment=data.get("sentiment", "neutral"),
+        ai_intent=data.get("intent", ""),
+        transcription_status="manual",
+        transcription="[Manually logged call]",
+        overall_score=None,
+    )
+    db.add(call)
+
+    # Add a note if provided
+    if data.get("notes"):
+        note = CallNote(
+            call_id=call.id,
+            content=data["notes"],
+            author=current_user.email,
+        )
+        db.add(note)
+
+    db.commit()
+    log_activity(db, current_user.clinic_id, "calls", "manual_call_logged",
+                 {"caller_name": call.caller_name, "call_type": call.call_type},
+                 current_user.email)
+    return {"message": "Call logged successfully", "id": call.id, "caller_name": call.caller_name}

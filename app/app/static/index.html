@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SBA CRM | Clinic Growth Operating System | Skin Business Accelerator</title>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
@@ -65,6 +69,8 @@
         .input:focus { border-color: var(--gold); background: rgba(255,255,255,0.06); box-shadow: 0 0 0 3px rgba(232,135,37,0.08); }
         .input::placeholder { color: var(--text-muted); }
         select.input { cursor: pointer; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394A3B8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+        select.input option { background: #1A1A1A; color: var(--text-primary); padding: 8px 12px; }
+        select.input option:hover, select.input option:checked { background: #2A2A2A; }
         textarea.input { resize: vertical; min-height: 80px; }
 
         /* Score Ring */
@@ -313,6 +319,11 @@ const Icons = {
     legal: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15h6"/></svg>,
     social: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>,
     calendar: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>,
+    copy: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>,
+    phone: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>,
+    note: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>,
+    bell: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>,
+    trash: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>,
 };
 
 // ============ ERROR BOUNDARY ============
@@ -554,7 +565,25 @@ const DashboardPage = () => {
 const CallsPage = ({ onSelect, onRecord }) => {
     const [calls, setCalls] = useState([]);
     const [search, setSearch] = useState('');
-    useEffect(() => { apiFetch('/calls').then(setCalls).catch(()=>{}); }, []);
+    const [showManualLog, setShowManualLog] = useState(false);
+    const [manualForm, setManualForm] = useState({caller_name:'',caller_phone:'',caller_email:'',call_type:'inbound',duration_seconds:0,summary:'',sentiment:'neutral',intent:'',notes:''});
+    const [saving, setSaving] = useState(false);
+
+    const loadCalls = () => apiFetch('/calls').then(setCalls).catch(()=>{});
+    useEffect(loadCalls, []);
+
+    const submitManualLog = async () => {
+        if (!manualForm.caller_name && !manualForm.caller_phone) { alert('Please enter a caller name or phone number.'); return; }
+        setSaving(true);
+        try {
+            await apiFetch('/calls/manual-log', {method:'POST', body:manualForm});
+            setManualForm({caller_name:'',caller_phone:'',caller_email:'',call_type:'inbound',duration_seconds:0,summary:'',sentiment:'neutral',intent:'',notes:''});
+            setShowManualLog(false);
+            loadCalls();
+        } catch(e) { alert('Failed to log call: '+(e.message||'Please try again')); }
+        finally { setSaving(false); }
+    };
+
     const filtered = calls.filter(c => !search || (c.caller_name||'').toLowerCase().includes(search.toLowerCase()) || (c.ai_intent||'').toLowerCase().includes(search.toLowerCase()));
     return (
         <div className="fade-in">
@@ -562,9 +591,43 @@ const CallsPage = ({ onSelect, onRecord }) => {
                 <div><h1 style={{fontSize:24,fontWeight:700}}>Call Log</h1><p style={{color:'var(--text-muted)',fontSize:14,marginTop:4}}>{calls.length} total recordings</p></div>
                 <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
                     <div style={{position:'relative',flex:'1 1 180px'}}><span style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:'var(--text-muted)'}}>{Icons.search}</span><input className="input" style={{paddingLeft:36,width:'100%'}} placeholder="Search calls..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
+                    <button className="btn btn-ghost" onClick={()=>setShowManualLog(!showManualLog)}>{Icons.plus}<span>Log Call</span></button>
                     <button className="btn btn-gold" onClick={onRecord}>{Icons.mic}<span>Record Call</span></button>
                 </div>
             </div>
+
+            {showManualLog && (
+                <div className="glass" style={{padding:24,borderRadius:12,marginBottom:20}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                        <h3 style={{fontSize:15,fontWeight:600}}>Manually Log a Call</h3>
+                        <button className="btn btn-ghost btn-sm" onClick={()=>setShowManualLog(false)} style={{fontSize:18,padding:'2px 8px'}}>&times;</button>
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:14}}>
+                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Caller Name *</label><input className="input" value={manualForm.caller_name} onChange={e=>setManualForm({...manualForm,caller_name:e.target.value})} placeholder="Patient name"/></div>
+                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Phone Number</label><input className="input" value={manualForm.caller_phone} onChange={e=>setManualForm({...manualForm,caller_phone:e.target.value})} placeholder="+91 98765 43210"/></div>
+                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Email</label><input className="input" type="email" value={manualForm.caller_email} onChange={e=>setManualForm({...manualForm,caller_email:e.target.value})} placeholder="patient@email.com"/></div>
+                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Call Type</label>
+                            <select className="input" value={manualForm.call_type} onChange={e=>setManualForm({...manualForm,call_type:e.target.value})}>
+                                <option value="inbound">Inbound</option><option value="outbound">Outbound</option><option value="follow_up">Follow-up</option>
+                            </select>
+                        </div>
+                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Duration (minutes)</label><input className="input" type="number" min="0" value={Math.floor(manualForm.duration_seconds/60)} onChange={e=>setManualForm({...manualForm,duration_seconds:(parseInt(e.target.value)||0)*60})} placeholder="5"/></div>
+                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Sentiment</label>
+                            <select className="input" value={manualForm.sentiment} onChange={e=>setManualForm({...manualForm,sentiment:e.target.value})}>
+                                <option value="positive">Positive</option><option value="neutral">Neutral</option><option value="negative">Negative</option><option value="mixed">Mixed</option>
+                            </select>
+                        </div>
+                        <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Intent / Outcome</label><input className="input" value={manualForm.intent} onChange={e=>setManualForm({...manualForm,intent:e.target.value})} placeholder="e.g. booking, enquiry, complaint"/></div>
+                    </div>
+                    <div style={{marginTop:14}}><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Call Summary</label><textarea className="input" rows={2} value={manualForm.summary} onChange={e=>setManualForm({...manualForm,summary:e.target.value})} placeholder="Brief summary of what was discussed..." style={{width:'100%',resize:'vertical'}}/></div>
+                    <div style={{marginTop:10}}><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Notes</label><textarea className="input" rows={2} value={manualForm.notes} onChange={e=>setManualForm({...manualForm,notes:e.target.value})} placeholder="Additional notes, follow-up actions..." style={{width:'100%',resize:'vertical'}}/></div>
+                    <div style={{display:'flex',gap:10,marginTop:16}}>
+                        <button className="btn btn-gold" onClick={submitManualLog} disabled={saving}>{saving ? 'Saving...' : 'Log Call'}</button>
+                        <button className="btn btn-ghost" onClick={()=>setShowManualLog(false)}>Cancel</button>
+                    </div>
+                </div>
+            )}
+
             {filtered.length === 0 ? (
                 <div className="glass" style={{padding:60,borderRadius:12,textAlign:'center'}}>
                     <div style={{fontSize:40,marginBottom:12,opacity:0.3}}>{Icons.calls}</div>
@@ -582,7 +645,8 @@ const CallsPage = ({ onSelect, onRecord }) => {
                                 <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2,display:'flex',gap:12,flexWrap:'wrap'}}>
                                     <span>{call.call_type || 'inbound'}</span>
                                     {call.duration_seconds > 0 && <span>{Math.floor(call.duration_seconds/60)}m {call.duration_seconds%60}s</span>}
-                                    <span>{new Date(call.call_date).toLocaleDateString()}</span>
+                                    <span>{new Date(call.call_date).toLocaleDateString('en-IN', {timeZone:'Asia/Kolkata'})} {new Date(call.call_date).toLocaleTimeString('en-IN', {timeZone:'Asia/Kolkata', hour:'2-digit', minute:'2-digit'})}</span>
+                                    {call.transcription_status === 'manual' && <span className="badge badge-gray" style={{fontSize:10}}>Manual</span>}
                                 </div>
                             </div>
                             <div style={{display:'flex',gap:8,alignItems:'center'}}>
@@ -614,21 +678,28 @@ const RecordCallPage = ({ onBack, onDone }) => {
     const startRecording = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-            mediaRec.current = new MediaRecorder(stream);
+            // Try preferred MIME types in order of compatibility
+            const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
+            let options = {};
+            for (const mt of mimeTypes) {
+                if (MediaRecorder.isTypeSupported(mt)) { options = {mimeType: mt}; break; }
+            }
+            mediaRec.current = new MediaRecorder(stream, options);
             chunks.current = [];
-            mediaRec.current.ondataavailable = e => chunks.current.push(e.data);
+            mediaRec.current.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.current.push(e.data); };
             mediaRec.current.start(1000);
             setRecording(true); setElapsed(0);
             timer.current = setInterval(()=>setElapsed(p=>p+1),1000);
-        } catch(e) { setError('Microphone access denied'); }
+        } catch(e) { setError('Recording failed: ' + (e.name === 'NotAllowedError' ? 'Microphone access denied. Please allow microphone access in browser settings and try again.' : e.name === 'NotFoundError' ? 'No microphone found. Please connect a microphone and try again.' : e.message || 'Unknown recording error. Please check your device settings.')); }
     };
 
     const stopAndUpload = async () => {
         return new Promise(resolve => {
             mediaRec.current.onstop = async () => {
                 clearInterval(timer.current); setRecording(false);
-                const blob = new Blob(chunks.current, {type:'audio/webm'});
-                await uploadAudio(blob);
+                const mimeType = mediaRec.current.mimeType || 'audio/webm';
+                const blob = new Blob(chunks.current, {type: mimeType});
+                await uploadAudio(blob, mimeType);
                 resolve();
             };
             mediaRec.current.stop();
@@ -636,16 +707,17 @@ const RecordCallPage = ({ onBack, onDone }) => {
         });
     };
 
-    const uploadAudio = async (blob) => {
+    const uploadAudio = async (blob, mimeType) => {
         setUploading(true); setStatus('Uploading...'); setError('');
         try {
+            const ext = (mimeType || blob.type || 'audio/webm').includes('mp4') ? '.mp4' : (mimeType || blob.type || '').includes('ogg') ? '.ogg' : '.webm';
             const fd = new FormData();
-            fd.append('file', blob, `recording_${Date.now()}.webm`);
+            fd.append('file', blob, `recording_${Date.now()}${ext}`);
             fd.append('caller_name', form.caller_name);
             fd.append('caller_phone', form.caller_phone);
             fd.append('call_type', form.call_type);
             const result = await fetch(`${API}/calls/record`, { method:'POST', headers:{'Authorization':`Bearer ${getToken()}`}, body:fd });
-            if (!result.ok) throw new Error('Upload failed');
+            if (!result.ok) { const errData = await result.json().catch(()=>({})); throw new Error(errData.detail || `Upload failed (${result.status}): Server could not process the audio file. Please try again or use a different format.`); }
             setStatus('Processing with AI...');
             const data = await result.json();
             let tries = 0;
@@ -751,8 +823,12 @@ const CallDetailPage = ({ callId, onBack }) => {
         setReanalyzing(true);
         try {
             const updated = await apiFetch(`/calls/${callId}/reanalyze`, {method:'POST'});
-            setCall(updated);
-        } catch(e) {} finally { setReanalyzing(false); }
+            if (updated && !updated.detail) setCall(updated);
+            else alert('Re-analysis completed but response was unexpected. Refreshing...');
+            // Refresh call data regardless
+            const refreshed = await apiFetch(`/calls/${callId}`);
+            if (refreshed && !refreshed.detail) setCall(refreshed);
+        } catch(e) { alert('Re-analysis failed: ' + (e.message || 'Check API configuration and ensure recording exists')); } finally { setReanalyzing(false); }
     };
 
     const sentimentBadge = (s) => s==='positive'?'badge-green':s==='negative'?'badge-red':s==='mixed'?'badge-yellow':'badge-gray';
@@ -799,7 +875,7 @@ const CallDetailPage = ({ callId, onBack }) => {
                         <div style={{display:'flex',gap:10,alignItems:'center',marginTop:4,flexWrap:'wrap'}}>
                             <span style={{fontSize:12,color:'var(--text-muted)'}}>{call.call_type || 'inbound'}</span>
                             {call.duration_seconds > 0 && <span style={{fontSize:12,color:'var(--text-muted)'}}>{Math.floor(call.duration_seconds/60)}m {call.duration_seconds%60}s</span>}
-                            <span style={{fontSize:12,color:'var(--text-muted)'}}>{new Date(call.call_date).toLocaleDateString()}</span>
+                            <span style={{fontSize:12,color:'var(--text-muted)'}}>{new Date(call.call_date).toLocaleDateString('en-IN', {timeZone:'Asia/Kolkata'})} {new Date(call.call_date).toLocaleTimeString('en-IN', {timeZone:'Asia/Kolkata', hour:'2-digit', minute:'2-digit'})}</span>
                             {call.ai_sentiment && <span className={`badge ${sentimentBadge(call.ai_sentiment)}`}>{call.ai_sentiment}</span>}
                             {call.ai_intent && <span className="badge badge-blue">{call.ai_intent}</span>}
                         </div>
@@ -1041,7 +1117,7 @@ const CallDetailPage = ({ callId, onBack }) => {
                         {call.notes && call.notes.length > 0 ? call.notes.map(n=>(
                             <div key={n.id} style={{padding:'12px 16px',borderRadius:8,background:'rgba(255,255,255,0.02)',marginBottom:8,fontSize:13,border:'1px solid var(--border)'}}>
                                 <div style={{color:'var(--text-secondary)',lineHeight:1.6}}>{n.content}</div>
-                                <div style={{fontSize:11,color:'var(--text-muted)',marginTop:6}}>{new Date(n.created_at).toLocaleString()}</div>
+                                <div style={{fontSize:11,color:'var(--text-muted)',marginTop:6}}>{new Date(n.created_at).toLocaleString('en-IN', {timeZone:'Asia/Kolkata', day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'})}</div>
                             </div>
                         )) : <p style={{color:'var(--text-muted)',fontSize:13,marginBottom:16}}>No notes yet.</p>}
                         <div style={{display:'flex',gap:8,marginTop:12}}>
@@ -1654,8 +1730,271 @@ const CoachingPage = () => {
 const ContactsPage = () => {
     const [contacts, setContacts] = useState([]);
     const [search, setSearch] = useState('');
+    const [selectedContact, setSelectedContact] = useState(null);
+    const [detailTab, setDetailTab] = useState('overview');
+    const [notes, setNotes] = useState([]);
+    const [reminders, setReminders] = useState([]);
+    const [newNote, setNewNote] = useState('');
+    const [noteType, setNoteType] = useState('general');
+    const [showAddReminder, setShowAddReminder] = useState(false);
+    const [newReminder, setNewReminder] = useState({title:'',description:'',due_date:'',type:'follow_up'});
+    const [notesLoading, setNotesLoading] = useState(false);
+
     useEffect(()=>{ apiFetch('/contacts').then(data => { const arr = Array.isArray(data?.contacts) ? data.contacts : Array.isArray(data) ? data : []; setContacts(arr); }).catch(()=>{}); },[]);
+
+    const loadContactDetails = (contact) => {
+        setSelectedContact(contact);
+        setDetailTab('overview');
+        if (contact.phone) {
+            setNotesLoading(true);
+            const phoneKey = encodeURIComponent(contact.phone);
+            Promise.all([
+                apiFetch(`/contact-notes/${phoneKey}`).catch(()=>({notes:[]})),
+                apiFetch(`/contact-notes/reminders/${phoneKey}`).catch(()=>({reminders:[]}))
+            ]).then(([n,r]) => {
+                setNotes(n.notes||[]);
+                setReminders(r.reminders||[]);
+                setNotesLoading(false);
+            });
+        }
+    };
+
+    const addNote = async () => {
+        if (!newNote.trim() || !selectedContact?.phone) return;
+        const phoneKey = encodeURIComponent(selectedContact.phone);
+        await apiFetch(`/contact-notes/${phoneKey}`, {method:'POST', body:{content:newNote, type:noteType}});
+        setNewNote('');
+        const res = await apiFetch(`/contact-notes/${phoneKey}`).catch(()=>({notes:[]}));
+        setNotes(res.notes||[]);
+    };
+
+    const deleteNote = async (noteId) => {
+        if (!selectedContact?.phone) return;
+        const phoneKey = encodeURIComponent(selectedContact.phone);
+        await apiFetch(`/contact-notes/${phoneKey}/${noteId}`, {method:'DELETE'});
+        const res = await apiFetch(`/contact-notes/${phoneKey}`).catch(()=>({notes:[]}));
+        setNotes(res.notes||[]);
+    };
+
+    const addReminder = async () => {
+        if (!newReminder.title || !newReminder.due_date || !selectedContact?.phone) return;
+        const phoneKey = encodeURIComponent(selectedContact.phone);
+        await apiFetch(`/contact-notes/reminders/${phoneKey}`, {method:'POST', body:newReminder});
+        setNewReminder({title:'',description:'',due_date:'',type:'follow_up'});
+        setShowAddReminder(false);
+        const res = await apiFetch(`/contact-notes/reminders/${phoneKey}`).catch(()=>({reminders:[]}));
+        setReminders(res.reminders||[]);
+    };
+
+    const completeReminder = async (remId) => {
+        if (!selectedContact?.phone) return;
+        const phoneKey = encodeURIComponent(selectedContact.phone);
+        await apiFetch(`/contact-notes/reminders/${phoneKey}/${remId}`, {method:'PUT', body:{status:'completed'}});
+        const res = await apiFetch(`/contact-notes/reminders/${phoneKey}`).catch(()=>({reminders:[]}));
+        setReminders(res.reminders||[]);
+    };
+
+    const deleteReminder = async (remId) => {
+        if (!selectedContact?.phone) return;
+        const phoneKey = encodeURIComponent(selectedContact.phone);
+        await apiFetch(`/contact-notes/reminders/${phoneKey}/${remId}`, {method:'DELETE'});
+        const res = await apiFetch(`/contact-notes/reminders/${phoneKey}`).catch(()=>({reminders:[]}));
+        setReminders(res.reminders||[]);
+    };
+
     const filtered = contacts.filter(c => !search || (c.name||'').toLowerCase().includes(search.toLowerCase()) || (c.phone||'').includes(search) || (c.email||'').toLowerCase().includes(search.toLowerCase()));
+
+    if (selectedContact) {
+        const c = selectedContact;
+        const pendingReminders = reminders.filter(r => r.status === 'pending');
+        const completedReminders = reminders.filter(r => r.status === 'completed');
+        return (
+            <div className="fade-in">
+                <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:24}}>
+                    <button className="btn btn-ghost btn-sm" onClick={()=>setSelectedContact(null)}>{Icons.back}<span>Back to Contacts</span></button>
+                </div>
+                <div style={{display:'flex',gap:16,marginBottom:24,flexWrap:'wrap',alignItems:'flex-start'}}>
+                    <div className="glass" style={{padding:20,borderRadius:12,minWidth:280,flex:'0 0 auto'}}>
+                        <div style={{width:56,height:56,borderRadius:14,background:'linear-gradient(135deg,rgba(232,135,37,0.2),rgba(232,135,37,0.05))',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:12}}>
+                            <span style={{fontSize:22,fontWeight:700,color:'var(--gold)'}}>{(c.name||'?')[0].toUpperCase()}</span>
+                        </div>
+                        <h2 style={{fontSize:20,fontWeight:700,marginBottom:4}}>{c.name||'Unknown'}</h2>
+                        {c.phone && <div style={{fontSize:13,color:'var(--text-secondary)',marginBottom:2}}>{Icons.phone} {c.phone}</div>}
+                        {c.email && <div style={{fontSize:13,color:'var(--text-secondary)',marginBottom:8}}>{c.email}</div>}
+                        <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}>
+                            {c.latest_sentiment && <span className={`badge ${c.latest_sentiment==='positive'?'badge-green':c.latest_sentiment==='negative'?'badge-red':'badge-gray'}`}>{c.latest_sentiment}</span>}
+                            {c.treatments_interested && <span className="badge badge-gold">{c.treatments_interested}</span>}
+                        </div>
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:12,flex:1}}>
+                        <StatCard label="Total Calls" value={c.total_calls||0}/>
+                        <StatCard label="Total Deals" value={c.total_deals||0}/>
+                        <StatCard label="Deal Value" value={c.deal_value ? `\u20B9${c.deal_value.toLocaleString('en-IN')}` : '-'} accent/>
+                        <StatCard label="Notes" value={notes.length}/>
+                        <StatCard label="Reminders" value={pendingReminders.length}/>
+                    </div>
+                </div>
+
+                <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
+                    {['overview','notes','reminders'].map(t => <button key={t} className={`detail-tab ${detailTab===t?'active':''}`} onClick={()=>setDetailTab(t)}>{t==='overview'?'Overview':t==='notes'?`Notes (${notes.length})`:`Reminders (${pendingReminders.length})`}</button>)}
+                </div>
+
+                {notesLoading && <div style={{textAlign:'center',padding:30}}><span className="spinner"></span></div>}
+
+                {!notesLoading && detailTab === 'overview' && (
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(340px,1fr))',gap:16}}>
+                        <div className="glass" style={{padding:20,borderRadius:12}}>
+                            <h3 style={{fontSize:15,fontWeight:600,marginBottom:14}}>Contact Details</h3>
+                            <div style={{display:'flex',flexDirection:'column',gap:10,fontSize:13}}>
+                                <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--text-muted)'}}>Source</span><span>{c.source||'Call'}</span></div>
+                                <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--text-muted)'}}>First Seen</span><span>{c.first_seen ? new Date(c.first_seen).toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata'}) : '-'}</span></div>
+                                <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--text-muted)'}}>Last Call</span><span>{c.last_call_date ? new Date(c.last_call_date).toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata'}) : '-'}</span></div>
+                                <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--text-muted)'}}>Intent</span><span>{c.latest_intent||'-'}</span></div>
+                            </div>
+                        </div>
+                        <div className="glass" style={{padding:20,borderRadius:12}}>
+                            <h3 style={{fontSize:15,fontWeight:600,marginBottom:14}}>Recent Notes</h3>
+                            {notes.slice(0,4).map(n => (
+                                <div key={n.id} style={{padding:'8px 0',borderBottom:'1px solid var(--border)',fontSize:13}}>
+                                    <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                                        <span className="badge badge-gray" style={{fontSize:10}}>{n.type}</span>
+                                        <span style={{fontSize:11,color:'var(--text-muted)'}}>{new Date(n.created_at).toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short'})}</span>
+                                    </div>
+                                    <p style={{color:'var(--text-secondary)',margin:0}}>{n.content}</p>
+                                </div>
+                            ))}
+                            {notes.length === 0 && <p style={{color:'var(--text-muted)',fontSize:13}}>No notes yet</p>}
+                        </div>
+                        <div className="glass" style={{padding:20,borderRadius:12}}>
+                            <h3 style={{fontSize:15,fontWeight:600,marginBottom:14}}>Upcoming Reminders</h3>
+                            {pendingReminders.slice(0,4).map(r => (
+                                <div key={r.id} style={{padding:'8px 0',borderBottom:'1px solid var(--border)',fontSize:13}}>
+                                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                        <span style={{fontWeight:600}}>{r.title}</span>
+                                        <button className="btn btn-ghost btn-sm" onClick={()=>completeReminder(r.id)} style={{fontSize:10,padding:'2px 8px'}}>{Icons.check}</button>
+                                    </div>
+                                    <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>{r.due_date ? new Date(r.due_date).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : ''} | {r.type.replace(/_/g,' ')}</div>
+                                </div>
+                            ))}
+                            {pendingReminders.length === 0 && <p style={{color:'var(--text-muted)',fontSize:13}}>No pending reminders</p>}
+                        </div>
+                    </div>
+                )}
+
+                {!notesLoading && detailTab === 'notes' && (
+                    <div>
+                        <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
+                            <h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Add Note</h3>
+                            <div style={{display:'flex',gap:10,marginBottom:10}}>
+                                <select className="input" value={noteType} onChange={e=>setNoteType(e.target.value)} style={{width:160}}>
+                                    <option value="general">General</option><option value="call_summary">Call Summary</option><option value="follow_up">Follow-up</option><option value="treatment">Treatment</option><option value="complaint">Complaint</option>
+                                </select>
+                            </div>
+                            <div style={{display:'flex',gap:10}}>
+                                <textarea className="input" rows={2} value={newNote} onChange={e=>setNewNote(e.target.value)} placeholder="Write a note about this contact..." style={{flex:1,resize:'vertical'}}/>
+                                <button className="btn btn-gold" onClick={addNote} style={{alignSelf:'flex-end'}}>Add</button>
+                            </div>
+                        </div>
+                        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                            {notes.map(n => (
+                                <div key={n.id} className="glass" style={{padding:16,borderRadius:10}}>
+                                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                                        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                                            <span className="badge badge-gold" style={{fontSize:10}}>{n.type}</span>
+                                            <span style={{fontSize:11,color:'var(--text-muted)'}}>{n.author}</span>
+                                        </div>
+                                        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                                            <span style={{fontSize:11,color:'var(--text-muted)'}}>{new Date(n.created_at).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
+                                            <button className="btn btn-ghost btn-sm" onClick={()=>deleteNote(n.id)} style={{color:'var(--danger)',padding:2}}>{Icons.trash}</button>
+                                        </div>
+                                    </div>
+                                    <p style={{fontSize:13,color:'var(--text-primary)',margin:0,lineHeight:1.5}}>{n.content}</p>
+                                </div>
+                            ))}
+                            {notes.length === 0 && <div className="glass" style={{padding:40,borderRadius:12,textAlign:'center'}}><p style={{color:'var(--text-muted)',fontSize:14}}>No notes for this contact yet. Add your first note above.</p></div>}
+                        </div>
+                    </div>
+                )}
+
+                {!notesLoading && detailTab === 'reminders' && (
+                    <div>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                            <h3 style={{fontSize:16,fontWeight:600}}>Reminders</h3>
+                            <button className="btn btn-gold btn-sm" onClick={()=>setShowAddReminder(true)}>{Icons.plus}<span>Add Reminder</span></button>
+                        </div>
+
+                        {showAddReminder && (
+                            <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
+                                <h3 style={{fontSize:14,fontWeight:600,marginBottom:14}}>New Reminder</h3>
+                                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                                    <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Title *</label><input className="input" value={newReminder.title} onChange={e=>setNewReminder({...newReminder,title:e.target.value})} placeholder="Follow up with patient"/></div>
+                                    <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Type</label>
+                                        <select className="input" value={newReminder.type} onChange={e=>setNewReminder({...newReminder,type:e.target.value})}>
+                                            <option value="follow_up">Follow-up</option><option value="appointment">Appointment</option><option value="callback">Callback</option><option value="treatment_review">Treatment Review</option>
+                                        </select>
+                                    </div>
+                                    <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Due Date & Time *</label><input className="input" type="datetime-local" value={newReminder.due_date} onChange={e=>setNewReminder({...newReminder,due_date:e.target.value})}/></div>
+                                </div>
+                                <div style={{marginTop:12}}><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Description</label><textarea className="input" rows={2} value={newReminder.description} onChange={e=>setNewReminder({...newReminder,description:e.target.value})} placeholder="Additional details..." style={{width:'100%',resize:'vertical'}}/></div>
+                                <div style={{display:'flex',gap:8,marginTop:14}}>
+                                    <button className="btn btn-gold btn-sm" onClick={addReminder}>Save Reminder</button>
+                                    <button className="btn btn-ghost btn-sm" onClick={()=>setShowAddReminder(false)}>Cancel</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {pendingReminders.length > 0 && (
+                            <div style={{marginBottom:20}}>
+                                <h4 style={{fontSize:13,fontWeight:600,color:'var(--text-muted)',marginBottom:10,textTransform:'uppercase',letterSpacing:'0.06em'}}>Pending</h4>
+                                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                                    {pendingReminders.map(r => (
+                                        <div key={r.id} className="glass" style={{padding:16,borderRadius:10,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                            <div>
+                                                <div style={{fontWeight:600,fontSize:14}}>{r.title}</div>
+                                                {r.description && <div style={{fontSize:12,color:'var(--text-secondary)',marginTop:2}}>{r.description}</div>}
+                                                <div style={{fontSize:11,color:'var(--text-muted)',marginTop:4,display:'flex',gap:10}}>
+                                                    <span>{Icons.bell} {r.due_date ? new Date(r.due_date).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : 'No date'}</span>
+                                                    <span className="badge badge-blue" style={{fontSize:10}}>{r.type.replace(/_/g,' ')}</span>
+                                                </div>
+                                            </div>
+                                            <div style={{display:'flex',gap:6}}>
+                                                <button className="btn btn-gold btn-sm" onClick={()=>completeReminder(r.id)} title="Mark complete" style={{padding:'4px 10px'}}>{Icons.check}</button>
+                                                <button className="btn btn-ghost btn-sm" onClick={()=>deleteReminder(r.id)} style={{color:'var(--danger)',padding:'4px 8px'}}>{Icons.trash}</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {completedReminders.length > 0 && (
+                            <div>
+                                <h4 style={{fontSize:13,fontWeight:600,color:'var(--text-muted)',marginBottom:10,textTransform:'uppercase',letterSpacing:'0.06em'}}>Completed</h4>
+                                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                                    {completedReminders.map(r => (
+                                        <div key={r.id} className="glass" style={{padding:12,borderRadius:10,opacity:0.6}}>
+                                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                                <div>
+                                                    <div style={{fontWeight:600,fontSize:13,textDecoration:'line-through'}}>{r.title}</div>
+                                                    <div style={{fontSize:11,color:'var(--text-muted)'}}>{r.due_date ? new Date(r.due_date).toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata'}) : ''}</div>
+                                                </div>
+                                                <span className="badge badge-green" style={{fontSize:10}}>Done</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {pendingReminders.length === 0 && completedReminders.length === 0 && (
+                            <div className="glass" style={{padding:40,borderRadius:12,textAlign:'center'}}><p style={{color:'var(--text-muted)',fontSize:14}}>No reminders set for this contact.</p></div>
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    }
+
     return (
         <div className="fade-in">
             <div className="resp-header" style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:28,flexWrap:'wrap',gap:12}}>
@@ -1678,7 +2017,7 @@ const ContactsPage = () => {
                             </tr></thead>
                             <tbody>
                                 {filtered.map(c=>(
-                                    <tr key={c.id} className="table-row" style={{borderBottom:'1px solid rgba(255,255,255,0.03)'}}>
+                                    <tr key={c.id} className="table-row" style={{borderBottom:'1px solid rgba(255,255,255,0.03)',cursor:'pointer'}} onClick={()=>loadContactDetails(c)}>
                                         <td style={{padding:'12px 16px',fontWeight:600}}>{c.name||'Unknown'}</td>
                                         <td style={{padding:'12px 16px',color:'var(--text-secondary)'}}>{c.phone||'-'}</td>
                                         <td style={{padding:'12px 16px',color:'var(--text-secondary)'}}>{c.email||'-'}</td>
@@ -1999,7 +2338,7 @@ const ReportsPage = () => {
             const res = await apiFetch('/reports/weekly/generate', {method:'POST'});
             setCurrent(res);
             apiFetch('/reports/weekly/history').then(r => setReports(r.reports||[])).catch(()=>{});
-        } catch(e) {} finally { setGenerating(false); }
+        } catch(e) { alert('Failed to generate report: ' + (e.message || 'Please try again')); } finally { setGenerating(false); }
     };
 
     return (
@@ -2312,10 +2651,28 @@ const AIEmployeePage = () => {
     const save = async () => {
         setSaving(true); setMsg('');
         try {
-            const res = await apiFetch('/whatsapp/ai-employee', {method:'PUT',body:config});
-            setConfig(res); setMsg('Saved successfully!');
+            // Clean config before saving - ensure proper types
+            const cleanConfig = {...config};
+            if (cleanConfig.procedures_offered) {
+                cleanConfig.procedures_offered = cleanConfig.procedures_offered.map(p => ({
+                    name: p.name || '', description: p.description || '', price_range: p.price_range || '',
+                    duration: p.duration || '', recovery_time: p.recovery_time || '', ideal_candidate: p.ideal_candidate || '',
+                    common_concerns: p.common_concerns || ''
+                }));
+            }
+            if (cleanConfig.follow_up_timing && typeof cleanConfig.follow_up_timing === 'object') {
+                cleanConfig.follow_up_timing = {
+                    first_follow_up_hours: Number(cleanConfig.follow_up_timing.first_follow_up_hours) || 2,
+                    second_follow_up_hours: Number(cleanConfig.follow_up_timing.second_follow_up_hours) || 24,
+                    third_follow_up_hours: Number(cleanConfig.follow_up_timing.third_follow_up_hours) || 72
+                };
+            }
+            if (cleanConfig.max_messages_before_handoff) cleanConfig.max_messages_before_handoff = Number(cleanConfig.max_messages_before_handoff) || 15;
+            const res = await apiFetch('/whatsapp/ai-employee', {method:'PUT',body:cleanConfig});
+            if (res && !res.detail) { setConfig(res); setMsg('Saved successfully!'); }
+            else { setMsg('Error: ' + (res?.detail || 'Unknown error')); }
             setTimeout(()=>setMsg(''), 3000);
-        } catch(e) { setMsg('Error saving'); }
+        } catch(e) { setMsg('Error saving: ' + (e.message || 'Check configuration and try again')); }
         setSaving(false);
     };
 
@@ -3428,9 +3785,10 @@ const HiringPage = () => {
             const body = {};
             if (regenerateChanges) body.regenerate_changes = regenerateChanges;
             const resp = await apiFetch(`/hiring/positions/${posId}/generate-jd`, { method:'POST', body });
-            alert('JD Generated! Check the position details.');
+            if (resp && resp.job_description) { alert('JD generated successfully!'); }
+            else { alert('JD generation returned an incomplete result. Please check API configuration.'); }
             loadData();
-        } catch(e) { alert(e.message); }
+        } catch(e) { alert('JD generation failed: ' + (e.message || 'Please check that the AI API key is configured in Settings.')); }
         setGenJdLoading(null);
     };
 
@@ -3474,7 +3832,7 @@ const HiringPage = () => {
                                     <span className="badge badge-gray" style={{fontSize:11}}>{p.department}</span></div>
                                     <span className={`badge ${statBadgeColor(p.status)}`} style={{fontSize:11}}>{p.status}</span>
                                 </div>
-                                <div style={{fontSize:13,color:'var(--text-secondary)',marginBottom:10}}>{p.salary_range||'Not set'}</div>
+                                <div style={{fontSize:13,color:'var(--text-secondary)',marginBottom:10}}>{p.salary_range ? `INR ${p.salary_range}` : 'Not set'}</div>
                                 <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:8}}>{p.candidate_count||0} candidates</div>
                                 <button className="btn btn-ghost" onClick={()=>generateJD(p.id)} disabled={genJdLoading===p.id} style={{fontSize:11}}>{genJdLoading===p.id?'Generating...':'Generate JD'}</button>
                             </div>
@@ -4039,7 +4397,7 @@ const MarketingHubPage = () => {
                         </table>}
                         {aiInsights && <div style={{marginTop:20,padding:16,background:'rgba(255,255,255,0.02)',borderRadius:8}}>
                             <div style={{fontSize:12,fontWeight:600,marginBottom:8,color:'var(--gold)'}}>AI Optimization Insights</div>
-                            <div style={{fontSize:12,color:'var(--text-primary)',lineHeight:1.7,whiteSpace:'pre-wrap'}}>{typeof aiInsights === 'object' ? (aiInsights.insights || aiInsights.analysis || JSON.stringify(aiInsights, null, 2)) : aiInsights}</div>
+                            <div style={{fontSize:12,color:'var(--text-primary)',lineHeight:1.7,whiteSpace:'pre-wrap'}}>{typeof aiInsights === 'object' ? (aiInsights.insights || aiInsights.analysis || (() => { try { return JSON.stringify(aiInsights, null, 2); } catch(e) { return React.createElement(DeepRender, {data: aiInsights}); } })()) : aiInsights}</div>
                         </div>}
                     </>
                 )}
@@ -4079,7 +4437,7 @@ const MarketingHubPage = () => {
                                             <span style={{fontSize:11,color:'var(--text-muted)',marginLeft:8}}>{r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}</span>
                                         </div>
                                     </div>
-                                    <div style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.6,whiteSpace:'pre-wrap',maxHeight:100,overflow:'hidden'}}>{typeof r.content === 'object' ? JSON.stringify(r.content).substring(0,200) : (r.content||'').substring(0,200)}...</div>
+                                    <div style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.6,whiteSpace:'pre-wrap',maxHeight:100,overflow:'hidden'}}>{typeof r.content === 'object' ? (() => { try { return JSON.stringify(r.content).substring(0,200); } catch(e) { return 'Report content available'; } })() : (r.content||'').substring(0,200)}...</div>
                                 </div>
                             ))}
                         </div>}
@@ -4176,7 +4534,7 @@ const LegalFinancePage = () => {
                 {tab==='finance' && (
                     <>
                         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:20}}>
-                            {[{label:'Total Revenue',value:'$'+(fd.total_revenue||0).toLocaleString()},{label:'Total Expenses',value:'$'+(fd.total_expenses||0).toLocaleString()},{label:'Net Profit',value:'$'+(fd.net_profit||(fd.total_revenue||0)-(fd.total_expenses||0)).toLocaleString()},{label:'Outstanding',value:'$'+(fd.outstanding_amount||0).toLocaleString()}].map(s => (
+                            {[{label:'Total Revenue',value:'\u20B9'+(fd.total_revenue||0).toLocaleString('en-IN')},{label:'Total Expenses',value:'\u20B9'+(fd.total_expenses||0).toLocaleString('en-IN')},{label:'Net Profit',value:'\u20B9'+(fd.net_profit||(fd.total_revenue||0)-(fd.total_expenses||0)).toLocaleString('en-IN')},{label:'Outstanding',value:'\u20B9'+(fd.outstanding_amount||0).toLocaleString('en-IN')}].map(s => (
                                 <div key={s.label} style={{padding:12,background:'rgba(255,255,255,0.02)',borderRadius:8}}>
                                     <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:6}}>{s.label}</div>
                                     <div style={{fontSize:18,fontWeight:700,color:'var(--gold)'}}>{s.value}</div>
@@ -4204,7 +4562,7 @@ const LegalFinancePage = () => {
                                         <td style={{padding:10,color:'var(--text-muted)',fontSize:11}}>{r.created_at ? new Date(r.created_at).toLocaleDateString() : r.date||''}</td>
                                         <td style={{padding:10,fontWeight:600}}>{r.description}</td>
                                         <td style={{padding:10}}><span className="badge badge-gray" style={{fontSize:10}}>{r.category||''}</span></td>
-                                        <td style={{padding:10,fontWeight:700,color:r.record_type==='income'?'var(--success)':'var(--danger)'}}>{r.record_type==='income'?'+':'-'}${Math.abs(r.amount||0)}</td>
+                                        <td style={{padding:10,fontWeight:700,color:r.record_type==='income'?'var(--success)':'var(--danger)'}}>{r.record_type==='income'?'+':'-'}{'\u20B9'}{Math.abs(r.amount||0).toLocaleString('en-IN')}</td>
                                         <td style={{padding:10,color:'var(--text-secondary)',fontSize:11}}>{r.payment_method||''}</td>
                                     </tr>
                                 ))}
@@ -4230,7 +4588,7 @@ const LegalFinancePage = () => {
                                     <tr key={inv.id} style={{borderBottom:'1px solid var(--border)'}}>
                                         <td style={{padding:10,fontWeight:600}}>{inv.invoice_number||'INV-'+inv.id}</td>
                                         <td style={{padding:10}}>{inv.patient_name||''}</td>
-                                        <td style={{padding:10,fontWeight:600,color:'var(--gold)'}}>${inv.total_amount||inv.amount||0}</td>
+                                        <td style={{padding:10,fontWeight:600,color:'var(--gold)'}}>{'\u20B9'}{(inv.total_amount||inv.amount||0).toLocaleString('en-IN')}</td>
                                         <td style={{padding:10}}><span className={inv.status==='paid'?'badge badge-green':inv.status==='overdue'?'badge badge-red':'badge badge-yellow'} style={{fontSize:10}}>{inv.status}</span></td>
                                         <td style={{padding:10,color:'var(--text-muted)',fontSize:11}}>{inv.due_date ? new Date(inv.due_date).toLocaleDateString() : ''}</td>
                                         <td style={{padding:10}}>{inv.status!=='paid' && <button className="btn btn-ghost" onClick={()=>markPaid(inv.id)} style={{fontSize:11}}>Mark Paid</button>}</td>
@@ -4260,8 +4618,8 @@ const LegalFinancePage = () => {
                 )}
                 </>}
             </div>
-            {showAddRecord && <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}} onClick={()=>setShowAddRecord(false)}>
-                <div className="glass" style={{padding:24,borderRadius:12,width:400}} onClick={e=>e.stopPropagation()}>
+            {showAddRecord && <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:20}} onClick={()=>setShowAddRecord(false)}>
+                <div className="glass" style={{padding:24,borderRadius:12,width:400,maxHeight:'85vh',overflowY:'auto'}} onClick={e=>e.stopPropagation()}>
                     <h3 style={{fontSize:16,fontWeight:700,marginBottom:16}}>Add Financial Record</h3>
                     <div style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Type</label><select className="input" value={newRecord.record_type} onChange={e=>setNewRecord({...newRecord,record_type:e.target.value})} style={{fontSize:13,width:'100%'}}><option value="income">Income</option><option value="expense">Expense</option></select></div>
                     {['description','category','payment_method'].map(f=><div key={f} style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>{f.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</label><input className="input" value={newRecord[f]} onChange={e=>setNewRecord({...newRecord,[f]:e.target.value})} style={{fontSize:13,width:'100%'}}/></div>)}
@@ -4269,8 +4627,8 @@ const LegalFinancePage = () => {
                     <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}><button className="btn btn-ghost" onClick={()=>setShowAddRecord(false)}>Cancel</button><button className="btn btn-gold" onClick={addRecord}>Add</button></div>
                 </div>
             </div>}
-            {showAddDoc && <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}} onClick={()=>setShowAddDoc(false)}>
-                <div className="glass" style={{padding:24,borderRadius:12,width:400}} onClick={e=>e.stopPropagation()}>
+            {showAddDoc && <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:20}} onClick={()=>setShowAddDoc(false)}>
+                <div className="glass" style={{padding:24,borderRadius:12,width:400,maxHeight:'85vh',overflowY:'auto'}} onClick={e=>e.stopPropagation()}>
                     <h3 style={{fontSize:16,fontWeight:700,marginBottom:16}}>Add Legal Document</h3>
                     <div style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Title</label><input className="input" value={newDoc.title} onChange={e=>setNewDoc({...newDoc,title:e.target.value})} style={{fontSize:13,width:'100%'}}/></div>
                     <div style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Type</label><select className="input" value={newDoc.document_type} onChange={e=>setNewDoc({...newDoc,document_type:e.target.value})} style={{fontSize:13,width:'100%'}}>{['contract','nda','policy','agreement','license'].map(t=><option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}</select></div>
@@ -4279,8 +4637,8 @@ const LegalFinancePage = () => {
                     <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}><button className="btn btn-ghost" onClick={()=>setShowAddDoc(false)}>Cancel</button><button className="btn btn-gold" onClick={addDocument}>Add</button></div>
                 </div>
             </div>}
-            {showAddInvoice && <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}} onClick={()=>setShowAddInvoice(false)}>
-                <div className="glass" style={{padding:24,borderRadius:12,width:420}} onClick={e=>e.stopPropagation()}>
+            {showAddInvoice && <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:20}} onClick={()=>setShowAddInvoice(false)}>
+                <div className="glass" style={{padding:24,borderRadius:12,width:420,maxHeight:'85vh',overflowY:'auto'}} onClick={e=>e.stopPropagation()}>
                     <h3 style={{fontSize:16,fontWeight:700,marginBottom:16}}>Create Invoice</h3>
                     {['patient_name','patient_email'].map(f=><div key={f} style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>{f.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</label><input className="input" value={newInvoice[f]} onChange={e=>setNewInvoice({...newInvoice,[f]:e.target.value})} style={{fontSize:13,width:'100%'}}/></div>)}
                     <div style={{marginBottom:12}}><label style={{fontSize:12,color:'var(--text-secondary)',display:'block',marginBottom:4}}>Item Description</label><input className="input" value={newInvoice.items[0].description} onChange={e=>setNewInvoice({...newInvoice,items:[{...newInvoice.items[0],description:e.target.value}]})} style={{fontSize:13,width:'100%'}}/></div>
@@ -4320,6 +4678,17 @@ const DeepRender = ({data, depth=0}) => {
     }
     if (typeof data === 'object') return <div style={{marginTop:4,paddingLeft:depth>0?12:0}}>{Object.entries(data).map(([k,v]) => <div key={k} style={{marginBottom:depth>0?6:14}}>{depth===0?<h4 style={{fontSize:13,fontWeight:700,color:'var(--gold)',marginBottom:6,textTransform:'uppercase'}}>{k.replace(/_/g,' ')}</h4>:<span style={{fontSize:11,color:'var(--gold)',fontWeight:600,textTransform:'uppercase'}}>{k.replace(/_/g,' ')}: </span>}<DeepRender data={v} depth={depth+1}/></div>)}</div>;
     return null;
+};
+
+// ============ COPY TO CLIPBOARD BUTTON ============
+const CopyContentButton = ({data, label}) => {
+    const [copied, setCopied] = useState(false);
+    const copyToClipboard = () => {
+        let text = '';
+        try { text = typeof data === 'string' ? data : JSON.stringify(data, null, 2); } catch(e) { text = String(data); }
+        navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(() => { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); setCopied(true); setTimeout(() => setCopied(false), 2000); });
+    };
+    return <button className="btn btn-ghost btn-sm" onClick={copyToClipboard} style={{fontSize:11,gap:4}}>{copied ? Icons.check : Icons.copy}<span>{copied ? 'Copied!' : (label || 'Copy to Clipboard')}</span></button>;
 };
 
 // ============ SHARED GENERATION HISTORY PANEL ============
@@ -4450,7 +4819,7 @@ const MetaAdsPage = () => {
                             <button className="btn btn-gold" onClick={()=>generate('video-scripts')} disabled={loading} style={{height:36,minWidth:160}}>{loading?'Generating...':'Generate Scripts'}</button>
                         </div>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Scripts</h3><DeepRender data={result.scripts}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('video-scripts',null,changes)}/></div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><h3 style={{fontSize:14,fontWeight:600}}>Generated Scripts</h3><CopyContentButton data={result.scripts} label="Copy Scripts"/></div><DeepRender data={result.scripts}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('video-scripts',null,changes)}/></div>}
                     <GenerationHistory endpoint="meta-content" filterAction="video_scripts" onRestore={(o)=>setResult(o)}/>
                 </div>
             )}
@@ -4472,7 +4841,7 @@ const MetaAdsPage = () => {
                             <div style={{display:'flex',alignItems:'end'}}><button className="btn btn-gold" onClick={()=>generate('ad-copy')} disabled={loading} style={{height:36,minWidth:140}}>{loading?'Generating...':'Generate Copy'}</button></div>
                         </div>
                     </div>
-                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><h3 style={{fontSize:14,fontWeight:600,marginBottom:12}}>Generated Ad Copy</h3><DeepRender data={result.ad_copy}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('ad-copy',null,changes)}/></div>}
+                    {result && <div className="glass" style={{padding:20,borderRadius:12}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><h3 style={{fontSize:14,fontWeight:600}}>Generated Ad Copy</h3><CopyContentButton data={result.ad_copy} label="Copy Ad Copy"/></div><DeepRender data={result.ad_copy}/><RegenerateWithChanges loading={loading} onRegenerate={(changes)=>generate('ad-copy',null,changes)}/></div>}
                     <GenerationHistory endpoint="meta-content" filterAction="ad_copy" onRestore={(o)=>setResult(o)}/>
                 </div>
             )}
@@ -4516,8 +4885,8 @@ const MetaAdsPage = () => {
             {activeTab === 'strategy' && (
                 <div>
                     <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
-                        <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>Campaign Strategy Generator (SBA SOP)</h3>
-                        <p style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>Follows SBA methodology: WhatsApp click-to-chat as primary funnel, progressive forms as secondary, Google Ads complement strategy included.</p>
+                        <h3 style={{fontSize:14,fontWeight:600,marginBottom:12,color:'var(--gold)'}}>Campaign Strategy Generator</h3>
+                        <p style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>Generate a complete campaign strategy with WhatsApp click-to-chat funnels, progressive forms, and Google Ads complement strategy.</p>
                         <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12}}>
                             <StableInput label="Procedures (comma-separated)" value={form.procedures} onChange={e=>updateForm('procedures',e.target.value)} placeholder="Hair Transplant, Botox, PRP"/>
                             <StableInput label="Monthly Budget (INR)" value={form.monthly_budget} onChange={e=>updateForm('monthly_budget',e.target.value)} type="number" placeholder="50000"/>
@@ -4842,6 +5211,11 @@ const SocialSchedulingPage = () => {
                         </div>
                     </div>
                     <div style={{marginBottom:14}}>
+                        <label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Media URL (optional)</label>
+                        <input className="input" type="url" value={(newPost.media_urls||[])[0]||''} onChange={e=>setNewPost({...newPost,media_urls:e.target.value?[e.target.value]:[]})} placeholder="https://example.com/image.jpg" style={{width:'100%'}}/>
+                        <span style={{fontSize:11,color:'var(--text-muted)',marginTop:4,display:'block'}}>Paste an image or video URL to attach media to your post</span>
+                    </div>
+                    <div style={{marginBottom:14}}>
                         <label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Schedule Date/Time (optional)</label>
                         <input className="input" type="datetime-local" value={newPost.scheduled_at} onChange={e=>setNewPost({...newPost,scheduled_at:e.target.value})} style={{maxWidth:300}}/>
                     </div>
@@ -4941,7 +5315,7 @@ const SEOPage = () => {
             if (regenerateChanges) body.regenerate_changes = regenerateChanges;
             const res = await apiFetch('/seo/audit', {method:'POST', body});
             setAuditResult(res.audit || '');
-        } catch(e) {} finally { setAuditLoading(false); }
+        } catch(e) { alert('SEO Audit failed: ' + (e.message || 'Check API configuration')); } finally { setAuditLoading(false); }
     };
 
     const optimizeGMB = async (regenerateChanges) => {
@@ -4951,7 +5325,7 @@ const SEOPage = () => {
             if (regenerateChanges) body.regenerate_changes = regenerateChanges;
             const res = await apiFetch('/seo/gmb/optimize', {method:'POST', body});
             setGmbPlan(res.optimization_plan || '');
-        } catch(e) {} finally { setGmbLoading(false); }
+        } catch(e) { alert('GMB Optimization failed: ' + (e.message || 'Check API configuration')); } finally { setGmbLoading(false); }
     };
 
     const generateGMBPosts = async (regenerateChanges) => {
@@ -4963,7 +5337,7 @@ const SEOPage = () => {
             const posts = res.posts;
             if (typeof posts === 'string') { try { setGmbPosts(JSON.parse(posts)); } catch(e) { setGmbPosts(posts); } }
             else { setGmbPosts(posts || null); }
-        } catch(e) {} finally { setGmbPostsLoading(false); }
+        } catch(e) { alert('GMB Post generation failed: ' + (e.message || 'Check API configuration')); } finally { setGmbPostsLoading(false); }
     };
 
     const getBlIdeas = async (regenerateChanges) => {
@@ -4973,7 +5347,7 @@ const SEOPage = () => {
             if (regenerateChanges) body.regenerate_changes = regenerateChanges;
             const res = await apiFetch('/seo/backlink-ideas', {method:'POST', body});
             setBlIdeas(res.ideas || '');
-        } catch(e) {} finally { setBlLoading(false); }
+        } catch(e) { alert('Backlink ideas failed: ' + (e.message || 'Check API configuration')); } finally { setBlLoading(false); }
     };
 
     const addBacklink = async () => {
@@ -4982,7 +5356,7 @@ const SEOPage = () => {
             await apiFetch('/seo/backlinks', {method:'POST', body:newBacklink});
             setBacklinks(prev => [...prev, {...newBacklink, id:String(prev.length+1), added_at:new Date().toISOString()}]);
             setNewBacklink({source_url:'',target_url:'',anchor_text:'',domain_authority:0,notes:''});
-        } catch(e) {}
+        } catch(e) { alert('Failed to add backlink: ' + (e.message || 'Unknown error')); }
     };
 
     const doKeywordResearch = async (regenerateChanges) => {
@@ -4992,7 +5366,7 @@ const SEOPage = () => {
             if (regenerateChanges) body.regenerate_changes = regenerateChanges;
             const res = await apiFetch('/seo/keyword-research', {method:'POST', body});
             setKeywords(res.keywords || '');
-        } catch(e) {} finally { setKwLoading(false); }
+        } catch(e) { alert('Keyword research failed: ' + (e.message || 'Check API configuration')); } finally { setKwLoading(false); }
     };
 
     const sendCoachMsg = async () => {
@@ -5231,7 +5605,7 @@ const SEOPage = () => {
                                 <pre style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{msg.text}</pre>
                             </div>
                         ))}
-                        {coachLoading && <div style={{padding:12,textAlign:'center'}}><span className="spinner"></span></div>}
+                        {coachLoading && <div style={{padding:16,textAlign:'center',background:'rgba(232,135,37,0.05)',borderRadius:10,border:'1px solid rgba(232,135,37,0.15)'}}><span className="spinner"></span><div style={{fontSize:12,color:'var(--gold)',marginTop:8}}>SEO Coach is analyzing...</div></div>}
                     </div>
                     <div style={{display:'flex',gap:8}}>
                         <input className="input" value={coachMsg} onChange={e=>setCoachMsg(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendCoachMsg();}}} placeholder="Ask about SEO, GMB, keywords, backlinks, schema markup..." style={{flex:1}}/>
@@ -5242,6 +5616,381 @@ const SEOPage = () => {
         </div>
     );
 };
+
+// ============ TELEPHONY PAGE ============
+const TelephonyPage = () => {
+    const [activeTab, setActiveTab] = useState('overview');
+    const [stats, setStats] = useState({});
+    const [numbers, setNumbers] = useState([]);
+    const [logs, setLogs] = useState([]);
+    const [rules, setRules] = useState([]);
+    const [ivr, setIvr] = useState(null);
+    const [twilioStatus, setTwilioStatus] = useState({});
+    const [loading, setLoading] = useState(true);
+    const [showAddNumber, setShowAddNumber] = useState(false);
+    const [showAddLog, setShowAddLog] = useState(false);
+    const [showAddRule, setShowAddRule] = useState(false);
+    const [newNumber, setNewNumber] = useState({phone_number:'',label:'Main Line',type:'local',routing_type:'ring_all',recording_enabled:true});
+    const [newLog, setNewLog] = useState({caller_name:'',caller_phone:'',direction:'inbound',status:'completed',duration_seconds:0,answered_by:'',notes:''});
+    const [newRule, setNewRule] = useState({name:'',condition_type:'all_calls',action:'ring_all',targets:[],ring_timeout:30});
+
+    const loadData = () => {
+        Promise.all([
+            apiFetch('/telephony/stats').catch(()=>({})),
+            apiFetch('/telephony/numbers').catch(()=>({numbers:[]})),
+            apiFetch('/telephony/logs').catch(()=>({logs:[]})),
+            apiFetch('/telephony/routing').catch(()=>({rules:[]})),
+            apiFetch('/telephony/ivr').catch(()=>({})),
+            apiFetch('/telephony/twilio-status').catch(()=>({connected:false}))
+        ]).then(([s,n,l,r,iv,tw]) => {
+            setStats(s||{});
+            setNumbers(n.numbers||[]);
+            setLogs(l.logs||[]);
+            setRules(r.rules||[]);
+            setIvr(iv||{});
+            setTwilioStatus(tw||{});
+            setLoading(false);
+        });
+    };
+    useEffect(loadData, []);
+
+    const addNumber = async () => {
+        if (!newNumber.phone_number) return;
+        await apiFetch('/telephony/numbers', {method:'POST', body:newNumber});
+        setNewNumber({phone_number:'',label:'Main Line',type:'local',routing_type:'ring_all',recording_enabled:true});
+        setShowAddNumber(false);
+        loadData();
+    };
+
+    const deleteNumber = async (id) => {
+        if (!confirm('Remove this number?')) return;
+        await apiFetch(`/telephony/numbers/${id}`, {method:'DELETE'});
+        loadData();
+    };
+
+    const addLog = async () => {
+        if (!newLog.caller_name && !newLog.caller_phone) return;
+        await apiFetch('/telephony/logs', {method:'POST', body:newLog});
+        setNewLog({caller_name:'',caller_phone:'',direction:'inbound',status:'completed',duration_seconds:0,answered_by:'',notes:''});
+        setShowAddLog(false);
+        loadData();
+    };
+
+    const addRule = async () => {
+        if (!newRule.name) return;
+        await apiFetch('/telephony/routing', {method:'POST', body:newRule});
+        setNewRule({name:'',condition_type:'all_calls',action:'ring_all',targets:[],ring_timeout:30});
+        setShowAddRule(false);
+        loadData();
+    };
+
+    const deleteRule = async (id) => {
+        if (!confirm('Remove this routing rule?')) return;
+        await apiFetch(`/telephony/routing/${id}`, {method:'DELETE'});
+        loadData();
+    };
+
+    const saveIvr = async () => {
+        await apiFetch('/telephony/ivr', {method:'PUT', body:ivr});
+        alert('IVR configuration saved');
+    };
+
+    if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'60vh'}}><div className="spinner" style={{width:32,height:32}}></div></div>;
+
+    const tabs = [
+        {id:'overview', label:'Overview'},
+        {id:'numbers', label:'Phone Numbers'},
+        {id:'logs', label:'Call Logs'},
+        {id:'routing', label:'Routing'},
+        {id:'ivr', label:'IVR Menu'},
+    ];
+
+    const formatDuration = (s) => s >= 3600 ? `${Math.floor(s/3600)}h ${Math.floor((s%3600)/60)}m` : s >= 60 ? `${Math.floor(s/60)}m ${s%60}s` : `${s}s`;
+
+    return (
+        <div className="fade-in">
+            <div className="resp-header" style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:28,flexWrap:'wrap',gap:12}}>
+                <div><h1 style={{fontSize:24,fontWeight:700}}>Telephony</h1><p style={{color:'var(--text-muted)',fontSize:14,marginTop:4}}>Manage phone numbers, call routing and IVR</p></div>
+                <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                    <span className={`badge ${twilioStatus.connected ? 'badge-green' : 'badge-red'}`} style={{fontSize:11}}>{twilioStatus.connected ? 'Twilio Connected' : 'Twilio Not Connected'}</span>
+                </div>
+            </div>
+
+            <div style={{display:'flex',gap:8,marginBottom:24,flexWrap:'wrap'}}>
+                {tabs.map(t => <button key={t.id} className={`detail-tab ${activeTab===t.id?'active':''}`} onClick={()=>setActiveTab(t.id)}>{t.label}</button>)}
+            </div>
+
+            {activeTab === 'overview' && (
+                <div>
+                    <div className="resp-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:16,marginBottom:24}}>
+                        <StatCard label="Active Numbers" value={stats.active_numbers||0}/>
+                        <StatCard label="Calls Today" value={stats.total_calls_today||0}/>
+                        <StatCard label="Calls This Week" value={stats.total_calls_week||0}/>
+                        <StatCard label="Answer Rate" value={`${stats.answer_rate||0}%`} accent/>
+                        <StatCard label="Avg Duration" value={formatDuration(stats.avg_duration_seconds||0)}/>
+                        <StatCard label="Missed Calls" value={stats.missed_calls||0}/>
+                        <StatCard label="Inbound" value={stats.inbound_calls||0}/>
+                        <StatCard label="Outbound" value={stats.outbound_calls||0}/>
+                    </div>
+
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(340px,1fr))',gap:16}}>
+                        <div className="glass" style={{padding:20,borderRadius:12}}>
+                            <h3 style={{fontSize:15,fontWeight:600,marginBottom:16}}>Recent Calls</h3>
+                            {logs.slice(0,8).map((l,i) => (
+                                <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:i<7?'1px solid var(--border)':'none'}}>
+                                    <div>
+                                        <div style={{fontWeight:600,fontSize:13}}>{l.caller_name||l.caller_phone||'Unknown'}</div>
+                                        <div style={{fontSize:11,color:'var(--text-muted)',display:'flex',gap:8}}>
+                                            <span>{l.direction}</span>
+                                            <span>{formatDuration(l.duration_seconds||0)}</span>
+                                        </div>
+                                    </div>
+                                    <span className={`badge ${l.status==='completed'?'badge-green':l.status==='missed'?'badge-red':l.status==='voicemail'?'badge-yellow':'badge-gray'}`} style={{fontSize:10}}>{l.status}</span>
+                                </div>
+                            ))}
+                            {logs.length === 0 && <p style={{color:'var(--text-muted)',fontSize:13,textAlign:'center',padding:20}}>No call logs yet</p>}
+                        </div>
+
+                        <div className="glass" style={{padding:20,borderRadius:12}}>
+                            <h3 style={{fontSize:15,fontWeight:600,marginBottom:16}}>Phone Numbers</h3>
+                            {numbers.map((n,i) => (
+                                <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:i<numbers.length-1?'1px solid var(--border)':'none'}}>
+                                    <div>
+                                        <div style={{fontWeight:600,fontSize:13}}>{n.label}</div>
+                                        <div style={{fontSize:12,color:'var(--text-secondary)'}}>{n.phone_number}</div>
+                                    </div>
+                                    <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                                        <span className={`badge ${n.status==='active'?'badge-green':'badge-gray'}`} style={{fontSize:10}}>{n.status}</span>
+                                        <span style={{fontSize:10,color:'var(--text-muted)'}}>{n.routing_type}</span>
+                                    </div>
+                                </div>
+                            ))}
+                            {numbers.length === 0 && <p style={{color:'var(--text-muted)',fontSize:13,textAlign:'center',padding:20}}>No numbers configured</p>}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'numbers' && (
+                <div>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                        <h2 style={{fontSize:18,fontWeight:600}}>Phone Numbers</h2>
+                        <button className="btn btn-gold btn-sm" onClick={()=>setShowAddNumber(true)}>{Icons.plus}<span>Add Number</span></button>
+                    </div>
+
+                    {showAddNumber && (
+                        <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
+                            <h3 style={{fontSize:14,fontWeight:600,marginBottom:14}}>Add Phone Number</h3>
+                            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                                <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Phone Number</label><input className="input" placeholder="+91 98765 43210" value={newNumber.phone_number} onChange={e=>setNewNumber({...newNumber,phone_number:e.target.value})}/></div>
+                                <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Label</label><input className="input" placeholder="Main Line" value={newNumber.label} onChange={e=>setNewNumber({...newNumber,label:e.target.value})}/></div>
+                                <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Type</label>
+                                    <select className="input" value={newNumber.type} onChange={e=>setNewNumber({...newNumber,type:e.target.value})}>
+                                        <option value="local">Local</option><option value="toll_free">Toll Free</option><option value="mobile">Mobile</option>
+                                    </select>
+                                </div>
+                                <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Routing</label>
+                                    <select className="input" value={newNumber.routing_type} onChange={e=>setNewNumber({...newNumber,routing_type:e.target.value})}>
+                                        <option value="ring_all">Ring All</option><option value="sequential">Sequential</option><option value="ivr">IVR Menu</option><option value="voicemail">Voicemail</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div style={{display:'flex',gap:8,marginTop:14}}>
+                                <button className="btn btn-gold btn-sm" onClick={addNumber}>Save Number</button>
+                                <button className="btn btn-ghost btn-sm" onClick={()=>setShowAddNumber(false)}>Cancel</button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                        {numbers.map(n => (
+                            <div key={n.id} className="glass" style={{padding:16,borderRadius:10,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                <div style={{display:'flex',alignItems:'center',gap:14}}>
+                                    <div style={{width:42,height:42,borderRadius:10,background:'rgba(232,135,37,0.1)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--gold)'}}>{Icons.phone}</div>
+                                    <div>
+                                        <div style={{fontWeight:600,fontSize:14}}>{n.label}</div>
+                                        <div style={{fontSize:13,color:'var(--text-secondary)'}}>{n.phone_number}</div>
+                                        <div style={{fontSize:11,color:'var(--text-muted)',display:'flex',gap:8,marginTop:2}}>
+                                            <span>{n.type}</span>
+                                            <span>Routing: {n.routing_type}</span>
+                                            {n.recording_enabled && <span style={{color:'var(--success)'}}>Recording ON</span>}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                                    <span className={`badge ${n.status==='active'?'badge-green':'badge-red'}`}>{n.status}</span>
+                                    <button className="btn btn-ghost btn-sm" onClick={()=>deleteNumber(n.id)} style={{color:'var(--danger)',padding:4}}>{Icons.trash}</button>
+                                </div>
+                            </div>
+                        ))}
+                        {numbers.length === 0 && <div className="glass" style={{padding:40,borderRadius:12,textAlign:'center'}}><p style={{color:'var(--text-muted)',fontSize:14}}>No phone numbers configured. Add your first number to get started.</p></div>}
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'logs' && (
+                <div>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                        <h2 style={{fontSize:18,fontWeight:600}}>Call Logs ({logs.length})</h2>
+                        <button className="btn btn-gold btn-sm" onClick={()=>setShowAddLog(true)}>{Icons.plus}<span>Log Call</span></button>
+                    </div>
+
+                    {showAddLog && (
+                        <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
+                            <h3 style={{fontSize:14,fontWeight:600,marginBottom:14}}>Log a Call</h3>
+                            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                                <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Caller Name</label><input className="input" value={newLog.caller_name} onChange={e=>setNewLog({...newLog,caller_name:e.target.value})} placeholder="Patient name"/></div>
+                                <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Phone</label><input className="input" value={newLog.caller_phone} onChange={e=>setNewLog({...newLog,caller_phone:e.target.value})} placeholder="+91 98765 43210"/></div>
+                                <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Direction</label>
+                                    <select className="input" value={newLog.direction} onChange={e=>setNewLog({...newLog,direction:e.target.value})}>
+                                        <option value="inbound">Inbound</option><option value="outbound">Outbound</option>
+                                    </select>
+                                </div>
+                                <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Status</label>
+                                    <select className="input" value={newLog.status} onChange={e=>setNewLog({...newLog,status:e.target.value})}>
+                                        <option value="completed">Completed</option><option value="missed">Missed</option><option value="voicemail">Voicemail</option><option value="busy">Busy</option><option value="failed">Failed</option>
+                                    </select>
+                                </div>
+                                <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Duration (seconds)</label><input className="input" type="number" value={newLog.duration_seconds} onChange={e=>setNewLog({...newLog,duration_seconds:parseInt(e.target.value)||0})}/></div>
+                                <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Answered By</label><input className="input" value={newLog.answered_by} onChange={e=>setNewLog({...newLog,answered_by:e.target.value})} placeholder="Staff name"/></div>
+                            </div>
+                            <div style={{marginTop:12}}><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Notes</label><textarea className="input" rows={2} value={newLog.notes} onChange={e=>setNewLog({...newLog,notes:e.target.value})} placeholder="Call notes..." style={{width:'100%',resize:'vertical'}}/></div>
+                            <div style={{display:'flex',gap:8,marginTop:14}}>
+                                <button className="btn btn-gold btn-sm" onClick={addLog}>Save Log</button>
+                                <button className="btn btn-ghost btn-sm" onClick={()=>setShowAddLog(false)}>Cancel</button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="glass" style={{borderRadius:12,overflow:'hidden'}}>
+                        <div style={{overflowX:'auto'}}>
+                            <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+                                <thead><tr style={{borderBottom:'1px solid var(--border)'}}>
+                                    {['Caller','Phone','Direction','Status','Duration','Answered By','Time','Notes'].map(h=>(
+                                        <th key={h} style={{padding:'12px 14px',textAlign:'left',fontWeight:600,color:'var(--text-muted)',fontSize:11,textTransform:'uppercase',letterSpacing:'0.06em'}}>{h}</th>
+                                    ))}
+                                </tr></thead>
+                                <tbody>
+                                    {logs.map((l,i)=>(
+                                        <tr key={i} className="table-row" style={{borderBottom:'1px solid rgba(255,255,255,0.03)'}}>
+                                            <td style={{padding:'10px 14px',fontWeight:600}}>{l.caller_name||'Unknown'}</td>
+                                            <td style={{padding:'10px 14px',color:'var(--text-secondary)'}}>{l.caller_phone||'-'}</td>
+                                            <td style={{padding:'10px 14px'}}><span className={`badge ${l.direction==='inbound'?'badge-blue':'badge-gold'}`} style={{fontSize:10}}>{l.direction}</span></td>
+                                            <td style={{padding:'10px 14px'}}><span className={`badge ${l.status==='completed'?'badge-green':l.status==='missed'?'badge-red':'badge-gray'}`} style={{fontSize:10}}>{l.status}</span></td>
+                                            <td style={{padding:'10px 14px'}}>{formatDuration(l.duration_seconds||0)}</td>
+                                            <td style={{padding:'10px 14px',color:'var(--text-secondary)'}}>{l.answered_by||'-'}</td>
+                                            <td style={{padding:'10px 14px',fontSize:11,color:'var(--text-muted)'}}>{l.timestamp ? new Date(l.timestamp).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '-'}</td>
+                                            <td style={{padding:'10px 14px',color:'var(--text-muted)',fontSize:12,maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{l.notes||'-'}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        {logs.length === 0 && <p style={{textAlign:'center',padding:30,color:'var(--text-muted)',fontSize:13}}>No call logs recorded yet.</p>}
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'routing' && (
+                <div>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                        <h2 style={{fontSize:18,fontWeight:600}}>Routing Rules</h2>
+                        <button className="btn btn-gold btn-sm" onClick={()=>setShowAddRule(true)}>{Icons.plus}<span>Add Rule</span></button>
+                    </div>
+
+                    {showAddRule && (
+                        <div className="glass" style={{padding:20,borderRadius:12,marginBottom:16}}>
+                            <h3 style={{fontSize:14,fontWeight:600,marginBottom:14}}>Add Routing Rule</h3>
+                            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                                <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Rule Name</label><input className="input" value={newRule.name} onChange={e=>setNewRule({...newRule,name:e.target.value})} placeholder="Business Hours Routing"/></div>
+                                <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Condition</label>
+                                    <select className="input" value={newRule.condition_type} onChange={e=>setNewRule({...newRule,condition_type:e.target.value})}>
+                                        <option value="all_calls">All Calls</option><option value="business_hours">Business Hours</option><option value="after_hours">After Hours</option><option value="specific_number">Specific Number</option>
+                                    </select>
+                                </div>
+                                <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Action</label>
+                                    <select className="input" value={newRule.action} onChange={e=>setNewRule({...newRule,action:e.target.value})}>
+                                        <option value="ring_all">Ring All</option><option value="sequential">Sequential Ring</option><option value="voicemail">Voicemail</option><option value="ivr">IVR Menu</option><option value="forward">Forward</option>
+                                    </select>
+                                </div>
+                                <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Ring Timeout (sec)</label><input className="input" type="number" value={newRule.ring_timeout} onChange={e=>setNewRule({...newRule,ring_timeout:parseInt(e.target.value)||30})}/></div>
+                            </div>
+                            <div style={{display:'flex',gap:8,marginTop:14}}>
+                                <button className="btn btn-gold btn-sm" onClick={addRule}>Save Rule</button>
+                                <button className="btn btn-ghost btn-sm" onClick={()=>setShowAddRule(false)}>Cancel</button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                        {rules.map((r,i) => (
+                            <div key={r.id} className="glass" style={{padding:16,borderRadius:10,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                <div>
+                                    <div style={{fontWeight:600,fontSize:14}}>{r.name}</div>
+                                    <div style={{fontSize:12,color:'var(--text-muted)',display:'flex',gap:12,marginTop:4}}>
+                                        <span>When: {r.condition_type.replace(/_/g,' ')}</span>
+                                        <span>Action: {r.action.replace(/_/g,' ')}</span>
+                                        <span>Timeout: {r.ring_timeout}s</span>
+                                    </div>
+                                </div>
+                                <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                                    <span className={`badge ${r.enabled?'badge-green':'badge-gray'}`} style={{fontSize:10}}>{r.enabled?'Active':'Disabled'}</span>
+                                    <button className="btn btn-ghost btn-sm" onClick={()=>deleteRule(r.id)} style={{color:'var(--danger)',padding:4}}>{Icons.trash}</button>
+                                </div>
+                            </div>
+                        ))}
+                        {rules.length === 0 && <div className="glass" style={{padding:40,borderRadius:12,textAlign:'center'}}><p style={{color:'var(--text-muted)',fontSize:14}}>No routing rules configured. Calls will ring all available lines by default.</p></div>}
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'ivr' && ivr && (
+                <div>
+                    <h2 style={{fontSize:18,fontWeight:600,marginBottom:16}}>IVR Menu Configuration</h2>
+                    <div className="glass" style={{padding:24,borderRadius:12}}>
+                        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
+                            <label style={{fontSize:13,fontWeight:600}}>IVR Enabled</label>
+                            <button className={`btn btn-sm ${ivr.enabled?'btn-gold':'btn-ghost'}`} onClick={()=>setIvr({...ivr,enabled:!ivr.enabled})}>{ivr.enabled?'ON':'OFF'}</button>
+                        </div>
+
+                        <div style={{marginBottom:16}}>
+                            <label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Greeting Message</label>
+                            <textarea className="input" rows={3} value={ivr.greeting_message||''} onChange={e=>setIvr({...ivr,greeting_message:e.target.value})} style={{width:'100%',resize:'vertical'}}/>
+                        </div>
+
+                        <div style={{marginBottom:16}}>
+                            <label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:8}}>Menu Options</label>
+                            {(ivr.menu_options||[]).map((opt,i) => (
+                                <div key={i} style={{display:'grid',gridTemplateColumns:'60px 1fr 1fr',gap:8,marginBottom:8}}>
+                                    <input className="input" value={opt.key} onChange={e=>{const o=[...(ivr.menu_options||[])];o[i]={...o[i],key:e.target.value};setIvr({...ivr,menu_options:o});}} placeholder="1"/>
+                                    <input className="input" value={opt.label} onChange={e=>{const o=[...(ivr.menu_options||[])];o[i]={...o[i],label:e.target.value};setIvr({...ivr,menu_options:o});}} placeholder="Appointments"/>
+                                    <select className="input" value={opt.action} onChange={e=>{const o=[...(ivr.menu_options||[])];o[i]={...o[i],action:e.target.value};setIvr({...ivr,menu_options:o});}}>
+                                        <option value="forward">Forward to Team</option><option value="voicemail">Voicemail</option><option value="message">Play Message</option>
+                                    </select>
+                                </div>
+                            ))}
+                            <button className="btn btn-ghost btn-sm" onClick={()=>setIvr({...ivr,menu_options:[...(ivr.menu_options||[]),{key:String((ivr.menu_options||[]).length+1),label:'',action:'forward',target:''}]})}>{Icons.plus}<span>Add Option</span></button>
+                        </div>
+
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Timeout Action</label>
+                                <select className="input" value={ivr.timeout_action||'repeat'} onChange={e=>setIvr({...ivr,timeout_action:e.target.value})}>
+                                    <option value="repeat">Repeat Menu</option><option value="voicemail">Voicemail</option><option value="forward">Forward to Operator</option>
+                                </select>
+                            </div>
+                            <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Max Retries</label>
+                                <input className="input" type="number" value={ivr.max_retries||3} onChange={e=>setIvr({...ivr,max_retries:parseInt(e.target.value)||3})} min={1} max={5}/>
+                            </div>
+                        </div>
+
+                        <button className="btn btn-gold" onClick={saveIvr}>Save IVR Configuration</button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 
 // ============ MAIN APP ============
 const App = () => {
@@ -5265,6 +6014,7 @@ const App = () => {
         ]},
         { label: 'CRM', items: [
             {id:'calls',label:'Calls',icon:Icons.calls},
+            {id:'telephony',label:'Telephony',icon:Icons.phone},
             {id:'pipeline',label:'Pipeline',icon:Icons.pipeline},
             {id:'leads',label:'Leads',icon:Icons.leads},
             {id:'contacts',label:'Contacts',icon:Icons.contacts},
@@ -5545,6 +6295,7 @@ const MISPage = () => {
             case 'hr': return <HRPage/>;
             case 'mis': return <MISPage/>;
             case 'contacts': return <ContactsPage/>;
+            case 'telephony': return <TelephonyPage/>;
             case 'unified-inbox': return <UnifiedInboxPage/>;
             case 'inbox': return <WhatsAppInboxPage/>;
             case 'ai-employee': return <AIEmployeePage/>;
