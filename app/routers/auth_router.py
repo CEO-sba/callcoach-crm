@@ -8,7 +8,13 @@ from app.database import get_db
 from app.models import User, Clinic
 from pydantic import BaseModel
 from app.schemas import UserCreate, UserLogin, Token, UserOut, ClinicCreate, ClinicOut
-from app.auth import hash_password, verify_password, create_access_token, get_current_user
+from app.auth import hash_password, verify_password, create_access_token, get_current_user, create_password_reset_token, verify_password_reset_token
+from app.config import APP_BASE_URL
+from app.services.email_service import send_password_reset_email
+from app.services.activity_logger import log_activity
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -44,6 +50,10 @@ def register(data: ClinicCreate, user: UserCreate, db: Session = Depends(get_db)
         "role": new_user.role,
         "is_super_admin": False
     })
+    log_activity(db, clinic.id, "system", "clinic_registered",
+                 {"clinic_name": data.name, "admin_email": user.email,
+                  "city": data.city, "specialty": data.specialty},
+                 user.email)
     return Token(access_token=token, user_id=new_user.id, clinic_id=clinic.id, role=new_user.role, is_super_admin=False)
 
 
@@ -82,6 +92,9 @@ def register_simple(data: SimpleRegister, db: Session = Depends(get_db)):
         "role": new_user.role,
         "is_super_admin": False
     })
+    log_activity(db, clinic.id, "system", "clinic_registered_simple",
+                 {"clinic_name": data.clinic_name, "admin_email": data.email},
+                 data.email)
     return Token(access_token=token, user_id=new_user.id, clinic_id=clinic.id, role=new_user.role, is_super_admin=False)
 
 
@@ -100,6 +113,14 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         "role": user.role,
         "is_super_admin": user.is_super_admin
     })
+    if user.clinic_id:
+        try:
+            log_activity(db, user.clinic_id, "system", "user_login",
+                         {"email": user.email, "role": user.role},
+                         user.email)
+        except Exception:
+            pass
+
     return Token(
         access_token=token,
         user_id=user.id,
@@ -136,6 +157,9 @@ def add_team_member(user: UserCreate, db: Session = Depends(get_db),
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    log_activity(db, current_user.clinic_id, "system", "team_member_added",
+                 {"email": user.email, "full_name": user.full_name, "role": user.role},
+                 current_user.email, related_id=new_user.id, related_type="user")
     return new_user
 
 
@@ -143,3 +167,167 @@ def add_team_member(user: UserCreate, db: Session = Depends(get_db),
 def get_team(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Get all team members for the clinic."""
     return db.query(User).filter(User.clinic_id == current_user.clinic_id).all()
+
+
+class UpdateTeamMember(BaseModel):
+    full_name: str = None
+    role: str = None
+    is_active: bool = None
+    allowed_tabs: list = None
+
+
+@router.patch("/team/{user_id}", response_model=UserOut)
+def update_team_member(user_id: str, data: UpdateTeamMember, db: Session = Depends(get_db),
+                        current_user: User = Depends(get_current_user)):
+    """Update a team member (admin/manager only)."""
+    if current_user.role not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Only admin or manager can update team members")
+
+    member = db.query(User).filter(User.id == user_id, User.clinic_id == current_user.clinic_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Team member not found")
+
+    if member.is_super_admin:
+        raise HTTPException(status_code=403, detail="Cannot modify super admin accounts")
+
+    if member.id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot modify your own account from team management")
+
+    # Managers can only edit agents
+    if current_user.role == "manager" and member.role != "agent":
+        raise HTTPException(status_code=403, detail="Managers can only modify agent accounts")
+
+    if data.full_name is not None:
+        member.full_name = data.full_name
+    if data.role is not None and data.role in ["agent", "manager"]:
+        member.role = data.role
+    if data.is_active is not None:
+        member.is_active = data.is_active
+    if data.allowed_tabs is not None:
+        member.allowed_tabs = data.allowed_tabs if data.allowed_tabs else None
+
+    db.commit()
+    db.refresh(member)
+    log_activity(db, current_user.clinic_id, "system", "team_member_updated",
+                 {"target_email": member.email, "changes": data.dict(exclude_none=True)},
+                 current_user.email, related_id=member.id, related_type="user")
+    return member
+
+
+@router.delete("/team/{user_id}")
+def remove_team_member(user_id: str, db: Session = Depends(get_db),
+                        current_user: User = Depends(get_current_user)):
+    """Deactivate a team member (admin only)."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admin can remove team members")
+
+    member = db.query(User).filter(User.id == user_id, User.clinic_id == current_user.clinic_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Team member not found")
+
+    if member.is_super_admin:
+        raise HTTPException(status_code=403, detail="Cannot remove super admin accounts")
+
+    if member.id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot remove your own account")
+
+    member.is_active = False
+    db.commit()
+    log_activity(db, current_user.clinic_id, "system", "team_member_removed",
+                 {"target_email": member.email}, current_user.email,
+                 related_id=member.id, related_type="user")
+    return {"message": f"Team member {member.full_name} has been deactivated"}
+
+
+class TeamResetPassword(BaseModel):
+    new_password: str
+
+
+@router.patch("/team/{user_id}/reset-password")
+def reset_team_member_password(user_id: str, data: TeamResetPassword, db: Session = Depends(get_db),
+                                current_user: User = Depends(get_current_user)):
+    """Reset a team member's password (admin only)."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admin can reset team member passwords")
+
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+
+    member = db.query(User).filter(User.id == user_id, User.clinic_id == current_user.clinic_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Team member not found")
+
+    if member.is_super_admin:
+        raise HTTPException(status_code=403, detail="Cannot reset super admin password")
+
+    if member.id == current_user.id:
+        raise HTTPException(status_code=400, detail="Use the forgot password flow to reset your own password")
+
+    member.hashed_password = hash_password(data.new_password)
+    db.commit()
+    log_activity(db, current_user.clinic_id, "system", "team_password_reset",
+                 {"target_email": member.email}, current_user.email,
+                 related_id=member.id, related_type="user")
+    return {"message": f"Password reset for {member.full_name}"}
+
+
+# ---------------------------------------------------------------------------
+# Password Reset
+# ---------------------------------------------------------------------------
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+@router.post("/forgot-password")
+def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """Send password reset email. Always returns success to prevent user enumeration."""
+    user = db.query(User).filter(User.email == data.email, User.is_active == True).first()
+
+    if user:
+        token = create_password_reset_token(user.id)
+        reset_link = f"{APP_BASE_URL}/reset-password?token={token}"
+        send_password_reset_email(
+            to_email=user.email,
+            user_name=user.full_name,
+            reset_link=reset_link
+        )
+        logger.info(f"Password reset requested for {data.email}")
+    else:
+        logger.info(f"Password reset requested for non-existent email: {data.email}")
+
+    # Always return success to prevent email enumeration
+    return {"message": "If an account with that email exists, a password reset link has been sent."}
+
+
+@router.post("/reset-password")
+def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_db)):
+    """Reset password using a valid reset token."""
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+
+    user_id = verify_password_reset_token(data.token)
+    if not user_id:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+    user = db.query(User).filter(User.id == user_id, User.is_active == True).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+    user.hashed_password = hash_password(data.new_password)
+    db.commit()
+
+    if user.clinic_id:
+        try:
+            log_activity(db, user.clinic_id, "system", "password_reset_completed",
+                         {"email": user.email}, user.email)
+        except Exception:
+            pass
+
+    logger.info(f"Password reset completed for user {user.email}")
+    return {"message": "Password has been reset successfully. You can now log in with your new password."}

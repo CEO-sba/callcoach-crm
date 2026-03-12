@@ -36,6 +36,7 @@ class Clinic(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     is_active = Column(Boolean, default=True)
     leaderboard_visible = Column(Boolean, default=True)  # Toggle leaderboard visibility for agents
+    settings = Column(JSON, default=dict)  # Stores activity_logs, gmb config, backlinks, google_ads config, etc.
 
     users = relationship("User", back_populates="clinic")
     calls = relationship("Call", back_populates="clinic")
@@ -54,6 +55,7 @@ class User(Base):
     role = Column(String(50), default="agent")  # admin, manager, agent
     is_super_admin = Column(Boolean, default=False)  # Platform-level super admin
     is_active = Column(Boolean, default=True)
+    allowed_tabs = Column(JSON, nullable=True)  # List of allowed tab IDs, null = all tabs visible
     created_at = Column(DateTime, default=datetime.utcnow)
 
     clinic = relationship("Clinic", back_populates="users")

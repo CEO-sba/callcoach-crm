@@ -6,7 +6,7 @@ All endpoints require authentication.
 """
 from typing import Optional, List
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
@@ -14,6 +14,7 @@ from app.database import get_db
 from app.models import User, WeeklyReport
 from app.auth import get_current_user
 from app.services.weekly_report import generate_weekly_report
+from app.services.activity_logger import log_activity
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
@@ -116,6 +117,7 @@ def get_weekly_reports_history(
 @router.post("/weekly/generate")
 async def manually_generate_report(
     week_start: Optional[str] = None,
+    data: dict = Body(default={}),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -148,7 +150,8 @@ async def manually_generate_report(
         )
 
     # Generate report
-    report_data = generate_weekly_report(db, current_user.clinic_id, parsed_week_start)
+    report_data = generate_weekly_report(db, current_user.clinic_id, parsed_week_start,
+                                          regenerate_changes=data.get("regenerate_changes", ""))
 
     # Check for existing report and update or create
     existing = db.query(WeeklyReport).filter(
@@ -194,6 +197,16 @@ async def manually_generate_report(
         db.refresh(new_report)
         created = True
         report_record = new_report
+
+    log_activity(db, current_user.clinic_id, "report", "weekly_report_generated",
+                 {"week_start": parsed_week_start.isoformat(),
+                  "total_calls": report_data["total_calls"],
+                  "avg_score": report_data["avg_score"],
+                  "conversion_rate": report_data["conversion_rate"],
+                  "top_agent": report_data.get("best_agent_name", "N/A"),
+                  "status": "created" if created else "updated",
+                  "output": report_data},
+                 current_user.email, related_id=report_record.id, related_type="weekly_report")
 
     return {
         "id": report_record.id,
@@ -289,6 +302,10 @@ def cleanup_duplicate_reports(
 
     if removed > 0:
         db.commit()
+
+    log_activity(db, current_user.clinic_id, "system", "duplicate_reports_cleaned",
+                 {"removed": removed, "remaining": len(seen_weeks)},
+                 current_user.email)
 
     return {
         "message": f"Cleaned up {removed} duplicate report(s)",

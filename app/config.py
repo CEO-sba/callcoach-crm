@@ -83,9 +83,31 @@ def is_r2_configured() -> bool:
     return bool(R2_ACCOUNT_ID and R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY)
 
 # ---------------------------------------------------------------------------
+# Email (Hostinger SMTP)
+# ---------------------------------------------------------------------------
+SMTP_HOST = os.getenv("SMTP_HOST", "smtp.hostinger.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "")
+SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "CallCoach CRM")
+APP_BASE_URL = os.getenv("APP_BASE_URL", "https://callcoachsba.com")
+PASSWORD_RESET_EXPIRE_MINUTES = 60  # 1 hour
+
+# ---------------------------------------------------------------------------
+# WhatsApp Cloud API
+# ---------------------------------------------------------------------------
+WHATSAPP_API_VERSION = "v21.0"
+WHATSAPP_API_BASE = f"https://graph.facebook.com/{WHATSAPP_API_VERSION}"
+
+# Meta App for OAuth (Meta Lead Forms + Social)
+META_APP_ID = os.getenv("META_APP_ID", "")
+META_APP_SECRET = os.getenv("META_APP_SECRET", "")
+
+# ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
 APP_NAME = "CallCoach CRM"
-APP_VERSION = "1.1.0"
+APP_VERSION = "2.0.0"
 MAX_UPLOAD_SIZE_MB = 500
 ALLOWED_AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".ogg", ".webm", ".flac", ".aac", ".mp4"}

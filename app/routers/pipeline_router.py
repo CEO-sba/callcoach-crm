@@ -10,6 +10,7 @@ from app.models import PipelineDeal, DealActivity, Call, User
 from app.schemas import DealCreate, DealUpdate, DealOut
 from app.auth import get_current_user
 from app.services.ai_coach import assess_deal_health
+from app.services.activity_logger import log_activity
 
 router = APIRouter(prefix="/api/pipeline", tags=["pipeline"])
 
@@ -50,6 +51,11 @@ def create_deal(deal: DealCreate, db: Session = Depends(get_db),
     db.add(activity)
     db.commit()
     db.refresh(new_deal)
+    log_activity(db, current_user.clinic_id, "user_action", "deal_created",
+                 {"title": deal.title, "contact": deal.contact_name,
+                  "treatment": deal.treatment_interest, "value": deal.deal_value,
+                  "stage": deal.stage}, current_user.email,
+                 related_id=new_deal.id, related_type="deal")
     return new_deal
 
 
@@ -208,5 +214,10 @@ async def assess_health(deal_id: str, db: Session = Depends(get_db),
     deal.ai_recommended_action = assessment.get("recommended_action")
     deal.ai_deal_health = assessment.get("health")
     db.commit()
+    log_activity(db, current_user.clinic_id, "coaching", "deal_health_assessed",
+                 {"deal_id": deal_id, "title": deal.title,
+                  "health": assessment.get("health"),
+                  "win_probability": assessment.get("win_probability")},
+                 current_user.email, related_id=deal_id, related_type="deal")
 
     return assessment

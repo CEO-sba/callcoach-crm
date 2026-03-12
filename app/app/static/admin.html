@@ -3,26 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CallCoach Admin | Skin Business Accelerator</title>
+    <title>SBA Admin | Skin Business Accelerator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-primary: #06080F;
-            --bg-secondary: #0D1117;
-            --bg-card: rgba(15, 20, 30, 0.7);
-            --bg-card-hover: rgba(20, 28, 42, 0.8);
-            --border: rgba(192, 196, 203, 0.12);
-            --border-hover: rgba(192, 196, 203, 0.3);
-            --gold: #C0C4CB;
-            --gold-light: #E8EAED;
-            --gold-dark: #8A9099;
-            --text-primary: #F1F5F9;
-            --text-secondary: #94A3B8;
-            --text-muted: #64748B;
+            --bg-primary: #000000;
+            --bg-secondary: #0A0A0A;
+            --bg-card: #111111;
+            --bg-card-hover: #1A1A1A;
+            --bg-elevated: #141414;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.16);
+            --orange: #E88725;
+            --orange-light: #F5A623;
+            --orange-dark: #C06E1A;
+            --orange-glow: rgba(232, 135, 37, 0.15);
+            --orange-glow-strong: rgba(232, 135, 37, 0.25);
+            --text-primary: #FFFFFF;
+            --text-secondary: #A0A0A0;
+            --text-muted: #666666;
             --success: #22C55E;
             --danger: #EF4444;
             --warning: #F59E0B;
@@ -31,57 +33,64 @@
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(192, 196, 203, 0.2); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(192, 196, 203, 0.4); }
-        .glass { background: var(--bg-card); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--border); }
-        .glass:hover { border-color: var(--border-hover); }
-        .glass-solid { background: var(--bg-secondary); border: 1px solid var(--border); }
+        ::-webkit-scrollbar-thumb { background: rgba(232, 135, 37, 0.2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(232, 135, 37, 0.4); }
+
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; transition: border-color 0.2s; }
+        .card:hover { border-color: var(--border-hover); }
+        .card-elevated { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 12px; }
+
         .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; border: none; font-family: inherit; }
-        .btn-gold { background: linear-gradient(135deg, var(--gold), var(--gold-light)); color: #000; }
-        .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(192, 196, 203, 0.3); }
+        .btn-primary { background: var(--orange); color: #000; }
+        .btn-primary:hover { background: var(--orange-light); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(232, 135, 37, 0.3); }
         .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
-        .btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
-        .btn-danger { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #EF4444; }
-        .btn-danger:hover { background: rgba(239, 68, 68, 0.25); }
-        .btn-sm { padding: 6px 14px; font-size: 13px; }
+        .btn-ghost:hover { border-color: var(--orange); color: var(--orange); }
+        .btn-danger { background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.25); color: #EF4444; }
+        .btn-danger:hover { background: rgba(239, 68, 68, 0.2); }
+        .btn-success { background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.25); color: #22C55E; }
+        .btn-success:hover { background: rgba(34, 197, 94, 0.2); }
+        .btn-sm { padding: 7px 14px; font-size: 13px; }
         .btn-xs { padding: 4px 10px; font-size: 12px; border-radius: 6px; }
-        .btn-accent { background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); color: #A78BFA; }
-        .btn-accent:hover { background: rgba(139, 92, 246, 0.3); }
-        .btn-success { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); color: #22C55E; }
-        .btn-success:hover { background: rgba(34, 197, 94, 0.25); }
+
         .input { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-family: inherit; font-size: 14px; outline: none; transition: border-color 0.2s; }
-        .input:focus { border-color: var(--gold); }
+        .input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(232, 135, 37, 0.1); }
         .input::placeholder { color: var(--text-muted); }
         select.input { cursor: pointer; }
+
         .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-        .badge-green { background: rgba(34, 197, 94, 0.15); color: #22C55E; }
-        .badge-red { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
-        .badge-blue { background: rgba(59, 130, 246, 0.15); color: #3B82F6; }
-        .badge-yellow { background: rgba(245, 158, 11, 0.15); color: #F59E0B; }
-        .badge-gray { background: rgba(148, 163, 184, 0.1); color: #94A3B8; }
-        .badge-accent { background: rgba(139, 92, 246, 0.15); color: #A78BFA; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .badge-green { background: rgba(34, 197, 94, 0.12); color: #22C55E; }
+        .badge-red { background: rgba(239, 68, 68, 0.12); color: #EF4444; }
+        .badge-blue { background: rgba(59, 130, 246, 0.12); color: #60A5FA; }
+        .badge-yellow { background: rgba(245, 158, 11, 0.12); color: #F59E0B; }
+        .badge-gray { background: rgba(160, 160, 160, 0.1); color: #A0A0A0; }
+        .badge-orange { background: var(--orange-glow); color: var(--orange); }
+        .badge-accent { background: rgba(139, 92, 246, 0.12); color: #A78BFA; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
-        .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.6s linear infinite; }
-        .text-gradient { background: linear-gradient(135deg, #C0C4CB, #F5F6F8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .sidebar-link { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 8px; color: var(--text-secondary); font-weight: 500; font-size: 14px; transition: all 0.2s; cursor: pointer; text-decoration: none; }
-        .sidebar-link:hover { color: var(--text-primary); background: rgba(192, 196, 203, 0.06); }
-        .sidebar-link.active { color: var(--gold); background: rgba(192, 196, 203, 0.1); border: 1px solid rgba(192, 196, 203, 0.15); }
+        .fade-in { animation: fadeIn 0.35s ease-out forwards; }
+        .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--orange); border-radius: 50%; animation: spin 0.6s linear infinite; }
+
+        .sidebar-link { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 8px; color: var(--text-secondary); font-weight: 500; font-size: 14px; transition: all 0.2s; cursor: pointer; text-decoration: none; border: 1px solid transparent; }
+        .sidebar-link:hover { color: var(--text-primary); background: rgba(255, 255, 255, 0.04); }
+        .sidebar-link.active { color: var(--orange); background: var(--orange-glow); border-color: rgba(232, 135, 37, 0.2); }
+
         .table-row { transition: background 0.15s; }
-        .table-row:hover { background: rgba(192, 196, 203, 0.04); }
+        .table-row:hover { background: rgba(255, 255, 255, 0.02); }
+
         .toggle-track { width: 44px; height: 24px; border-radius: 12px; cursor: pointer; transition: background 0.2s; position: relative; }
-        .toggle-track.on { background: rgba(34,197,94,0.5); }
-        .toggle-track.off { background: rgba(148,163,184,0.2); }
+        .toggle-track.on { background: rgba(34,197,94,0.4); }
+        .toggle-track.off { background: rgba(160,160,160,0.15); }
         .toggle-thumb { width: 18px; height: 18px; border-radius: 50%; background: white; position: absolute; top: 3px; transition: left 0.2s; }
         .toggle-track.on .toggle-thumb { left: 23px; }
         .toggle-track.off .toggle-thumb { left: 3px; }
-        .dim-bar { height: 8px; border-radius: 4px; transition: width 0.6s ease; }
+        .dim-bar { height: 6px; border-radius: 3px; transition: width 0.6s ease; }
+
         .mobile-header { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 60; background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 12px 16px; align-items: center; justify-content: space-between; }
         .hamburger { background: none; border: none; color: var(--text-primary); cursor: pointer; padding: 4px; }
-        .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 55; }
+        .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 55; }
         .mobile-overlay.show { display: block; }
         @media (max-width: 768px) {
             .mobile-header { display: flex; }
@@ -89,11 +98,21 @@
             .desktop-sidebar.open { transform: translateX(0); }
             .main-content { margin-left: 0 !important; padding: 72px 16px 24px 16px !important; }
         }
-        @media (max-width: 480px) {
-            .main-content { padding: 64px 12px 20px 12px !important; }
-        }
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s; }
-        .modal-box { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 32px; max-width: 520px; width: 90%; max-height: 90vh; overflow-y: auto; }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 100; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s; }
+        .modal-box { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 16px; padding: 32px; max-width: 520px; width: 90%; max-height: 90vh; overflow-y: auto; }
+
+        .stat-card { padding: 24px; border-radius: 12px; background: var(--bg-card); border: 1px solid var(--border); position: relative; overflow: hidden; flex: 1; min-width: 200px; }
+        .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--accent-color, var(--orange)); opacity: 0.6; }
+        .stat-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+        .stat-value { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+        .stat-sub { font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
+
+        .th-cell { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+        .td-cell { padding: 14px 16px; }
+
+        .section-title { font-size: 22px; font-weight: 800; color: var(--text-primary); margin-bottom: 6px; }
+        .section-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 28px; }
     </style>
 </head>
 <body>
@@ -132,34 +151,33 @@ const Icons = {
     dashboard: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>,
     clinics: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M3 21h18M5 21V7l8-4v18M13 21V3l6 4v14"/><path d="M9 9h1M9 13h1M9 17h1M15 9h1M15 13h1"/></svg>,
     analytics: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>,
-    users: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>,
-    back: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>,
-    plus: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>,
+    back: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>,
+    plus: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>,
     search: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>,
-    logout: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>,
-    shield: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
-    settings: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
+    logout: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>,
+    shield: <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
     eye: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
     eyeOff: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>,
+    home: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
 };
 
 // ============ LOGO ============
 const Logo = () => (
-    <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'8px 0'}}>
-        <img src="/static/logo.svg" alt="CallCoach" style={{width:48,height:48}} onError={(e)=>{e.target.style.display='none'}}/>
+    <div style={{display:'flex',alignItems:'center',gap:'12px',padding:'4px 0'}}>
+        <img src="data:image/png;base64,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" alt="SBA" style={{width:36,height:36,borderRadius:8}} onError={(e)=>{e.target.style.display='none'}}/>
         <div>
-            <div style={{fontSize:18,fontWeight:900,letterSpacing:'-0.02em',fontFamily:"'Playfair Display',serif"}} className="text-gradient">CallCoach</div>
-            <div style={{fontSize:9,fontWeight:600,color:'var(--accent)',textTransform:'uppercase',letterSpacing:'0.15em'}}>ADMIN PORTAL</div>
+            <div style={{fontSize:16,fontWeight:800,letterSpacing:'-0.02em',color:'var(--text-primary)'}}>SBA CRM</div>
+            <div style={{fontSize:9,fontWeight:700,color:'var(--orange)',textTransform:'uppercase',letterSpacing:'0.15em'}}>Admin Portal</div>
         </div>
     </div>
 );
 
 // ============ STAT CARD ============
-const StatCard = ({ label, value, sub, accent }) => (
-    <div className="glass fade-in" style={{padding:'20px 24px',borderRadius:12,flex:1,minWidth:180}}>
-        <div style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>{label}</div>
-        <div style={{fontSize:28,fontWeight:700,color: accent || 'var(--text-primary)',letterSpacing:'-0.02em'}}>{value}</div>
-        {sub && <div style={{fontSize:12,color:'var(--text-secondary)',marginTop:4}}>{sub}</div>}
+const StatCard = ({ label, value, sub, color }) => (
+    <div className="stat-card fade-in" style={{'--accent-color': color || 'var(--orange)'}}>
+        <div className="stat-label">{label}</div>
+        <div className="stat-value" style={{color: color || 'var(--text-primary)'}}>{value}</div>
+        {sub && <div className="stat-sub">{sub}</div>}
     </div>
 );
 
@@ -175,15 +193,15 @@ const Toggle = ({ value, onChange, label }) => (
 
 // ============ DIMENSION BAR ============
 const DimensionBar = ({ label, value, max = 100 }) => {
-    const pct = max > 0 ? (value / max) * 100 : 0;
-    const color = value >= 80 ? 'var(--success)' : value >= 60 ? 'var(--gold)' : value >= 40 ? 'var(--warning)' : 'var(--danger)';
+    const pct = max > 0 && value ? (value / max) * 100 : 0;
+    const color = !value ? 'var(--text-muted)' : value >= 80 ? 'var(--success)' : value >= 60 ? 'var(--orange)' : value >= 40 ? 'var(--warning)' : 'var(--danger)';
     return (
-        <div style={{marginBottom:10}}>
-            <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
-                <span style={{fontSize:12,color:'var(--text-secondary)'}}>{label}</span>
-                <span style={{fontSize:12,fontWeight:600,color}}>{value ? value.toFixed(1) : 'N/A'}</span>
+        <div style={{marginBottom:14}}>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:5}}>
+                <span style={{fontSize:13,color:'var(--text-secondary)',fontWeight:500}}>{label}</span>
+                <span style={{fontSize:13,fontWeight:700,color}}>{value ? value.toFixed(1) : 'N/A'}</span>
             </div>
-            <div style={{height:8,borderRadius:4,background:'rgba(255,255,255,0.06)'}}>
+            <div style={{height:6,borderRadius:3,background:'rgba(255,255,255,0.06)'}}>
                 <div className="dim-bar" style={{width:`${pct}%`,background:color}}/>
             </div>
         </div>
@@ -215,23 +233,23 @@ const ForgotPasswordModal = ({ onClose }) => {
     };
 
     return (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999,padding:20}} onClick={onClose}>
-            <div className="glass" style={{maxWidth:400,width:'100%',padding:32,borderRadius:16}} onClick={e=>e.stopPropagation()}>
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999,padding:20}} onClick={onClose}>
+            <div className="card" style={{maxWidth:400,width:'100%',padding:32,borderRadius:16}} onClick={e=>e.stopPropagation()}>
                 {sent ? (
                     <div style={{textAlign:'center'}}>
-                        <div style={{fontSize:40,marginBottom:12,color:'var(--success)'}}>&#10003;</div>
-                        <h3 style={{fontSize:16,fontWeight:600,marginBottom:8,color:'var(--text-primary)'}}>Check Your Email</h3>
-                        <p style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.6,marginBottom:20}}>If an account with that email exists, we've sent a password reset link. Check your inbox and spam folder.</p>
-                        <button onClick={onClose} className="btn btn-gold" style={{width:'100%',justifyContent:'center'}}>Back to Login</button>
+                        <div style={{width:48,height:48,borderRadius:'50%',background:'rgba(34,197,94,0.15)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:24,color:'var(--success)'}}>&#10003;</div>
+                        <h3 style={{fontSize:16,fontWeight:700,marginBottom:8}}>Check Your Email</h3>
+                        <p style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.6,marginBottom:20}}>If an account with that email exists, we've sent a password reset link.</p>
+                        <button onClick={onClose} className="btn btn-primary" style={{width:'100%',justifyContent:'center'}}>Back to Login</button>
                     </div>
                 ) : (
                     <>
-                        <h3 style={{fontSize:16,fontWeight:600,marginBottom:8,color:'var(--text-primary)'}}>Forgot Password</h3>
-                        <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20,lineHeight:1.5}}>Enter your email address and we'll send you a link to reset your password.</p>
-                        {error && <div style={{padding:'8px 12px',borderRadius:8,background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',color:'#EF4444',fontSize:12,marginBottom:12}}>{error}</div>}
+                        <h3 style={{fontSize:16,fontWeight:700,marginBottom:8}}>Forgot Password</h3>
+                        <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20,lineHeight:1.5}}>Enter your email and we'll send a reset link.</p>
+                        {error && <div style={{padding:'8px 12px',borderRadius:8,background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',color:'#EF4444',fontSize:12,marginBottom:12}}>{error}</div>}
                         <form onSubmit={handleSubmit}>
-                            <div style={{marginBottom:16}}><input className="input" type="email" placeholder="admin@callcoach.com" value={email} onChange={e=>setEmail(e.target.value)} required/></div>
-                            <button type="submit" className="btn btn-gold" style={{width:'100%',justifyContent:'center'}} disabled={loading}>{loading ? <div className="spinner"/> : 'Send Reset Link'}</button>
+                            <div style={{marginBottom:16}}><input className="input" type="email" placeholder="admin@sba.com" value={email} onChange={e=>setEmail(e.target.value)} required/></div>
+                            <button type="submit" className="btn btn-primary" style={{width:'100%',justifyContent:'center'}} disabled={loading}>{loading ? <div className="spinner"/> : 'Send Reset Link'}</button>
                         </form>
                         <div style={{textAlign:'center',marginTop:14}}><a onClick={onClose} style={{fontSize:12,color:'var(--text-muted)',cursor:'pointer'}}>Cancel</a></div>
                     </>
@@ -266,34 +284,34 @@ const AdminLoginPage = ({ onLogin }) => {
     };
 
     return (
-        <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
-            <div className="glass fade-in" style={{maxWidth:420,width:'100%',padding:40,borderRadius:20}}>
+        <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'#000'}}>
+            <div className="card fade-in" style={{maxWidth:420,width:'100%',padding:40,borderRadius:16}}>
                 <div style={{textAlign:'center',marginBottom:32}}>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:8}}>
-                        {Icons.shield}
-                        <span style={{fontSize:24,fontWeight:900,fontFamily:"'Playfair Display',serif"}} className="text-gradient">CallCoach Admin</span>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,marginBottom:12}}>
+                        <img src="data:image/png;base64,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" alt="SBA" style={{width:40,height:40,borderRadius:8}} onError={(e)=>{e.target.style.display='none'}}/>
                     </div>
+                    <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>SBA Admin</div>
                     <div style={{fontSize:13,color:'var(--text-muted)'}}>Super Admin Portal</div>
                 </div>
-                {error && <div style={{padding:'10px 14px',borderRadius:8,background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.3)',color:'#EF4444',fontSize:13,marginBottom:16}}>{error}</div>}
+                {error && <div style={{padding:'10px 14px',borderRadius:8,background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',color:'#EF4444',fontSize:13,marginBottom:16}}>{error}</div>}
                 <form onSubmit={handleSubmit}>
                     <div style={{marginBottom:16}}>
                         <label style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',display:'block',marginBottom:6}}>EMAIL</label>
-                        <input className="input" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="admin@callcoach.com" required/>
+                        <input className="input" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="admin@sba.com" required/>
                     </div>
                     <div style={{marginBottom:24}}>
                         <label style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',display:'block',marginBottom:6}}>PASSWORD</label>
                         <input className="input" type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="Enter password" required/>
                     </div>
-                    <button type="submit" className="btn btn-gold" style={{width:'100%',justifyContent:'center'}} disabled={loading}>
+                    <button type="submit" className="btn btn-primary" style={{width:'100%',justifyContent:'center',padding:'12px 20px',fontSize:15}} disabled={loading}>
                         {loading ? <div className="spinner"/> : 'Sign In'}
                     </button>
                 </form>
-                <div style={{textAlign:'center',marginTop:14}}>
+                <div style={{textAlign:'center',marginTop:16}}>
                     <a onClick={()=>setShowForgot(true)} style={{fontSize:12,color:'var(--text-muted)',cursor:'pointer',textDecoration:'none'}}>Forgot Password?</a>
                 </div>
-                <div style={{textAlign:'center',marginTop:10}}>
-                    <a href="/" style={{fontSize:12,color:'var(--text-muted)',textDecoration:'none'}}>Back to main app</a>
+                <div style={{textAlign:'center',marginTop:8}}>
+                    <a href="/" style={{fontSize:12,color:'var(--orange)',textDecoration:'none',fontWeight:500}}>Back to main app</a>
                 </div>
                 {showForgot && <ForgotPasswordModal onClose={()=>setShowForgot(false)} />}
             </div>
@@ -314,19 +332,19 @@ const DashboardPage = () => {
 
     return (
         <div className="fade-in">
-            <h1 style={{fontSize:24,fontWeight:800,marginBottom:8,fontFamily:"'Playfair Display',serif"}} className="text-gradient">Platform Dashboard</h1>
-            <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:28}}>Overview of all clinics, users, and calls across the platform.</p>
+            <div className="section-title">Platform Dashboard</div>
+            <div className="section-desc">Overview of all clinics, users, and calls across the platform.</div>
             {stats && (
                 <>
-                    <div style={{display:'flex',gap:16,flexWrap:'wrap',marginBottom:28}}>
-                        <StatCard label="Total Clinics" value={stats.total_clinics} sub={`${stats.active_clinics} active`} accent="var(--info)"/>
-                        <StatCard label="Total Users" value={stats.total_users}/>
-                        <StatCard label="Total Calls" value={stats.total_calls}/>
-                        <StatCard label="Avg Score" value={stats.platform_avg_score ? stats.platform_avg_score.toFixed(1) : 'N/A'} accent="var(--success)"/>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))',gap:16,marginBottom:20}}>
+                        <StatCard label="Total Clinics" value={stats.total_clinics} sub={`${stats.active_clinics} active`} color="var(--orange)"/>
+                        <StatCard label="Total Users" value={stats.total_users} color="var(--info)"/>
+                        <StatCard label="Total Calls" value={stats.total_calls} color="var(--accent)"/>
+                        <StatCard label="Avg Score" value={stats.platform_avg_score ? stats.platform_avg_score.toFixed(1) : 'N/A'} color="var(--success)"/>
                     </div>
-                    <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
-                        <StatCard label="Pipeline Value" value={`$${(stats.total_pipeline_value || 0).toLocaleString()}`} accent="var(--warning)"/>
-                        <StatCard label="Won Value" value={`$${(stats.total_won_value || 0).toLocaleString()}`} accent="var(--success)"/>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))',gap:16}}>
+                        <StatCard label="Pipeline Value" value={`$${(stats.total_pipeline_value || 0).toLocaleString()}`} color="var(--warning)"/>
+                        <StatCard label="Won Value" value={`$${(stats.total_won_value || 0).toLocaleString()}`} color="var(--success)"/>
                     </div>
                 </>
             )}
@@ -357,50 +375,50 @@ const ClinicsListPage = ({ onSelect }) => {
         <div className="fade-in">
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24,flexWrap:'wrap',gap:12}}>
                 <div>
-                    <h1 style={{fontSize:24,fontWeight:800,fontFamily:"'Playfair Display',serif"}} className="text-gradient">Doctor Accounts</h1>
+                    <div className="section-title">Clinic Accounts</div>
                     <p style={{fontSize:13,color:'var(--text-muted)',marginTop:4}}>{clinics.length} total clinics</p>
                 </div>
-                <button className="btn btn-gold" onClick={() => setShowCreate(true)}>{Icons.plus} New Doctor Account</button>
+                <button className="btn btn-primary" onClick={() => setShowCreate(true)}>{Icons.plus} New Clinic Account</button>
             </div>
             <div style={{marginBottom:20,position:'relative'}}>
-                <span style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:'var(--text-muted)'}}>{Icons.search}</span>
-                <input className="input" style={{paddingLeft:36}} placeholder="Search clinics by name, city, or specialty..." value={search} onChange={e => setSearch(e.target.value)}/>
+                <span style={{position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',color:'var(--text-muted)'}}>{Icons.search}</span>
+                <input className="input" style={{paddingLeft:38}} placeholder="Search clinics by name, city, or specialty..." value={search} onChange={e => setSearch(e.target.value)}/>
             </div>
             {loading ? (
                 <div style={{display:'flex',justifyContent:'center',padding:40}}><div className="spinner"/></div>
             ) : (
-                <div className="glass" style={{borderRadius:12,overflow:'hidden'}}>
+                <div className="card" style={{overflow:'hidden'}}>
                     <table style={{width:'100%',borderCollapse:'collapse'}}>
                         <thead>
                             <tr style={{borderBottom:'1px solid var(--border)'}}>
-                                <th style={{padding:'12px 16px',textAlign:'left',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Clinic</th>
-                                <th style={{padding:'12px 16px',textAlign:'left',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>City</th>
-                                <th style={{padding:'12px 16px',textAlign:'left',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Specialty</th>
-                                <th style={{padding:'12px 16px',textAlign:'center',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Users</th>
-                                <th style={{padding:'12px 16px',textAlign:'center',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Calls</th>
-                                <th style={{padding:'12px 16px',textAlign:'center',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Avg Score</th>
-                                <th style={{padding:'12px 16px',textAlign:'center',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Status</th>
-                                <th style={{padding:'12px 16px',textAlign:'center',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Leaderboard</th>
+                                <th className="th-cell">Clinic</th>
+                                <th className="th-cell">City</th>
+                                <th className="th-cell">Specialty</th>
+                                <th className="th-cell" style={{textAlign:'center'}}>Users</th>
+                                <th className="th-cell" style={{textAlign:'center'}}>Calls</th>
+                                <th className="th-cell" style={{textAlign:'center'}}>Avg Score</th>
+                                <th className="th-cell" style={{textAlign:'center'}}>Status</th>
+                                <th className="th-cell" style={{textAlign:'center'}}>Leaderboard</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filtered.map(c => (
                                 <tr key={c.id} className="table-row" style={{borderBottom:'1px solid var(--border)',cursor:'pointer'}} onClick={() => onSelect(c.id)}>
-                                    <td style={{padding:'14px 16px'}}>
+                                    <td className="td-cell">
                                         <div style={{fontWeight:600,fontSize:14}}>{c.name}</div>
                                         {c.email && <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>{c.email}</div>}
                                     </td>
-                                    <td style={{padding:'14px 16px',fontSize:13,color:'var(--text-secondary)'}}>{c.city || '-'}</td>
-                                    <td style={{padding:'14px 16px',fontSize:13,color:'var(--text-secondary)'}}>{c.specialty || '-'}</td>
-                                    <td style={{padding:'14px 16px',textAlign:'center',fontSize:13,fontWeight:600}}>{c.user_count || 0}</td>
-                                    <td style={{padding:'14px 16px',textAlign:'center',fontSize:13,fontWeight:600}}>{c.call_count || 0}</td>
-                                    <td style={{padding:'14px 16px',textAlign:'center'}}>
-                                        {c.avg_score ? <span style={{fontWeight:700,color: c.avg_score >= 70 ? 'var(--success)' : c.avg_score >= 50 ? 'var(--warning)' : 'var(--danger)'}}>{c.avg_score.toFixed(1)}</span> : <span style={{color:'var(--text-muted)'}}>-</span>}
+                                    <td className="td-cell" style={{fontSize:13,color:'var(--text-secondary)'}}>{c.city || '-'}</td>
+                                    <td className="td-cell" style={{fontSize:13,color:'var(--text-secondary)'}}>{c.specialty || '-'}</td>
+                                    <td className="td-cell" style={{textAlign:'center',fontSize:14,fontWeight:600}}>{c.user_count || 0}</td>
+                                    <td className="td-cell" style={{textAlign:'center',fontSize:14,fontWeight:600}}>{c.call_count || 0}</td>
+                                    <td className="td-cell" style={{textAlign:'center'}}>
+                                        {c.avg_score ? <span style={{fontWeight:700,fontSize:14,color: c.avg_score >= 70 ? 'var(--success)' : c.avg_score >= 50 ? 'var(--warning)' : 'var(--danger)'}}>{c.avg_score.toFixed(1)}</span> : <span style={{color:'var(--text-muted)'}}>-</span>}
                                     </td>
-                                    <td style={{padding:'14px 16px',textAlign:'center'}}>
+                                    <td className="td-cell" style={{textAlign:'center'}}>
                                         <span className={`badge ${c.is_active ? 'badge-green' : 'badge-red'}`}>{c.is_active ? 'Active' : 'Inactive'}</span>
                                     </td>
-                                    <td style={{padding:'14px 16px',textAlign:'center'}}>
+                                    <td className="td-cell" style={{textAlign:'center',color: c.leaderboard_visible ? 'var(--orange)' : 'var(--text-muted)'}}>
                                         {c.leaderboard_visible ? Icons.eye : Icons.eyeOff}
                                     </td>
                                 </tr>
@@ -433,19 +451,19 @@ const CreateClinicModal = ({ onClose, onCreated }) => {
 
     return (
         <Modal onClose={onClose}>
-            <h2 style={{fontSize:20,fontWeight:800,marginBottom:4,fontFamily:"'Playfair Display',serif"}} className="text-gradient">Create Doctor Account</h2>
+            <h2 style={{fontSize:20,fontWeight:800,marginBottom:4}}>Create Clinic Account</h2>
             <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:24}}>Create a new clinic with an admin user.</p>
-            {error && <div style={{padding:'10px 14px',borderRadius:8,background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.3)',color:'#EF4444',fontSize:13,marginBottom:16}}>{error}</div>}
+            {error && <div style={{padding:'10px 14px',borderRadius:8,background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',color:'#EF4444',fontSize:13,marginBottom:16}}>{error}</div>}
             <form onSubmit={handleSubmit}>
-                <div style={{fontSize:12,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:12}}>Clinic Info</div>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
+                <div style={{fontSize:11,fontWeight:700,color:'var(--orange)',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:12}}>Clinic Info</div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:20}}>
                     <input className="input" placeholder="Clinic Name *" value={form.clinic_name} onChange={e => setForm({...form, clinic_name: e.target.value})} required/>
                     <input className="input" placeholder="Phone" value={form.clinic_phone} onChange={e => setForm({...form, clinic_phone: e.target.value})}/>
                     <input className="input" placeholder="Clinic Email" value={form.clinic_email} onChange={e => setForm({...form, clinic_email: e.target.value})}/>
                     <input className="input" placeholder="City" value={form.clinic_city} onChange={e => setForm({...form, clinic_city: e.target.value})}/>
                     <input className="input" placeholder="Specialty" value={form.clinic_specialty} onChange={e => setForm({...form, clinic_specialty: e.target.value})} style={{gridColumn:'span 2'}}/>
                 </div>
-                <div style={{fontSize:12,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:12}}>Admin User</div>
+                <div style={{fontSize:11,fontWeight:700,color:'var(--orange)',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:12}}>Admin User</div>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:24}}>
                     <input className="input" placeholder="Full Name *" value={form.admin_full_name} onChange={e => setForm({...form, admin_full_name: e.target.value})} required/>
                     <input className="input" type="email" placeholder="Email *" value={form.admin_email} onChange={e => setForm({...form, admin_email: e.target.value})} required/>
@@ -453,7 +471,7 @@ const CreateClinicModal = ({ onClose, onCreated }) => {
                 </div>
                 <div style={{display:'flex',gap:12,justifyContent:'flex-end'}}>
                     <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
-                    <button type="submit" className="btn btn-gold" disabled={loading}>{loading ? <div className="spinner"/> : 'Create Account'}</button>
+                    <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? <div className="spinner"/> : 'Create Account'}</button>
                 </div>
             </form>
         </Modal>
@@ -506,13 +524,15 @@ const ClinicDetailPage = ({ clinicId, onBack }) => {
     if (loading) return <div style={{display:'flex',justifyContent:'center',padding:80}}><div className="spinner" style={{width:32,height:32}}/></div>;
     if (!clinic) return <div style={{textAlign:'center',padding:40,color:'var(--text-muted)'}}>Clinic not found</div>;
 
+    const detailTabs = ['overview','staff','settings'];
+
     return (
         <div className="fade-in">
             <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:24}}>
                 <button className="btn btn-ghost btn-sm" onClick={onBack}>{Icons.back} Back</button>
                 <div style={{flex:1}}>
-                    <h1 style={{fontSize:24,fontWeight:800,fontFamily:"'Playfair Display',serif"}} className="text-gradient">{clinic.name}</h1>
-                    <div style={{display:'flex',gap:8,marginTop:6}}>
+                    <div className="section-title">{clinic.name}</div>
+                    <div style={{display:'flex',gap:8,marginTop:6,flexWrap:'wrap'}}>
                         <span className={`badge ${clinic.is_active ? 'badge-green' : 'badge-red'}`}>{clinic.is_active ? 'Active' : 'Inactive'}</span>
                         {clinic.city && <span className="badge badge-blue">{clinic.city}</span>}
                         {clinic.specialty && <span className="badge badge-accent">{clinic.specialty}</span>}
@@ -521,13 +541,14 @@ const ClinicDetailPage = ({ clinicId, onBack }) => {
             </div>
 
             {/* Tab Nav */}
-            <div style={{display:'flex',gap:4,marginBottom:24,borderBottom:'1px solid var(--border)',paddingBottom:0}}>
-                {['overview','staff','settings'].map(t => (
+            <div style={{display:'flex',gap:2,marginBottom:24,borderBottom:'1px solid var(--border)'}}>
+                {detailTabs.map(t => (
                     <button key={t} onClick={() => setTab(t)} style={{
-                        padding:'10px 20px',borderRadius:'8px 8px 0 0',fontSize:13,fontWeight:600,cursor:'pointer',transition:'all 0.2s',
-                        color: tab === t ? 'var(--gold)' : 'var(--text-muted)',
-                        background: tab === t ? 'rgba(192,196,203,0.06)' : 'transparent',
-                        border:'none',borderBottom: tab === t ? '2px solid var(--gold)' : '2px solid transparent',fontFamily:'inherit'
+                        padding:'10px 20px',fontSize:13,fontWeight:600,cursor:'pointer',transition:'all 0.2s',
+                        color: tab === t ? 'var(--orange)' : 'var(--text-muted)',
+                        background:'transparent',
+                        border:'none',borderBottom: tab === t ? '2px solid var(--orange)' : '2px solid transparent',fontFamily:'inherit',
+                        borderRadius:0
                     }}>{t.charAt(0).toUpperCase() + t.slice(1)}</button>
                 ))}
             </div>
@@ -535,23 +556,23 @@ const ClinicDetailPage = ({ clinicId, onBack }) => {
             {/* Overview Tab */}
             {tab === 'overview' && (
                 <div>
-                    <div style={{display:'flex',gap:16,flexWrap:'wrap',marginBottom:24}}>
-                        <StatCard label="Total Staff" value={clinic.staff?.length || staff.length} accent="var(--info)"/>
-                        <StatCard label="Total Calls" value={clinic.total_calls || 0}/>
-                        <StatCard label="Avg Score" value={clinic.avg_score ? clinic.avg_score.toFixed(1) : 'N/A'} accent="var(--success)"/>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))',gap:16,marginBottom:24}}>
+                        <StatCard label="Total Staff" value={clinic.staff?.length || staff.length} color="var(--info)"/>
+                        <StatCard label="Total Calls" value={clinic.total_calls || 0} color="var(--accent)"/>
+                        <StatCard label="Avg Score" value={clinic.avg_score ? clinic.avg_score.toFixed(1) : 'N/A'} color="var(--success)"/>
                     </div>
                     {clinic.staff && clinic.staff.length > 0 && (
-                        <div className="glass" style={{borderRadius:12,padding:24}}>
+                        <div className="card" style={{padding:24}}>
                             <div style={{fontSize:16,fontWeight:700,marginBottom:16}}>Agent Performance</div>
-                            <div style={{display:'grid',gap:16,gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))'}}>
+                            <div style={{display:'grid',gap:12,gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))'}}>
                                 {clinic.staff.map(s => (
-                                    <div key={s.user_id} className="glass" style={{borderRadius:10,padding:16}}>
-                                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                                    <div key={s.user_id} className="card-elevated" style={{borderRadius:10,padding:16}}>
+                                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                                             <div>
                                                 <div style={{fontWeight:600,fontSize:14}}>{s.name}</div>
-                                                <div style={{fontSize:11,color:'var(--text-muted)'}}>{s.role} | {s.total_calls} calls</div>
+                                                <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>{s.role} | {s.total_calls} calls</div>
                                             </div>
-                                            <div style={{fontSize:20,fontWeight:800,color: s.avg_score >= 70 ? 'var(--success)' : s.avg_score >= 50 ? 'var(--warning)' : 'var(--danger)'}}>
+                                            <div style={{fontSize:22,fontWeight:800,color: s.avg_score >= 70 ? 'var(--success)' : s.avg_score >= 50 ? 'var(--warning)' : 'var(--danger)'}}>
                                                 {s.avg_score ? s.avg_score.toFixed(1) : '-'}
                                             </div>
                                         </div>
@@ -567,27 +588,27 @@ const ClinicDetailPage = ({ clinicId, onBack }) => {
             {tab === 'staff' && (
                 <div>
                     <div style={{display:'flex',justifyContent:'flex-end',marginBottom:16}}>
-                        <button className="btn btn-gold btn-sm" onClick={() => setShowAddUser(true)}>{Icons.plus} Add Staff</button>
+                        <button className="btn btn-primary btn-sm" onClick={() => setShowAddUser(true)}>{Icons.plus} Add Staff</button>
                     </div>
-                    <div className="glass" style={{borderRadius:12,overflow:'hidden'}}>
+                    <div className="card" style={{overflow:'hidden'}}>
                         <table style={{width:'100%',borderCollapse:'collapse'}}>
                             <thead>
                                 <tr style={{borderBottom:'1px solid var(--border)'}}>
-                                    <th style={{padding:'12px 16px',textAlign:'left',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Name</th>
-                                    <th style={{padding:'12px 16px',textAlign:'left',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Email</th>
-                                    <th style={{padding:'12px 16px',textAlign:'center',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Role</th>
-                                    <th style={{padding:'12px 16px',textAlign:'center',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Status</th>
-                                    <th style={{padding:'12px 16px',textAlign:'center',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Actions</th>
+                                    <th className="th-cell">Name</th>
+                                    <th className="th-cell">Email</th>
+                                    <th className="th-cell" style={{textAlign:'center'}}>Role</th>
+                                    <th className="th-cell" style={{textAlign:'center'}}>Status</th>
+                                    <th className="th-cell" style={{textAlign:'center'}}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {staff.map(u => (
                                     <tr key={u.id} className="table-row" style={{borderBottom:'1px solid var(--border)'}}>
-                                        <td style={{padding:'14px 16px',fontWeight:600,fontSize:14}}>{u.full_name}</td>
-                                        <td style={{padding:'14px 16px',fontSize:13,color:'var(--text-secondary)'}}>{u.email}</td>
-                                        <td style={{padding:'14px 16px',textAlign:'center'}}><span className={`badge ${u.role === 'admin' ? 'badge-accent' : u.role === 'manager' ? 'badge-blue' : 'badge-gray'}`}>{u.role}</span></td>
-                                        <td style={{padding:'14px 16px',textAlign:'center'}}><span className={`badge ${u.is_active ? 'badge-green' : 'badge-red'}`}>{u.is_active ? 'Active' : 'Inactive'}</span></td>
-                                        <td style={{padding:'14px 16px',textAlign:'center'}}>
+                                        <td className="td-cell" style={{fontWeight:600,fontSize:14}}>{u.full_name}</td>
+                                        <td className="td-cell" style={{fontSize:13,color:'var(--text-secondary)'}}>{u.email}</td>
+                                        <td className="td-cell" style={{textAlign:'center'}}><span className={`badge ${u.role === 'admin' ? 'badge-orange' : u.role === 'manager' ? 'badge-blue' : 'badge-gray'}`}>{u.role}</span></td>
+                                        <td className="td-cell" style={{textAlign:'center'}}><span className={`badge ${u.is_active ? 'badge-green' : 'badge-red'}`}>{u.is_active ? 'Active' : 'Inactive'}</span></td>
+                                        <td className="td-cell" style={{textAlign:'center'}}>
                                             <button className={`btn btn-xs ${u.is_active ? 'btn-danger' : 'btn-success'}`} onClick={() => toggleUserActive(u.id, u.is_active)}>
                                                 {u.is_active ? 'Deactivate' : 'Activate'}
                                             </button>
@@ -606,30 +627,30 @@ const ClinicDetailPage = ({ clinicId, onBack }) => {
 
             {/* Settings Tab */}
             {tab === 'settings' && (
-                <div className="glass" style={{borderRadius:12,padding:24}}>
-                    <div style={{fontSize:16,fontWeight:700,marginBottom:20}}>Clinic Settings</div>
-                    <div style={{display:'flex',flexDirection:'column',gap:20}}>
-                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'16px 0',borderBottom:'1px solid var(--border)'}}>
+                <div className="card" style={{padding:24}}>
+                    <div style={{fontSize:16,fontWeight:700,marginBottom:24}}>Clinic Settings</div>
+                    <div style={{display:'flex',flexDirection:'column',gap:0}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'18px 0',borderBottom:'1px solid var(--border)'}}>
                             <div>
                                 <div style={{fontWeight:600,fontSize:14}}>Clinic Status</div>
-                                <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>Active clinics can log in and use the platform.</div>
+                                <div style={{fontSize:12,color:'var(--text-muted)',marginTop:3}}>Active clinics can log in and use the platform.</div>
                             </div>
                             <Toggle value={clinic.is_active} onChange={toggleActive} label={clinic.is_active ? 'Active' : 'Inactive'}/>
                         </div>
-                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'16px 0',borderBottom:'1px solid var(--border)'}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'18px 0',borderBottom:'1px solid var(--border)'}}>
                             <div>
                                 <div style={{fontWeight:600,fontSize:14}}>Leaderboard Visibility</div>
-                                <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>When hidden, agents cannot see the leaderboard. Admins and managers always see it.</div>
+                                <div style={{fontSize:12,color:'var(--text-muted)',marginTop:3}}>When hidden, agents cannot see the leaderboard.</div>
                             </div>
                             <Toggle value={clinic.leaderboard_visible} onChange={toggleLeaderboard} label={clinic.leaderboard_visible ? 'Visible' : 'Hidden'}/>
                         </div>
-                        <div style={{padding:'16px 0'}}>
-                            <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>Clinic Details</div>
-                            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,fontSize:13,color:'var(--text-secondary)'}}>
-                                <div><span style={{color:'var(--text-muted)'}}>Phone:</span> {clinic.phone || 'Not set'}</div>
-                                <div><span style={{color:'var(--text-muted)'}}>Email:</span> {clinic.email || 'Not set'}</div>
-                                <div><span style={{color:'var(--text-muted)'}}>City:</span> {clinic.city || 'Not set'}</div>
-                                <div><span style={{color:'var(--text-muted)'}}>Specialty:</span> {clinic.specialty || 'Not set'}</div>
+                        <div style={{padding:'18px 0'}}>
+                            <div style={{fontWeight:600,fontSize:14,marginBottom:12}}>Clinic Details</div>
+                            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,fontSize:13}}>
+                                <div><span style={{color:'var(--text-muted)'}}>Phone:</span> <span style={{color:'var(--text-secondary)',fontWeight:500}}>{clinic.phone || 'Not set'}</span></div>
+                                <div><span style={{color:'var(--text-muted)'}}>Email:</span> <span style={{color:'var(--text-secondary)',fontWeight:500}}>{clinic.email || 'Not set'}</span></div>
+                                <div><span style={{color:'var(--text-muted)'}}>City:</span> <span style={{color:'var(--text-secondary)',fontWeight:500}}>{clinic.city || 'Not set'}</span></div>
+                                <div><span style={{color:'var(--text-muted)'}}>Specialty:</span> <span style={{color:'var(--text-secondary)',fontWeight:500}}>{clinic.specialty || 'Not set'}</span></div>
                             </div>
                         </div>
                     </div>
@@ -655,9 +676,9 @@ const AddUserModal = ({ clinicId, onClose, onCreated }) => {
 
     return (
         <Modal onClose={onClose}>
-            <h2 style={{fontSize:20,fontWeight:800,marginBottom:4,fontFamily:"'Playfair Display',serif"}} className="text-gradient">Add Staff Member</h2>
+            <h2 style={{fontSize:20,fontWeight:800,marginBottom:4}}>Add Staff Member</h2>
             <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:24}}>Add a new user to this clinic.</p>
-            {error && <div style={{padding:'10px 14px',borderRadius:8,background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.3)',color:'#EF4444',fontSize:13,marginBottom:16}}>{error}</div>}
+            {error && <div style={{padding:'10px 14px',borderRadius:8,background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',color:'#EF4444',fontSize:13,marginBottom:16}}>{error}</div>}
             <form onSubmit={handleSubmit}>
                 <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:24}}>
                     <input className="input" placeholder="Full Name *" value={form.full_name} onChange={e => setForm({...form, full_name: e.target.value})} required/>
@@ -671,7 +692,7 @@ const AddUserModal = ({ clinicId, onClose, onCreated }) => {
                 </div>
                 <div style={{display:'flex',gap:12,justifyContent:'flex-end'}}>
                     <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
-                    <button type="submit" className="btn btn-gold" disabled={loading}>{loading ? <div className="spinner"/> : 'Add User'}</button>
+                    <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? <div className="spinner"/> : 'Add User'}</button>
                 </div>
             </form>
         </Modal>
@@ -703,23 +724,23 @@ const AnalyticsPage = () => {
 
     return (
         <div className="fade-in">
-            <h1 style={{fontSize:24,fontWeight:800,marginBottom:8,fontFamily:"'Playfair Display',serif"}} className="text-gradient">Platform Analytics</h1>
-            <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:28}}>Anonymized averages across all clinics. No individual clinic data is exposed here.</p>
+            <div className="section-title">Platform Analytics</div>
+            <div className="section-desc">Anonymized averages across all clinics. No individual clinic data is exposed here.</div>
 
             {averages && (
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24}}>
-                    <div className="glass" style={{borderRadius:12,padding:24}}>
-                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
-                            <div style={{fontSize:16,fontWeight:700}}>Overall Platform Average</div>
-                            <div style={{fontSize:32,fontWeight:800,color: averages.overall >= 70 ? 'var(--success)' : 'var(--warning)'}}>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
+                    <div className="card" style={{padding:28}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:20}}>
+                            <div>
+                                <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>Overall Platform Average</div>
+                                <div style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.5}}>Based on aggregated scores across all clinics. Use these to benchmark individual clinic performance.</div>
+                            </div>
+                            <div style={{fontSize:36,fontWeight:800,color: averages.overall >= 70 ? 'var(--success)' : averages.overall ? 'var(--warning)' : 'var(--text-muted)',marginLeft:20}}>
                                 {averages.overall ? averages.overall.toFixed(1) : 'N/A'}
                             </div>
                         </div>
-                        <div style={{fontSize:13,color:'var(--text-muted)'}}>
-                            Based on aggregated scores across all clinics on the platform. Use these numbers to benchmark individual clinic performance.
-                        </div>
                     </div>
-                    <div className="glass" style={{borderRadius:12,padding:24}}>
+                    <div className="card" style={{padding:28}}>
                         <div style={{fontSize:16,fontWeight:700,marginBottom:20}}>Dimension Breakdown</div>
                         {dims.map(d => (
                             <DimensionBar key={d.label} label={d.label} value={d.value}/>
@@ -753,7 +774,7 @@ const App = () => {
 
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: Icons.dashboard },
-        { id: 'clinics', label: 'Doctor Accounts', icon: Icons.clinics },
+        { id: 'clinics', label: 'Clinic Accounts', icon: Icons.clinics },
         { id: 'analytics', label: 'Platform Analytics', icon: Icons.analytics },
     ];
 
@@ -776,13 +797,13 @@ const App = () => {
                 <button className="hamburger" onClick={() => setSidebarOpen(!sidebarOpen)}>
                     <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
                 </button>
-                <span style={{fontSize:15,fontWeight:900,fontFamily:"'Playfair Display',serif"}} className="text-gradient">Admin Portal</span>
+                <span style={{fontSize:15,fontWeight:800,color:'var(--orange)'}}>SBA Admin</span>
                 <div style={{width:24}}/>
             </div>
             {/* Mobile Overlay */}
             <div className={`mobile-overlay ${sidebarOpen ? 'show' : ''}`} onClick={() => setSidebarOpen(false)}/>
             {/* Sidebar */}
-            <aside className={`glass-solid desktop-sidebar ${sidebarOpen ? 'open' : ''}`} style={{width:240,padding:'20px 12px',display:'flex',flexDirection:'column',position:'fixed',top:0,left:0,bottom:0,zIndex:60}}>
+            <aside className={`desktop-sidebar ${sidebarOpen ? 'open' : ''}`} style={{width:240,padding:'20px 12px',display:'flex',flexDirection:'column',position:'fixed',top:0,left:0,bottom:0,zIndex:60,background:'var(--bg-secondary)',borderRight:'1px solid var(--border)'}}>
                 <div style={{padding:'0 8px',marginBottom:32}}><Logo/></div>
                 <nav style={{display:'flex',flexDirection:'column',gap:4,flex:1}}>
                     {navItems.map(item => (
@@ -793,12 +814,14 @@ const App = () => {
                 </nav>
                 <div style={{padding:'16px 8px',borderTop:'1px solid var(--border)'}}>
                     {user && <div style={{fontSize:13,fontWeight:600,marginBottom:2}}>{user.full_name}</div>}
-                    <div style={{fontSize:11,color:'var(--accent)',marginBottom:12,fontWeight:600}}>Super Admin</div>
-                    <a href="/" style={{display:'flex',alignItems:'center',gap:8,fontSize:13,color:'var(--text-muted)',textDecoration:'none',marginBottom:8,padding:'4px 0'}}>
-                        {Icons.back} Main App
+                    <div style={{fontSize:11,color:'var(--orange)',marginBottom:14,fontWeight:600}}>Super Admin</div>
+                    <a href="/" style={{display:'flex',alignItems:'center',gap:8,fontSize:13,color:'var(--text-secondary)',textDecoration:'none',marginBottom:10,padding:'4px 0',transition:'color 0.2s'}}>
+                        {Icons.home} <span>Main App</span>
                     </a>
-                    <a className="sidebar-link" onClick={logout} style={{color:'var(--danger)'}}>{Icons.logout}<span>Sign Out</span></a>
-                    <div style={{fontSize:9,color:'var(--text-muted)',textAlign:'center',marginTop:12,letterSpacing:'0.08em',textTransform:'uppercase'}}>Powered by SBA</div>
+                    <a className="sidebar-link" onClick={logout} style={{color:'var(--danger)',padding:'8px 0',gap:8}}>
+                        {Icons.logout}<span>Sign Out</span>
+                    </a>
+                    <div style={{fontSize:9,color:'var(--text-muted)',textAlign:'center',marginTop:16,letterSpacing:'0.1em',textTransform:'uppercase'}}>Powered by SBA</div>
                 </div>
             </aside>
             {/* Main */}

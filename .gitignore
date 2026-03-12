@@ -16,3 +16,4 @@ data/*
 *.log
 screenshot_*.png
 backups/
+.env.backup

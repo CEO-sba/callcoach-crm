@@ -101,6 +101,107 @@ def get_dashboard_stats(db: Session, clinic_id: str) -> dict:
     ).group_by(PipelineDeal.stage).all()
     deals_by_stage = {stage: count for stage, count in stage_counts}
 
+    # Calls per day (last 14 days)
+    calls_per_day = []
+    for i in range(13, -1, -1):
+        day = today_start - timedelta(days=i)
+        day_end = day + timedelta(days=1)
+        day_count = db.query(Call).filter(
+            Call.clinic_id == clinic_id,
+            Call.call_date >= day,
+            Call.call_date < day_end,
+        ).count()
+        calls_per_day.append({
+            "date": day.strftime("%Y-%m-%d"),
+            "day": day.strftime("%a"),
+            "count": day_count
+        })
+
+    # Deals won per week (last 8 weeks)
+    deals_per_week = []
+    for i in range(7, -1, -1):
+        wk_start = today_start - timedelta(weeks=i, days=today_start.weekday())
+        wk_end = wk_start + timedelta(days=7)
+        wk_won = db.query(func.count(PipelineDeal.id)).filter(
+            PipelineDeal.clinic_id == clinic_id,
+            PipelineDeal.status == "won",
+            PipelineDeal.updated_at >= wk_start,
+            PipelineDeal.updated_at < wk_end
+        ).scalar() or 0
+        wk_value = db.query(func.sum(PipelineDeal.deal_value)).filter(
+            PipelineDeal.clinic_id == clinic_id,
+            PipelineDeal.status == "won",
+            PipelineDeal.updated_at >= wk_start,
+            PipelineDeal.updated_at < wk_end
+        ).scalar() or 0
+        deals_per_week.append({
+            "week": wk_start.strftime("%d %b"),
+            "won": wk_won,
+            "value": float(wk_value)
+        })
+
+    # Recent calls (last 5 for activity feed)
+    recent_calls = db.query(Call).filter(
+        Call.clinic_id == clinic_id
+    ).order_by(Call.call_date.desc()).limit(5).all()
+    recent_activity = []
+    for c in recent_calls:
+        agent = db.query(User).filter(User.id == c.agent_id).first() if c.agent_id else None
+        recent_activity.append({
+            "id": c.id,
+            "type": "call",
+            "agent": agent.full_name if agent else "Unknown",
+            "contact": c.contact_name or "Unknown",
+            "score": c.overall_score,
+            "sentiment": c.sentiment,
+            "intent": c.intent,
+            "date": c.call_date.isoformat() if c.call_date else None,
+        })
+
+    # Recent deals (last 5)
+    recent_deals = db.query(PipelineDeal).filter(
+        PipelineDeal.clinic_id == clinic_id
+    ).order_by(PipelineDeal.updated_at.desc()).limit(5).all()
+    for d in recent_deals:
+        recent_activity.append({
+            "id": d.id,
+            "type": "deal",
+            "contact": d.contact_name or "Unknown",
+            "stage": d.stage,
+            "status": d.status,
+            "value": float(d.deal_value or 0),
+            "treatment": d.treatment_interest,
+            "date": d.updated_at.isoformat() if d.updated_at else None,
+        })
+
+    # Sort activity by date
+    recent_activity.sort(key=lambda x: x.get("date") or "", reverse=True)
+    recent_activity = recent_activity[:8]
+
+    # Sentiment distribution
+    sentiments = db.query(
+        Call.sentiment, func.count(Call.id)
+    ).filter(
+        Call.clinic_id == clinic_id,
+        Call.sentiment.isnot(None)
+    ).group_by(Call.sentiment).all()
+    sentiment_dist = {s: count for s, count in sentiments if s}
+
+    # Intent distribution
+    intents = db.query(
+        Call.intent, func.count(Call.id)
+    ).filter(
+        Call.clinic_id == clinic_id,
+        Call.intent.isnot(None)
+    ).group_by(Call.intent).all()
+    intent_dist = {i: count for i, count in intents if i}
+
+    # Team size
+    team_count = db.query(User).filter(
+        User.clinic_id == clinic_id,
+        User.is_active == True
+    ).count()
+
     return {
         "total_calls": total_calls,
         "calls_today": calls_today,
@@ -118,6 +219,12 @@ def get_dashboard_stats(db: Session, clinic_id: str) -> dict:
         "score_trend": score_trend,
         "calls_by_type": calls_by_type,
         "deals_by_stage": deals_by_stage,
+        "calls_per_day": calls_per_day,
+        "deals_per_week": deals_per_week,
+        "recent_activity": recent_activity,
+        "sentiment_distribution": sentiment_dist,
+        "intent_distribution": intent_dist,
+        "team_count": team_count,
     }
 
 

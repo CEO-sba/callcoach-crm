@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="bodyGrad" x1="100" y1="10" x2="100" y2="180" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F5A623"/>
+      <stop offset="0.4" stop-color="#E88725"/>
+      <stop offset="0.7" stop-color="#D4700E"/>
+      <stop offset="1" stop-color="#C4650A"/>
+    </linearGradient>
+    <linearGradient id="darkEdge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#C4650A"/>
+      <stop offset="1" stop-color="#8B4513"/>
+    </linearGradient>
+    <linearGradient id="flameGrad" x1="100" y1="155" x2="100" y2="195" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F5A623"/>
+      <stop offset="0.4" stop-color="#E88725"/>
+      <stop offset="1" stop-color="#C4650A" stop-opacity="0.3"/>
+    </linearGradient>
+    <linearGradient id="innerFlame" x1="100" y1="155" x2="100" y2="188" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFD700"/>
+      <stop offset="0.5" stop-color="#F5A623"/>
+      <stop offset="1" stop-color="#E88725" stop-opacity="0.5"/>
+    </linearGradient>
+    <radialGradient id="windowGrad" cx="0.5" cy="0.4">
+      <stop offset="0" stop-color="#1a1a1a"/>
+      <stop offset="1" stop-color="#0a0a0a"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Main rocket body - pointed teardrop shape -->
+  <path d="M100 12 C100 12 72 50 68 85 C65 108 68 130 72 148 L84 155 L100 150 L116 155 L128 148 C132 130 135 108 132 85 C128 50 100 12 100 12Z"
+        fill="url(#bodyGrad)" stroke="#A0500A" stroke-width="1.5"/>
+
+  <!-- Left geometric panel line -->
+  <path d="M100 18 L78 90 L72 148" fill="none" stroke="#A0500A" stroke-width="0.8" opacity="0.5"/>
+
+  <!-- Right geometric panel line -->
+  <path d="M100 18 L122 90 L128 148" fill="none" stroke="#A0500A" stroke-width="0.8" opacity="0.5"/>
+
+  <!-- Window outer ring -->
+  <circle cx="100" cy="72" r="18" fill="url(#windowGrad)" stroke="url(#bodyGrad)" stroke-width="3"/>
+  <!-- Window inner ring -->
+  <circle cx="100" cy="72" r="12" fill="none" stroke="#E88725" stroke-width="1.5" opacity="0.7"/>
+  <!-- Window highlight -->
+  <circle cx="95" cy="67" r="4" fill="#333" opacity="0.3"/>
+
+  <!-- Left fin/wing -->
+  <path d="M68 105 L42 135 L48 148 L72 138Z"
+        fill="url(#bodyGrad)" stroke="#A0500A" stroke-width="1.2"/>
+  <!-- Left fin inner line -->
+  <path d="M65 110 L50 138" fill="none" stroke="#A0500A" stroke-width="0.6" opacity="0.5"/>
+
+  <!-- Right fin/wing -->
+  <path d="M132 105 L158 135 L152 148 L128 138Z"
+        fill="url(#bodyGrad)" stroke="#A0500A" stroke-width="1.2"/>
+  <!-- Right fin inner line -->
+  <path d="M135 110 L150 138" fill="none" stroke="#A0500A" stroke-width="0.6" opacity="0.5"/>
+
+  <!-- Flame center -->
+  <path d="M92 155 L100 192 L108 155Z" fill="url(#innerFlame)"/>
+  <!-- Flame left -->
+  <path d="M84 155 L88 180 L96 155Z" fill="url(#flameGrad)" opacity="0.8"/>
+  <!-- Flame right -->
+  <path d="M104 155 L112 180 L116 155Z" fill="url(#flameGrad)" opacity="0.8"/>
+</svg>

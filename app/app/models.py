@@ -55,6 +55,7 @@ class User(Base):
     role = Column(String(50), default="agent")  # admin, manager, agent
     is_super_admin = Column(Boolean, default=False)  # Platform-level super admin
     is_active = Column(Boolean, default=True)
+    allowed_tabs = Column(JSON, nullable=True)  # List of allowed tab IDs, null = all tabs visible
     created_at = Column(DateTime, default=datetime.utcnow)
 
     clinic = relationship("Clinic", back_populates="users")

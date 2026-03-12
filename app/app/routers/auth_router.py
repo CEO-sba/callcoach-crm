@@ -19,85 +19,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
-@router.post("/register", response_model=Token)
-def register(data: ClinicCreate, user: UserCreate, db: Session = Depends(get_db)):
-    """Register a new clinic and admin user."""
-    existing = db.query(User).filter(User.email == user.email).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
-
-    # Create clinic
-    clinic = Clinic(name=data.name, phone=data.phone, email=data.email,
-                    address=data.address, city=data.city, specialty=data.specialty)
-    db.add(clinic)
-    db.flush()
-
-    # Create admin user
-    new_user = User(
-        clinic_id=clinic.id,
-        email=user.email,
-        hashed_password=hash_password(user.password),
-        full_name=user.full_name,
-        role="admin"
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-
-    token = create_access_token({
-        "sub": new_user.id,
-        "clinic_id": clinic.id,
-        "role": new_user.role,
-        "is_super_admin": False
-    })
-    log_activity(db, clinic.id, "system", "clinic_registered",
-                 {"clinic_name": data.name, "admin_email": user.email,
-                  "city": data.city, "specialty": data.specialty},
-                 user.email)
-    return Token(access_token=token, user_id=new_user.id, clinic_id=clinic.id, role=new_user.role, is_super_admin=False)
-
-
-class SimpleRegister(BaseModel):
-    email: str
-    password: str
-    full_name: str
-    clinic_name: str
-
-
-@router.post("/register-simple", response_model=Token)
-def register_simple(data: SimpleRegister, db: Session = Depends(get_db)):
-    """Simplified registration endpoint."""
-    existing = db.query(User).filter(User.email == data.email).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
-
-    clinic = Clinic(name=data.clinic_name)
-    db.add(clinic)
-    db.flush()
-
-    new_user = User(
-        clinic_id=clinic.id,
-        email=data.email,
-        hashed_password=hash_password(data.password),
-        full_name=data.full_name,
-        role="admin"
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-
-    token = create_access_token({
-        "sub": new_user.id,
-        "clinic_id": clinic.id,
-        "role": new_user.role,
-        "is_super_admin": False
-    })
-    log_activity(db, clinic.id, "system", "clinic_registered_simple",
-                 {"clinic_name": data.clinic_name, "admin_email": data.email},
-                 data.email)
-    return Token(access_token=token, user_id=new_user.id, clinic_id=clinic.id, role=new_user.role, is_super_admin=False)
-
-
 @router.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """Login and get access token."""
@@ -167,6 +88,91 @@ def add_team_member(user: UserCreate, db: Session = Depends(get_db),
 def get_team(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Get all team members for the clinic."""
     return db.query(User).filter(User.clinic_id == current_user.clinic_id).all()
+
+
+class TeamMemberUpdate(BaseModel):
+    full_name: str | None = None
+    role: str | None = None
+    is_active: bool | None = None
+    allowed_tabs: list[str] | None = None
+
+
+@router.patch("/team/{user_id}", response_model=UserOut)
+def update_team_member(user_id: str, data: TeamMemberUpdate, db: Session = Depends(get_db),
+                        current_user: User = Depends(get_current_user)):
+    """Update a team member (admin/manager only, same clinic)."""
+    if current_user.role not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Only admin or manager can update team members")
+
+    target = db.query(User).filter(User.id == user_id, User.clinic_id == current_user.clinic_id).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if data.full_name is not None:
+        target.full_name = data.full_name
+    if data.role is not None:
+        if data.role not in ["admin", "manager", "agent"]:
+            raise HTTPException(status_code=400, detail="Invalid role")
+        target.role = data.role
+    if data.is_active is not None:
+        target.is_active = data.is_active
+    if data.allowed_tabs is not None:
+        target.allowed_tabs = data.allowed_tabs
+
+    db.commit()
+    db.refresh(target)
+    log_activity(db, current_user.clinic_id, "system", "team_member_updated",
+                 {"target_email": target.email, "changes": data.model_dump(exclude_none=True)},
+                 current_user.email, related_id=target.id, related_type="user")
+    return target
+
+
+@router.delete("/team/{user_id}")
+def deactivate_team_member(user_id: str, db: Session = Depends(get_db),
+                            current_user: User = Depends(get_current_user)):
+    """Soft-delete (deactivate) a team member (admin only)."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admin can remove team members")
+
+    if current_user.id == user_id:
+        raise HTTPException(status_code=400, detail="You cannot deactivate yourself")
+
+    target = db.query(User).filter(User.id == user_id, User.clinic_id == current_user.clinic_id).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    target.is_active = False
+    db.commit()
+    log_activity(db, current_user.clinic_id, "system", "team_member_deactivated",
+                 {"target_email": target.email, "target_name": target.full_name},
+                 current_user.email, related_id=target.id, related_type="user")
+    return {"status": "ok", "message": f"{target.full_name} has been deactivated"}
+
+
+class ResetTeamPasswordRequest(BaseModel):
+    new_password: str
+
+
+@router.patch("/team/{user_id}/reset-password")
+def reset_team_member_password(user_id: str, data: ResetTeamPasswordRequest,
+                                db: Session = Depends(get_db),
+                                current_user: User = Depends(get_current_user)):
+    """Reset a team member's password (admin/manager only)."""
+    if current_user.role not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Only admin or manager can reset passwords")
+
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+
+    target = db.query(User).filter(User.id == user_id, User.clinic_id == current_user.clinic_id).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    target.hashed_password = hash_password(data.new_password)
+    db.commit()
+    log_activity(db, current_user.clinic_id, "system", "team_password_reset",
+                 {"target_email": target.email}, current_user.email)
+    return {"status": "ok", "message": "Password reset successfully"}
 
 
 # ---------------------------------------------------------------------------

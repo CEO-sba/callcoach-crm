@@ -33,6 +33,7 @@ class UserOut(BaseModel):
     clinic_id: Optional[str] = None
     is_super_admin: bool = False
     is_active: bool
+    allowed_tabs: Optional[List[str]] = None
     created_at: datetime
     class Config:
         from_attributes = True

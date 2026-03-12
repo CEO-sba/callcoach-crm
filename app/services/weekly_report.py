@@ -17,6 +17,7 @@ from sqlalchemy import func, desc
 from app.models import Call, User, CallScore, PipelineDeal
 from app.services.ai_coach import get_client
 from app.config import ANTHROPIC_MODEL
+from app.services.prompt_quality import enhance_system_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +146,8 @@ Return a JSON response:
 def generate_weekly_report(
     db: Session,
     clinic_id: str,
-    week_start: Optional[datetime] = None
+    week_start: Optional[datetime] = None,
+    regenerate_changes: str = ""
 ) -> Dict[str, Any]:
     """
     Generate a comprehensive weekly report for a clinic.
@@ -433,12 +435,15 @@ def generate_weekly_report(
     ai_recommendations = []
     revenue_impact = {}
 
+    if regenerate_changes and regenerate_changes.strip():
+        ai_prompt += f"\n\nIMPORTANT - USER FEEDBACK (apply these specific changes to your output):\n{regenerate_changes.strip()}"
+
     try:
         client = get_client()
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
             max_tokens=3000,
-            system=WEEKLY_REPORT_SYSTEM,
+            system=enhance_system_prompt(WEEKLY_REPORT_SYSTEM),
             messages=[{"role": "user", "content": ai_prompt}]
         )
 

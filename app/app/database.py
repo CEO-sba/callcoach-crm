@@ -62,6 +62,12 @@ def init_db():
         ContentCalendar, ContentCalendarPost, MarketResearch,
         CampaignWorkspace, MarketingAIFeedback, MarketingCoachChat
     )
+    from app.models_distribution import (
+        LeadDistributionRule, LeadDistributionLog
+    )
+    from app.models_telephony import (
+        TelephonyConfig, TelephonyCall
+    )
     Base.metadata.create_all(bind=engine)
     _run_column_migrations()
 
